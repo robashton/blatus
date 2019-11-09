@@ -8,7 +8,8 @@
         "web-socket",
         "filterable",
         "effect",
-        "canvas"
+        "canvas",
+        "web-html"
     ],
     "name": "client",
     "source": "git@github.com:purescript/package-sets.git"
