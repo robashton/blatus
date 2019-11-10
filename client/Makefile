@@ -1,7 +1,9 @@
 .PHONY: all clean
 
+
 PS_SRC = src
 OUTPUT = output
+SOURCES = $(shell find -L $(PS_SRC) -name *.purs)
 
 all: bundle.js
 
@@ -9,10 +11,8 @@ bundle.js: output
 	purs bundle 'output/**/*.js' -o bundle.js -m 'Pure.Main' --main 'Pure.Main'
 	cp bundle.js ../priv/www/assets/
 
-#$(PS_SRC)/**/*.purs 
-
-output: $(PS_SRC)/*.purs $(PS_SRC)/**/*.purs .psc-package
-	psc-package sources | xargs purs compile --codegen js  '$(PS_SRC)/**/*.purs' 
+output: $(SOURCES) .psc-package
+	psc-package sources | xargs purs compile --codegen js  'src/**/*.purs' 
 	touch output
 
 .psc-package: psc-package.json
