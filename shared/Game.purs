@@ -4,9 +4,10 @@ module Pure.Game where
 import Prelude
 
 import Data.Foldable (foldl)
-import Data.List (List(..), (:))
+import Data.List (List(..), elem, (:))
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
+import Math (cos, pi, sin) as Math
 import Pure.Math (Rect, Point)
 
 newtype HtmlColor = HtmlColor String
@@ -20,14 +21,19 @@ type Renderable = { transform :: Rect
                   , rotation :: Number
                   }
 
+data EntityCommand = PushForward | PushBackward | TurnLeft | TurnRight
+
 newtype EntityBehaviour = EntityBehaviour (Entity -> Entity)
 
 type Entity = { id :: EntityId
               , location :: Point
+              , velocity :: Point
               , rotation :: Number
               , renderables :: List Renderable
               , behaviour :: List EntityBehaviour
+              , activeCommands :: List EntityCommand
               }
+
 
 type Game =  {
   entities  :: List Entity
@@ -41,8 +47,10 @@ initialModel = {
 tank :: EntityId -> Point -> Entity
 tank id location = { id
                    , location
+                   , velocity: { x: 0.0, y: 0.0 }
                    , rotation: 0.0
                    , behaviour : (EntityBehaviour rotate : Nil)
+                   , activeCommands : Nil
                    , renderables : ({transform: { x: (-12.5)
                                                 , y: (-12.5)
                                                 , width: 25.0
@@ -52,6 +60,26 @@ tank id location = { id
                                    , color: HtmlColor "#f00"
                                    }) : Nil
                                  }
+
+
+type DrivenConfig = { maxSpeed :: Number
+                    , acceleration :: Number
+                    , turningSpeed :: Number
+                    }
+
+driven :: DrivenConfig -> Entity -> Entity
+driven config e =
+  if elem PushForward e.activeCommands then applyThrust config.acceleration config.maxSpeed e 
+     else e
+
+applyThrust :: Number -> Number -> Entity -> Entity
+applyThrust accel maxSpeed entity@{ velocity } =
+  entity { velocity = { x: velocity.x + xvel, y: velocity.y + yvel } }
+      where 
+        angle = entity.rotation  * Math.pi * 2.0
+        xvel = (Math.cos angle) * accel
+        yvel = (Math.sin angle) * accel
+
 
 rotate :: Entity -> Entity
 rotate e@{ rotation } =
