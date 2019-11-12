@@ -9,12 +9,18 @@ import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 import Math (cos, pi, sin) as Math
 import Pure.Math (Rect, Point)
+import Simple.JSON (class ReadForeign, class WriteForeign)
 
 newtype HtmlColor = HtmlColor String
 derive instance ntHtmlColor :: Newtype HtmlColor _
 
 newtype EntityId = EntityId String
 derive instance ntEntityId :: Newtype EntityId _
+derive newtype instance eqEntityId :: Eq EntityId
+derive newtype instance readEntityId :: ReadForeign EntityId
+derive newtype instance writeEntityId :: WriteForeign EntityId
+derive newtype instance showEntityId :: Show EntityId
+derive newtype instance ordEntityId :: Ord EntityId
 
 type Renderable = { transform :: Rect
                   , color :: HtmlColor
@@ -23,6 +29,8 @@ type Renderable = { transform :: Rect
 
 data EntityCommand = PushForward | PushBackward | TurnLeft | TurnRight
 
+derive instance eqEntityCommand :: Eq EntityCommand
+
 newtype EntityBehaviour = EntityBehaviour (Entity -> Entity)
 
 type Entity = { id :: EntityId
@@ -30,8 +38,8 @@ type Entity = { id :: EntityId
               , velocity :: Point
               , rotation :: Number
               , renderables :: List Renderable
+              , commandHandlers :: List (EntityCommand -> Entity -> Entity)
               , behaviour :: List EntityBehaviour
-              , activeCommands :: List EntityCommand
               }
 
 
@@ -50,7 +58,7 @@ tank id location = { id
                    , velocity: { x: 0.0, y: 0.0 }
                    , rotation: 0.0
                    , behaviour : (EntityBehaviour rotate : Nil)
-                   , activeCommands : Nil
+                   , commandHandlers : Nil  
                    , renderables : ({transform: { x: (-12.5)
                                                 , y: (-12.5)
                                                 , width: 25.0
@@ -67,10 +75,10 @@ type DrivenConfig = { maxSpeed :: Number
                     , turningSpeed :: Number
                     }
 
-driven :: DrivenConfig -> Entity -> Entity
-driven config e =
-  if elem PushForward e.activeCommands then applyThrust config.acceleration config.maxSpeed e 
-     else e
+--driven :: DrivenConfig -> Entity -> Entity
+--driven config e =
+--  if elem PushForward e.activeCommands then applyThrust config.acceleration config.maxSpeed e 
+--     else e
 
 applyThrust :: Number -> Number -> Entity -> Entity
 applyThrust accel maxSpeed entity@{ velocity } =
