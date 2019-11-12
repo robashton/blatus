@@ -32,13 +32,14 @@ data EntityCommand = PushForward | PushBackward | TurnLeft | TurnRight
 derive instance eqEntityCommand :: Eq EntityCommand
 
 newtype EntityBehaviour = EntityBehaviour (Entity -> Entity)
+newtype EntityCommandHandler = EntityCommandHandler (EntityCommand -> Entity -> Entity)
 
 type Entity = { id :: EntityId
               , location :: Point
               , velocity :: Point
               , rotation :: Number
               , renderables :: List Renderable
-              , commandHandlers :: List (EntityCommand -> Entity -> Entity)
+              , commandHandlers :: List EntityCommandHandler
               , behaviour :: List EntityBehaviour
               }
 
@@ -57,8 +58,8 @@ tank id location = { id
                    , location
                    , velocity: { x: 0.0, y: 0.0 }
                    , rotation: 0.0
-                   , behaviour : (EntityBehaviour rotate : Nil)
-                   , commandHandlers : Nil  
+                   , behaviour : Nil
+                   , commandHandlers : (driven { maxSpeed: 5.0, acceleration: 0.01, turningSpeed: 0.01 } : Nil)  
                    , renderables : ({transform: { x: (-12.5)
                                                 , y: (-12.5)
                                                 , width: 25.0
@@ -75,10 +76,14 @@ type DrivenConfig = { maxSpeed :: Number
                     , turningSpeed :: Number
                     }
 
---driven :: DrivenConfig -> Entity -> Entity
---driven config e =
---  if elem PushForward e.activeCommands then applyThrust config.acceleration config.maxSpeed e 
---     else e
+driven :: DrivenConfig -> EntityCommandHandler
+driven config = EntityCommandHandler \command entity@{ rotation } ->
+  case command of
+       PushForward -> applyThrust config.acceleration config.maxSpeed entity
+       PushBackward -> applyThrust (-config.acceleration) config.maxSpeed entity
+       TurnLeft -> entity { rotation = rotation - config.turningSpeed }
+       TurnRight -> entity { rotation = rotation + config.turningSpeed }
+
 
 applyThrust :: Number -> Number -> Entity -> Entity
 applyThrust accel maxSpeed entity@{ velocity } =

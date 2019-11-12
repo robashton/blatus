@@ -2,6 +2,7 @@ module Pure.Main where
 
 import Prelude
 
+import Data.List (List)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Data.Traversable (for)
@@ -11,7 +12,7 @@ import Graphics.Canvas (clearRect, fillRect)
 import Graphics.Canvas as Canvas
 import Math (pi) as Math
 import Pure.Camera (Camera, CameraViewport, applyViewport, setupCamera, viewportFromConfig)
-import Pure.Game (Game, initialModel, tick)
+import Pure.Game (EntityCommand(..), Game, initialModel, tick)
 import Web.HTML as HTML
 import Web.HTML.Window (requestAnimationFrame) as Window
 
@@ -38,12 +39,27 @@ main =  do
        Nothing ->
          pure unit
 
+
+data ExternalCommand = 
+  PlayerCommand EntityCommand
+
+gatherCommandsFromInput :: Effect (List ExternalCommand)
+gatherCommandsFromInput = do
+  left <- keyPressed 37 
+  right <- keyPressed 39
+  up <- keyPressed 38
+  down <- keyPressed 40
+  filterMap id ( (guard left $ Just $ PlayerCommand TurnLeft) : Nil )
+
+
+
 gameLoop :: LocalContext -> Effect Unit
 gameLoop local@{ game, camera: { config } } = do
   let viewport = viewportFromConfig config 
       updatedContext = local { camera = { config, viewport } }
   _ <- Window.requestAnimationFrame (render updatedContext) updatedContext.window
-  _ <- setTimeout 33 $ gameLoop $ updatedContext { game = tick updatedContext.game }
+  commands_ <- gatherCommandsFromInput
+  _ <- setTimeout 33 $ gameLoop $ updatedContext { game = tick $ foldL handleCommand updatedContext.game commands } -- TODO: Take into account how long rendering has taken and do that dance..
   pure unit
 
 prepareScene :: CameraViewport -> Game -> Game
