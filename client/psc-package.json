@@ -6,6 +6,7 @@
         "prelude",
         "simple-json",
         "web-socket",
+        "signal",
         "filterable",
         "effect",
         "canvas",

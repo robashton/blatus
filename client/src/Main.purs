@@ -13,6 +13,8 @@ import Graphics.Canvas as Canvas
 import Math (pi) as Math
 import Pure.Camera (Camera, CameraViewport, applyViewport, setupCamera, viewportFromConfig)
 import Pure.Game (EntityCommand(..), Game, initialModel, tick)
+import Signal (Signal, map4)
+import Signal.DOM (keyPressed)
 import Web.HTML as HTML
 import Web.HTML.Window (requestAnimationFrame) as Window
 
@@ -23,6 +25,16 @@ type LocalContext = { renderContext :: Canvas.Context2D
                     , window :: HTML.Window
                     , game :: Game
                     }
+
+type InputState =  { isLeft :: Boolean
+                , isRight :: Boolean
+                , isUp :: Boolean
+                , isDown :: Boolean
+  }
+
+inputSignal :: Effect (Signal InputState)
+inputSignal =
+    map4 (\l u r d -> {  isLeft: l, isUp: u, isRight: r, isDown: d }) <$> (keyPressed 37) <*> (keyPressed 38) <*> (keyPressed 40) <*> (keyPressed 39)
 
 main :: Effect Unit
 main =  do
@@ -40,16 +52,17 @@ main =  do
          pure unit
 
 
+
 data ExternalCommand = 
   PlayerCommand EntityCommand
 
-gatherCommandsFromInput :: Effect (List ExternalCommand)
-gatherCommandsFromInput = do
-  left <- keyPressed 37 
-  right <- keyPressed 39
-  up <- keyPressed 38
-  down <- keyPressed 40
-  filterMap id ( (guard left $ Just $ PlayerCommand TurnLeft) : Nil )
+--gatherCommandsFromInput :: Effect (List ExternalCommand)
+--gatherCommandsFromInput = do
+--  left <- keyPressed 37 
+--  right <- keyPressed 39
+--  up <- keyPressed 38
+--  down <- keyPressed 40
+--  filterMap id ( (guard left $ Just $ PlayerCommand TurnLeft) : Nil )
 
 
 
@@ -58,8 +71,7 @@ gameLoop local@{ game, camera: { config } } = do
   let viewport = viewportFromConfig config 
       updatedContext = local { camera = { config, viewport } }
   _ <- Window.requestAnimationFrame (render updatedContext) updatedContext.window
-  commands_ <- gatherCommandsFromInput
-  _ <- setTimeout 33 $ gameLoop $ updatedContext { game = tick $ foldL handleCommand updatedContext.game commands } -- TODO: Take into account how long rendering has taken and do that dance..
+  _ <- setTimeout 33 $ gameLoop $ updatedContext { game = tick } -- TODO: Take into account how long rendering has taken and do that dance..
   pure unit
 
 prepareScene :: CameraViewport -> Game -> Game
