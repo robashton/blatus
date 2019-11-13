@@ -2,9 +2,13 @@ module Pure.Main where
 
 import Prelude
 
-import Data.List (List)
+import Data.Either (isLeft, isRight)
+import Data.Filterable (filterMap)
+import Data.Foldable (foldl)
+import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
-import Data.Newtype (unwrap)
+import Data.Monoid (guard)
+import Data.Newtype (unwrap, wrap)
 import Data.Traversable (for)
 import Effect (Effect)
 import Effect.Timer (setTimeout)
@@ -13,8 +17,10 @@ import Graphics.Canvas as Canvas
 import Math (pi) as Math
 import Pure.Camera (Camera, CameraViewport, applyViewport, setupCamera, viewportFromConfig)
 import Pure.Game (EntityCommand(..), Game, initialModel, tick)
-import Signal (Signal, map4)
+import Pure.Game (sendCommand) as Game
+import Signal (Signal, foldp, map4, runSignal, sampleOn)
 import Signal.DOM (keyPressed)
+import Signal.Time (every, second)
 import Web.HTML as HTML
 import Web.HTML.Window (requestAnimationFrame) as Window
 
@@ -34,7 +40,10 @@ type InputState =  { isLeft :: Boolean
 
 inputSignal :: Effect (Signal InputState)
 inputSignal =
-    map4 (\l u r d -> {  isLeft: l, isUp: u, isRight: r, isDown: d }) <$> (keyPressed 37) <*> (keyPressed 38) <*> (keyPressed 40) <*> (keyPressed 39)
+    map4 (\l u r d -> {  isLeft: l, isUp: u, isRight: r, isDown: d }) <$> (keyPressed 37) <*> (keyPressed 38) <*> (keyPressed 39) <*> (keyPressed 40)
+
+tickSignal :: Effect (Signal InputState)
+tickSignal = sampleOn (every $ second / 30.0) <$> inputSignal
 
 main :: Effect Unit
 main =  do
@@ -45,33 +54,43 @@ main =  do
           renderContext <- Canvas.getContext2D canvasElement
           canvasWidth <- Canvas.getCanvasWidth canvasElement
           canvasHeight <- Canvas.getCanvasHeight canvasElement
+          input <- tickSignal
           let camera = setupCamera { width: canvasWidth, height: canvasHeight }
               game = initialModel
-          gameLoop { renderContext, canvasElement, camera, window, game }
+              context = foldp tickContext { renderContext, canvasElement, camera, window, game } input
+          runSignal (map scheduleRender context)
        Nothing ->
          pure unit
 
 
+tickContext :: InputState -> LocalContext  -> LocalContext
+tickContext input context@{ game, camera: { config } } = 
+  updatedContext { game = tick $ foldl handleCommand game $ gatherCommandsFromInput input }
+      where viewport = viewportFromConfig config 
+            updatedContext = context { camera = { config, viewport } }
 
 data ExternalCommand = 
   PlayerCommand EntityCommand
 
---gatherCommandsFromInput :: Effect (List ExternalCommand)
---gatherCommandsFromInput = do
---  left <- keyPressed 37 
---  right <- keyPressed 39
---  up <- keyPressed 38
---  down <- keyPressed 40
---  filterMap id ( (guard left $ Just $ PlayerCommand TurnLeft) : Nil )
+handleCommand :: Game -> ExternalCommand -> Game
+handleCommand game external = 
+  case external of
+       PlayerCommand command -> Game.sendCommand (wrap "player") command game
 
+-- Why didn't 'guard' work? :S
+gatherCommandsFromInput :: InputState -> (List ExternalCommand)
+gatherCommandsFromInput { isLeft, isUp, isRight, isDown } = 
+  filterMap identity $ (if isLeft then Just $ PlayerCommand TurnLeft else Nothing) :
+                       (if isRight then Just $ PlayerCommand TurnRight else Nothing)  :
+                       (if isDown then Just $ PlayerCommand PushBackward else Nothing)  : 
+                       (if isUp then Just $ PlayerCommand PushForward else Nothing)  : Nil
+--  filterMap identity $ (guard isLeft (Just $ PlayerCommand TurnLeft)) :
+--                       (guard isRight $ Just $ PlayerCommand TurnRight) : Nil
+--
 
-
-gameLoop :: LocalContext -> Effect Unit
-gameLoop local@{ game, camera: { config } } = do
-  let viewport = viewportFromConfig config 
-      updatedContext = local { camera = { config, viewport } }
-  _ <- Window.requestAnimationFrame (render updatedContext) updatedContext.window
-  _ <- setTimeout 33 $ gameLoop $ updatedContext { game = tick } -- TODO: Take into account how long rendering has taken and do that dance..
+scheduleRender :: LocalContext -> Effect Unit
+scheduleRender context = do
+  _ <- Window.requestAnimationFrame (render context) context.window
   pure unit
 
 prepareScene :: CameraViewport -> Game -> Game

@@ -45,13 +45,21 @@ type Entity = { id :: EntityId
 
 
 type Game =  {
-  entities  :: List Entity
+  entities  :: List Entity -- Probably a map actually
   }
 
 initialModel :: Game
 initialModel = {
   entities :  (tank (EntityId "player") { x: 20.0, y: 20.0 } ) : Nil
 }
+
+
+sendCommand :: EntityId -> EntityCommand -> Game -> Game
+sendCommand id command game@{ entities } =
+  game { entities = map (\e -> if e.id == id then foldl (\acc (EntityCommandHandler h) -> h command acc) e e.commandHandlers
+                                 else e) entities
+       }
+  
 
 tank :: EntityId -> Point -> Entity
 tank id location = { id
