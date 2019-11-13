@@ -65,9 +65,9 @@ tank :: EntityId -> Point -> Entity
 tank id location = { id
                    , location
                    , velocity: { x: 0.0, y: 0.0 }
-                   , rotation: 0.0
-                   , behaviour : Nil
-                   , commandHandlers : (driven { maxSpeed: 5.0, acceleration: 0.01, turningSpeed: 0.01 } : Nil)  
+                   , rotation: (-0.25)
+                   , behaviour : basicBitchPhysics : Nil
+                   , commandHandlers : (driven { maxSpeed: 5.0, acceleration: 0.05, turningSpeed: 0.02 } : Nil)  
                    , renderables : ({transform: { x: (-12.5)
                                                 , y: (-12.5)
                                                 , width: 25.0
@@ -92,6 +92,13 @@ driven config = EntityCommandHandler \command entity@{ rotation } ->
        TurnLeft -> entity { rotation = rotation - config.turningSpeed }
        TurnRight -> entity { rotation = rotation + config.turningSpeed }
 
+-- This is more likely to be handled in its own global manner
+-- As we'll need do collision detection at the same time if we're to be remotely efficient
+-- iirc you can't just do overlaping quads for collision detection either because otherwise they'll
+-- just pass through each other (it may be fine keeping basic bitch physics, so long as the collision is pre-emptive)
+basicBitchPhysics :: EntityBehaviour 
+basicBitchPhysics = EntityBehaviour \e@{ location, velocity } ->
+  e { location = location + velocity }
 
 applyThrust :: Number -> Number -> Entity -> Entity
 applyThrust accel maxSpeed entity@{ velocity } =

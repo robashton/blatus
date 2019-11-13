@@ -84,9 +84,6 @@ gatherCommandsFromInput { isLeft, isUp, isRight, isDown } =
                        (if isRight then Just $ PlayerCommand TurnRight else Nothing)  :
                        (if isDown then Just $ PlayerCommand PushBackward else Nothing)  : 
                        (if isUp then Just $ PlayerCommand PushForward else Nothing)  : Nil
---  filterMap identity $ (guard isLeft (Just $ PlayerCommand TurnLeft)) :
---                       (guard isRight $ Just $ PlayerCommand TurnRight) : Nil
---
 
 scheduleRender :: LocalContext -> Effect Unit
 scheduleRender context = do
