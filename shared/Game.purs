@@ -7,8 +7,9 @@ import Data.Foldable (foldl)
 import Data.List (List(..), elem, (:))
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
+import Data.Traversable (find)
 import Math (cos, pi, sin) as Math
-import Pure.Math (Rect, Point)
+import Pure.Math (Point, Rect, scalePoint)
 import Simple.JSON (class ReadForeign, class WriteForeign)
 
 newtype HtmlColor = HtmlColor String
@@ -37,6 +38,7 @@ newtype EntityCommandHandler = EntityCommandHandler (EntityCommand -> Entity -> 
 type Entity = { id :: EntityId
               , location :: Point
               , velocity :: Point
+              , friction :: Number
               , rotation :: Number
               , renderables :: List Renderable
               , commandHandlers :: List EntityCommandHandler
@@ -44,13 +46,16 @@ type Entity = { id :: EntityId
               }
 
 
-type Game =  {
-  entities  :: List Entity -- Probably a map actually
+type Game =  { entities  :: List Entity 
+             , world :: Rect
   }
 
 initialModel :: Game
-initialModel = {
-  entities :  (tank (EntityId "player") { x: 20.0, y: 20.0 } ) : Nil
+initialModel = { entities : (tank (EntityId "player") { x: 20.0, y: 20.0 } ) :
+                            (tank (EntityId "jimmy") { x: 300.0, y: 500.0 }) :
+                            (tank (EntityId "stacko") { x: 200.0, y: 100.0 }) :
+                            (tank (EntityId "daniel") { x: -200.0, y: -300.0 }) : Nil
+               , world:  { x: -1000.0, y: -1000.0, width: 2000.0, height: 2000.0 }
 }
 
 
@@ -59,15 +64,20 @@ sendCommand id command game@{ entities } =
   game { entities = map (\e -> if e.id == id then foldl (\acc (EntityCommandHandler h) -> h command acc) e e.commandHandlers
                                  else e) entities
        }
+
+entityById :: EntityId -> Game -> Maybe Entity
+entityById id { entities } =
+  find (\e -> e.id == id) entities
   
 
 tank :: EntityId -> Point -> Entity
 tank id location = { id
                    , location
                    , velocity: { x: 0.0, y: 0.0 }
+                   , friction: 0.96
                    , rotation: (-0.25)
                    , behaviour : basicBitchPhysics : Nil
-                   , commandHandlers : (driven { maxSpeed: 5.0, acceleration: 0.05, turningSpeed: 0.02 } : Nil)  
+                   , commandHandlers : (driven { maxSpeed: 5.0, acceleration: 0.95, turningSpeed: 0.03 } : Nil)  
                    , renderables : ({transform: { x: (-12.5)
                                                 , y: (-12.5)
                                                 , width: 25.0
@@ -97,8 +107,8 @@ driven config = EntityCommandHandler \command entity@{ rotation } ->
 -- iirc you can't just do overlaping quads for collision detection either because otherwise they'll
 -- just pass through each other (it may be fine keeping basic bitch physics, so long as the collision is pre-emptive)
 basicBitchPhysics :: EntityBehaviour 
-basicBitchPhysics = EntityBehaviour \e@{ location, velocity } ->
-  e { location = location + velocity }
+basicBitchPhysics = EntityBehaviour \e@{ location, velocity, friction } ->
+  e { location = location + velocity, velocity = scalePoint friction velocity }
 
 applyThrust :: Number -> Number -> Entity -> Entity
 applyThrust accel maxSpeed entity@{ velocity } =

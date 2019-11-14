@@ -6,17 +6,20 @@ import Data.Either (isLeft, isRight)
 import Data.Filterable (filterMap)
 import Data.Foldable (foldl)
 import Data.List (List(..), (:))
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Monoid (guard)
 import Data.Newtype (unwrap, wrap)
 import Data.Traversable (for)
 import Effect (Effect)
+import Effect.Console (log)
 import Effect.Timer (setTimeout)
-import Graphics.Canvas (clearRect, fillRect)
+import Graphics.Canvas (CanvasElement, clearRect, fillRect, getContext2D)
 import Graphics.Canvas as Canvas
+import Math (abs)
 import Math (pi) as Math
-import Pure.Camera (Camera, CameraViewport, applyViewport, setupCamera, viewportFromConfig)
-import Pure.Game (EntityCommand(..), Game, initialModel, tick)
+import Pure.Background (render) as Background
+import Pure.Camera (Camera, CameraViewport, CameraConfiguration, applyViewport, setupCamera, viewportFromConfig)
+import Pure.Game (EntityCommand(..), Game, entityById, initialModel, tick)
 import Pure.Game (sendCommand) as Game
 import Signal (Signal, foldp, map4, runSignal, sampleOn)
 import Signal.DOM (keyPressed)
@@ -27,6 +30,8 @@ import Web.HTML.Window (requestAnimationFrame) as Window
 
 type LocalContext = { renderContext :: Canvas.Context2D
                     , canvasElement :: Canvas.CanvasElement
+                    , offscreenContext :: Canvas.Context2D
+                    , offscreenCanvas :: Canvas.CanvasElement
                     , camera :: Camera
                     , window :: HTML.Window
                     , game :: Game
@@ -48,26 +53,33 @@ tickSignal = sampleOn (every $ second / 30.0) <$> inputSignal
 main :: Effect Unit
 main =  do
   maybeCanvas <- Canvas.getCanvasElementById "target"
-  case  maybeCanvas of
-       Just canvasElement -> do
+  maybeOffscreen <- Canvas.getCanvasElementById "offscreen"
+  fromMaybe (pure unit) $ program <$> maybeCanvas <*> maybeOffscreen 
+  where program canvasElement offscreenCanvas = do
           window <- HTML.window
           renderContext <- Canvas.getContext2D canvasElement
+          offscreenContext <- Canvas.getContext2D offscreenCanvas
           canvasWidth <- Canvas.getCanvasWidth canvasElement
           canvasHeight <- Canvas.getCanvasHeight canvasElement
           input <- tickSignal
           let camera = setupCamera { width: canvasWidth, height: canvasHeight }
               game = initialModel
-              context = foldp tickContext { renderContext, canvasElement, camera, window, game } input
+              context = foldp tickContext { offscreenContext, offscreenCanvas, renderContext, canvasElement, camera, window, game } input
           runSignal (map scheduleRender context)
-       Nothing ->
-         pure unit
+          pure unit
 
 
 tickContext :: InputState -> LocalContext  -> LocalContext
 tickContext input context@{ game, camera: { config } } = 
   updatedContext { game = tick $ foldl handleCommand game $ gatherCommandsFromInput input }
-      where viewport = viewportFromConfig config 
+      where viewport = viewportFromConfig $ trackPlayer game config 
             updatedContext = context { camera = { config, viewport } }
+
+trackPlayer :: Game -> CameraConfiguration -> CameraConfiguration
+trackPlayer game config = 
+  maybe config (\player -> config { lookAt = player.location,
+                                    distance = 500.0 + (abs player.velocity.x + abs player.velocity.y) * 10.0
+                                    }) $ entityById (wrap "player") game
 
 data ExternalCommand = 
   PlayerCommand EntityCommand
@@ -86,20 +98,24 @@ gatherCommandsFromInput { isLeft, isUp, isRight, isDown } =
                        (if isUp then Just $ PlayerCommand PushForward else Nothing)  : Nil
 
 scheduleRender :: LocalContext -> Effect Unit
-scheduleRender context = do
+scheduleRender context@{ camera: { viewport, config: { target: { width, height }} }, game, offscreenContext } = do
+  _ <- Canvas.clearRect offscreenContext { x: 0.0, y: 0.0, width, height }
+  _ <- Canvas.save offscreenContext
+  _ <- applyViewport viewport offscreenContext
+  _ <- Background.render viewport game offscreenContext 
+  _ <- renderScene game offscreenContext
+  _ <- Canvas.restore offscreenContext
   _ <- Window.requestAnimationFrame (render context) context.window
   pure unit
 
 prepareScene :: CameraViewport -> Game -> Game
-prepareScene viewport game = game -- TODO: Update renderables/occlude/etc
+prepareScene viewport game = game 
 
 render :: LocalContext -> Effect Unit
-render { camera: { viewport, config: { target: { width, height }} }, game, renderContext } = do
+render { camera: { viewport, config: { target: { width, height }} }, game, renderContext, offscreenCanvas} = do
+  let image = Canvas.canvasElementToImageSource offscreenCanvas
   _ <- Canvas.clearRect renderContext { x: 0.0, y: 0.0, width, height }
-  _ <- Canvas.save renderContext
-  _ <- applyViewport viewport renderContext
-  _ <- renderScene game renderContext
-  _ <- Canvas.restore renderContext
+  _ <- Canvas.drawImage renderContext image 0.0 0.0
   pure unit
 
 renderScene :: Game -> Canvas.Context2D -> Effect Unit

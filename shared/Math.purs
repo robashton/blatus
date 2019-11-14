@@ -15,5 +15,6 @@ type Rect = { x :: Number
 point  :: Number -> Number -> Point
 point x y = { x, y }
 
-
+scalePoint :: Number -> Point -> Point
+scalePoint factor p@{ x, y } = p { x = x * factor, y = y * factor }
 
