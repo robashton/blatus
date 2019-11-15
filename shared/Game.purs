@@ -126,4 +126,11 @@ rotate e@{ rotation } =
 
 tick :: Game -> Game 
 tick game@ { entities } =
-  game { entities = map (\e -> foldl (\i (EntityBehaviour f) -> f i) e e.behaviour) entities }
+  applyPhysics $ game { entities = map (\e -> foldl (\i (EntityBehaviour f) -> f i) e e.behaviour) entities }
+
+
+applyPhysics :: Game -> Game
+applyPhysics = identity
+  
+
+
