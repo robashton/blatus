@@ -29,23 +29,22 @@ render viewport@{  left, right, top, bottom } game@{ world: { x, y , width, heig
   _ <- Context2D.addColorStop gradient 0.5 "#00f"
   _ <- Context2D.addColorStop gradient 1.0 "#f00"
   _ <- setGradientStrokeStyle ctx gradient
-  _ <- Context2D.setLineWidth ctx 5.0
+  _ <- Context2D.setLineWidth ctx 2.0
   _ <- Context2D.beginPath ctx
   _ <- traverse (\tileX -> do
-                    let lineX = (toNumber tileX) * tileWidth + x
+                    let lineX = tileToHorizontal tileX
                     _ <- traverse(\tileY -> do
-                            let topY = (toNumber tileY) * tileHeight + y - 10.0
+                            let topY = (tileToVertical tileY) - 10.0
                                 bottomY = topY + 20.0
                             _ <- Context2D.moveTo ctx lineX topY
                             _ <- Context2D.lineTo ctx lineX bottomY
                             pure unit) vertical
---                    _ <- Context2D.lineTo ctx lineX (min bottom $ y + height)
                     pure unit
                     ) horizontal
   _ <- traverse (\tileY -> do
-                    let lineY = (toNumber tileY) * tileHeight + y
+                    let lineY = tileToVertical tileY
                     _ <- traverse(\tileX -> do
-                            let leftX = (toNumber tileX) * tileWidth + x - 10.0
+                            let leftX = (tileToHorizontal tileX) - 10.0
                                 rightX = leftX + 20.0
                             _ <- Context2D.moveTo ctx leftX lineY
                             _ <- Context2D.lineTo ctx rightX lineY
@@ -54,6 +53,8 @@ render viewport@{  left, right, top, bottom } game@{ world: { x, y , width, heig
   _ <- Context2D.stroke ctx
   pure unit
   where
+        tileToHorizontal tile = (toNumber tile) * tileWidth + x
+        tileToVertical tile = (toNumber tile) * tileHeight + y
         horizontal = range leftTile rightTile
         vertical = range topTile bottomTile
         leftTile = max 0 $ floor $ (left - x) / tileWidth

@@ -4,13 +4,15 @@ module Pure.Game where
 import Prelude
 
 import Data.Foldable (foldl)
-import Data.List (List(..), elem, (:))
+import Data.List (List(..), elem, manyRec, (:))
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 import Data.Traversable (find)
-import Math (cos, pi, sin) as Math
-import Pure.Math (Point, Rect, scalePoint)
+import Data.Tuple (Tuple(..))
+import Math (cos, pi, pow, sin, sqrt) as Math
+import Pure.Math (Rect, Point, scalePoint)
 import Simple.JSON (class ReadForeign, class WriteForeign)
+import Web.HTML.Window (location)
 
 newtype HtmlColor = HtmlColor String
 derive instance ntHtmlColor :: Newtype HtmlColor _
@@ -37,6 +39,9 @@ newtype EntityCommandHandler = EntityCommandHandler (EntityCommand -> Entity -> 
 
 type Entity = { id :: EntityId
               , location :: Point
+              , width :: Number
+              , height :: Number
+              , mass :: Number
               , velocity :: Point
               , friction :: Number
               , rotation :: Number
@@ -73,9 +78,12 @@ entityById id { entities } =
 tank :: EntityId -> Point -> Entity
 tank id location = { id
                    , location
+                   , width: 25.0
+                   , height: 25.0
                    , velocity: { x: 0.0, y: 0.0 }
                    , friction: 0.96
                    , rotation: (-0.25)
+                   , mass: 10.0
                    , behaviour : basicBitchPhysics : Nil
                    , commandHandlers : (driven { maxSpeed: 5.0, acceleration: 0.95, turningSpeed: 0.03 } : Nil)  
                    , renderables : ({transform: { x: (-12.5)
@@ -129,8 +137,80 @@ tick game@ { entities } =
   applyPhysics $ game { entities = map (\e -> foldl (\i (EntityBehaviour f) -> f i) e e.behaviour) entities }
 
 
+-- Note: There isn't a fn for it in core PS, but we effectively 
+-- need an efficient crossjoin-map, as there is little sense
+-- in doing an n^2 operation here
 applyPhysics :: Game -> Game
-applyPhysics = identity
-  
+applyPhysics game@{ entities } = 
+  game { entities = map (performChecks entities) entities }
+
+performChecks :: List Entity -> Entity -> Entity
+performChecks entities target =
+  foldl collideEntities target entities
+
+collideEntities :: Entity -> Entity -> Entity
+collideEntities target e 
+  | target.id == e.id = target
+  | otherwise =
+      if circleCheck target e then 
+        applyForce { direction: (vectorBetween e.location target.location)
+                   , force : (magnitude e.velocity) * e.mass
+                   }  target
+       else
+       target
+
+vectorBetween :: Point -> Point -> Point
+vectorBetween s d =
+  normalise (d - s)
+
+normalise :: Point -> Point
+normalise point@{ x, y } = { x: x / den, y: y / den }
+  where den = magnitude point
+
+magnitude :: Point -> Number
+magnitude {x, y} = Math.sqrt $ (x * x) + (y * y)
+
+scale :: Number -> Point -> Point
+scale s { x ,y } = { x: x * s, y: y * s } 
+
+applyForce :: { direction :: Point, force :: Number } -> Entity -> Entity
+applyForce { direction, force } entity@{ velocity, mass } = 
+  entity { velocity = velocity + (scale (force / mass) direction) }
+
+circleCheck :: Entity -> Entity -> Boolean
+circleCheck inner subject = 
+  let distSq = (Math.pow (inner.location.x - subject.location.x) 2.0)
+             + (Math.pow (inner.location.y - subject.location.y) 2.0) 
+      combinedSizeSq = Math.pow ((max inner.width inner.height) / 2.0 + (max subject.width subject.height) / 2.0) 2.0
+   in distSq < combinedSizeSq 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
