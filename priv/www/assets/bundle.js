@@ -1979,8 +1979,8 @@ var PS = {};
           return function (v) {
               return {
                   entities: Data_Functor.map(Data_List_Types.functorList)(function (e) {
-                      var $47 = Data_Eq.eq(eqEntityId)(e.id)(id);
-                      if ($47) {
+                      var $45 = Data_Eq.eq(eqEntityId)(e.id)(id);
+                      if ($45) {
                           return Data_Foldable.foldl(Data_List_Types.foldableList)(function (acc) {
                               return function (v2) {
                                   return v2(command)(acc);
@@ -2032,28 +2032,40 @@ var PS = {};
           behaviour: v.behaviour
       };
   };
+  var applyForce = function (v) {
+      return function (v1) {
+          return {
+              id: v1.id,
+              location: v1.location,
+              width: v1.width,
+              height: v1.height,
+              mass: v1.mass,
+              velocity: Data_Semiring.add(Data_Semiring.semiringRecord()(Data_Semiring.semiringRecordCons(new Data_Symbol.IsSymbol(function () {
+                  return "x";
+              }))()(Data_Semiring.semiringRecordCons(new Data_Symbol.IsSymbol(function () {
+                  return "y";
+              }))()(Data_Semiring.semiringRecordNil)(Data_Semiring.semiringNumber))(Data_Semiring.semiringNumber)))(v1.velocity)(scale(v.force / v1.mass)(v.direction)),
+              friction: v1.friction,
+              rotation: v1.rotation,
+              renderables: v1.renderables,
+              commandHandlers: v1.commandHandlers,
+              behaviour: v1.behaviour
+          };
+      };
+  };
   var applyThrust = function (accel) {
       return function (maxSpeed) {
-          return function (v) {
-              var angle = v.rotation * $$Math.pi * 2.0;
-              var xvel = $$Math.cos(angle) * accel;
-              var yvel = $$Math.sin(angle) * accel;
-              return {
-                  id: v.id,
-                  location: v.location,
-                  width: v.width,
-                  height: v.height,
-                  mass: v.mass,
-                  velocity: {
-                      x: v.velocity.x + xvel,
-                      y: v.velocity.y + yvel
+          return function (entity) {
+              var angle = entity.rotation * $$Math.pi * 2.0;
+              var xvel = $$Math.cos(angle);
+              var yvel = $$Math.sin(angle);
+              return applyForce({
+                  direction: {
+                      x: xvel,
+                      y: yvel
                   },
-                  friction: v.friction,
-                  rotation: v.rotation,
-                  renderables: v.renderables,
-                  commandHandlers: v.commandHandlers,
-                  behaviour: v.behaviour
-              };
+                  force: accel
+              })(entity);
           };
       };
   };
@@ -2111,13 +2123,13 @@ var PS = {};
                   x: 0.0,
                   y: 0.0
               },
-              friction: 0.96,
+              friction: 0.9,
               rotation: -0.25,
               mass: 10.0,
               behaviour: new Data_List_Types.Cons(basicBitchPhysics, Data_List_Types.Nil.value),
               commandHandlers: new Data_List_Types.Cons(driven({
                   maxSpeed: 5.0,
-                  acceleration: 0.95,
+                  acceleration: 30.0,
                   turningSpeed: 3.0e-2
               }), Data_List_Types.Nil.value),
               renderables: new Data_List_Types.Cons({
@@ -2154,35 +2166,14 @@ var PS = {};
           height: 2000.0
       }
   };
-  var applyForce = function (v) {
-      return function (v1) {
-          return {
-              id: v1.id,
-              location: v1.location,
-              width: v1.width,
-              height: v1.height,
-              mass: v1.mass,
-              velocity: Data_Semiring.add(Data_Semiring.semiringRecord()(Data_Semiring.semiringRecordCons(new Data_Symbol.IsSymbol(function () {
-                  return "x";
-              }))()(Data_Semiring.semiringRecordCons(new Data_Symbol.IsSymbol(function () {
-                  return "y";
-              }))()(Data_Semiring.semiringRecordNil)(Data_Semiring.semiringNumber))(Data_Semiring.semiringNumber)))(v1.velocity)(scale(v.force / v1.mass)(v.direction)),
-              friction: v1.friction,
-              rotation: v1.rotation,
-              renderables: v1.renderables,
-              commandHandlers: v1.commandHandlers,
-              behaviour: v1.behaviour
-          };
-      };
-  };
   var collideEntities = function (target) {
       return function (e) {
           if (Data_Eq.eq(eqEntityId)(target.id)(e.id)) {
               return target;
           };
           if (Data_Boolean.otherwise) {
-              var $74 = circleCheck(target)(e);
-              if ($74) {
+              var $68 = circleCheck(target)(e);
+              if ($68) {
                   return applyForce({
                       direction: vectorBetween(e.location)(target.location),
                       force: magnitude(e.velocity) * e.mass

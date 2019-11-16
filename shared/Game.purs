@@ -81,11 +81,11 @@ tank id location = { id
                    , width: 25.0
                    , height: 25.0
                    , velocity: { x: 0.0, y: 0.0 }
-                   , friction: 0.96
+                   , friction: 0.9
                    , rotation: (-0.25)
                    , mass: 10.0
                    , behaviour : basicBitchPhysics : Nil
-                   , commandHandlers : (driven { maxSpeed: 5.0, acceleration: 0.95, turningSpeed: 0.03 } : Nil)  
+                   , commandHandlers : (driven { maxSpeed: 5.0, acceleration: 30.0, turningSpeed: 0.03 } : Nil)  
                    , renderables : ({transform: { x: (-12.5)
                                                 , y: (-12.5)
                                                 , width: 25.0
@@ -119,12 +119,12 @@ basicBitchPhysics = EntityBehaviour \e@{ location, velocity, friction } ->
   e { location = location + velocity, velocity = scalePoint friction velocity }
 
 applyThrust :: Number -> Number -> Entity -> Entity
-applyThrust accel maxSpeed entity@{ velocity } =
-  entity { velocity = { x: velocity.x + xvel, y: velocity.y + yvel } }
+applyThrust accel maxSpeed entity =
+  applyForce { direction: { x: xvel, y: yvel }, force: accel } entity
       where 
         angle = entity.rotation  * Math.pi * 2.0
-        xvel = (Math.cos angle) * accel
-        yvel = (Math.sin angle) * accel
+        xvel = (Math.cos angle) 
+        yvel = (Math.sin angle)
 
 
 rotate :: Entity -> Entity
