@@ -1,10 +1,19 @@
 module Pure.Game where
 
+-- Rough plan :: this is  the shared model, and an instance of it is executed per 'game'
+-- On the server that means a gen-server, on the client it means once per player in that game
+-- Commands sent to the player entity, are sent to the server and re-written to be sent to the appropriate entity
+-- both on server model and other player's client models
+-- Events for significant decisions should be raised by all models, events sent by client model can be ignored
+-- Events sent from server model to clients (and indeed to itself) are used to enforce the critical decisions
+-- That means things like collisions causing health changes (ButtetHitPlayer), and health getting less than 0 (PlayerDestroyed)
+-- The server will also send a specific command to each client, containing the actual location of the entities, and we'll do some rubber banding - #sorrynotsorry
 
 import Prelude
 
+import Data.Exists (Exists, mkExists, runExists)
 import Data.Foldable (foldl)
-import Data.List (List(..), (:))
+import Data.List (List(..), foldr, (:))
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 import Data.Traversable (find)
@@ -29,11 +38,19 @@ type Renderable = { transform :: Rect
                   , rotation :: Number
                   }
 
-data EntityCommand = Tick | PushForward | PushBackward | TurnLeft | TurnRight
+data EntityCommand = Damage Number | Tick | PushForward | PushBackward | TurnLeft | TurnRight
 
 derive instance eqEntityCommand :: Eq EntityCommand
 
-newtype EntityCommandHandler = EntityCommandHandler (EntityCommand -> Entity -> Entity)
+data EntityBehaviourResult state = StateUpdated state 
+                                 | StateAndEntityUpdated state Entity
+                                 | EntityUpdated Entity
+
+newtype EntityCommandHandler state = EntityCommandHandler (EntityCommand -> state -> Entity -> EntityBehaviourResult state)
+
+data EntityBehaviour state = EntityBehaviour { state :: state 
+                                             , handleCommand :: EntityCommandHandler state
+                                             }
 
 type Entity = { id :: EntityId
               , location :: Point
@@ -42,9 +59,10 @@ type Entity = { id :: EntityId
               , mass :: Number
               , velocity :: Point
               , friction :: Number
+              , health :: Number
               , rotation :: Number
               , renderables :: List Renderable
-              , commandHandlers :: List EntityCommandHandler
+              , behaviour :: List (Exists EntityBehaviour) --  Would prefer a typeclass based  solution, I'm pretty sure it can exist
               }
 
 
@@ -63,9 +81,21 @@ initialModel = { entities : (tank (EntityId "player") { x: 20.0, y: 20.0 } ) :
 
 sendCommand :: EntityId -> EntityCommand -> Game -> Game
 sendCommand id command game@{ entities } =
-  game { entities = map (\e -> if e.id == id then foldl (\acc (EntityCommandHandler h) -> h command acc) e e.commandHandlers
-                                 else e) entities
-       }
+  game { entities = map (\e -> if e.id == id then processCommand e command else e) entities }
+
+processCommand :: Entity -> EntityCommand -> Entity
+processCommand e command = 
+  foldr executeCommand e { behaviour = Nil } e.behaviour
+       where
+             executeCommand = (\behaviour acc -> runExists (runBehaviour acc) behaviour)
+             runBehaviour :: forall state. Entity -> EntityBehaviour state -> Entity
+             runBehaviour entity@{ behaviour: behaviourList } (EntityBehaviour behaviour@{ handleCommand: (EntityCommandHandler handler)}) = case handler command behaviour.state entity of
+                                                                  StateUpdated newState ->
+                                                                    entity { behaviour = ( mkExists $ EntityBehaviour behaviour { state = newState }) : behaviourList }
+                                                                  StateAndEntityUpdated newState newEntity ->
+                                                                    newEntity { behaviour = ( mkExists $ EntityBehaviour behaviour { state = newState }) : behaviourList }
+                                                                  EntityUpdated newEntity ->
+                                                                    newEntity { behaviour = ( mkExists $ EntityBehaviour behaviour)  : behaviourList  }
 
 entityById :: EntityId -> Game -> Maybe Entity
 entityById id { entities } =
@@ -81,7 +111,8 @@ tank id location = { id
                    , friction: 0.9
                    , rotation: (-0.25)
                    , mass: 10.0
-                   , commandHandlers : basicBitchPhysics : (driven { maxSpeed: 5.0, acceleration: 30.0, turningSpeed: 0.03 } : Nil)  
+                   , health: 100.0
+                   , behaviour : basicBitchPhysics : (driven { maxSpeed: 5.0, acceleration: 30.0, turningSpeed: 0.03 } : Nil)  
                    , renderables : ({transform: { x: (-12.5)
                                                 , y: (-12.5)
                                                 , width: 25.0
@@ -99,24 +130,26 @@ type DrivenConfig = { maxSpeed :: Number
                     , turningSpeed :: Number
                     }
 
-driven :: DrivenConfig -> EntityCommandHandler
-driven config = EntityCommandHandler \command entity@{ rotation } ->
-  case command of
-       PushForward -> applyThrust config.acceleration config.maxSpeed entity
-       PushBackward -> applyThrust (-config.acceleration) config.maxSpeed entity
-       TurnLeft -> entity { rotation = rotation - config.turningSpeed }
-       TurnRight -> entity { rotation = rotation + config.turningSpeed }
-       _ -> entity
+driven :: DrivenConfig -> Exists EntityBehaviour
+driven config = mkExists $ EntityBehaviour {  state: unit
+                                            , handleCommand: EntityCommandHandler \command _ entity@{ rotation } ->
+                                              EntityUpdated $ case command of
+                                                                  PushForward -> applyThrust config.acceleration config.maxSpeed entity
+                                                                  PushBackward -> applyThrust (-config.acceleration) config.maxSpeed entity
+                                                                  TurnLeft -> entity { rotation = rotation - config.turningSpeed }
+                                                                  TurnRight -> entity { rotation = rotation + config.turningSpeed }
+                                                                  _ -> entity
+                                          }
 
--- This is more likely to be handled in its own global manner
--- As we'll need do collision detection at the same time if we're to be remotely efficient
--- iirc you can't just do overlaping quads for collision detection either because otherwise they'll
--- just pass through each other (it may be fine keeping basic bitch physics, so long as the collision is pre-emptive)
-basicBitchPhysics :: EntityCommandHandler 
-basicBitchPhysics = EntityCommandHandler \command e@{ location, velocity, friction } ->
-  case command of 
-       Tick -> e { location = location + velocity, velocity = scalePoint friction velocity }
-       _ -> e
+basicBitchPhysics :: Exists EntityBehaviour 
+basicBitchPhysics = mkExists $ EntityBehaviour { state: unit
+                                               , handleCommand: EntityCommandHandler \command _ e@{ location, velocity, friction, health } ->
+                                                                  EntityUpdated $ case command of 
+                                                                                        Tick -> e { location = location + velocity, velocity = scalePoint friction velocity }
+                                                                                        Damage amount -> 
+                                                                                          e { health = health - amount } -- if < 0 then raise that event.. (and that'll only get handled on the server)
+                                                                                        _ -> e
+                                               }
 
 applyThrust :: Number -> Number -> Entity -> Entity
 applyThrust accel maxSpeed entity =
@@ -134,7 +167,7 @@ rotate e@{ rotation } =
 
 tick :: Game -> Game 
 tick game@ { entities } =
-  applyPhysics $ game { entities = map (\e -> foldl (\i (EntityCommandHandler f) -> f Tick i) e e.commandHandlers) entities }
+  applyPhysics $ game { entities = map (\e -> processCommand e Tick) entities }
 
 
 -- Note: There isn't a fn for it in core PS, but we effectively 
@@ -183,34 +216,5 @@ circleCheck inner subject =
              + (Math.pow (inner.location.y - subject.location.y) 2.0) 
       combinedSizeSq = Math.pow ((max inner.width inner.height) / 2.0 + (max subject.width subject.height) / 2.0) 2.0
    in distSq < combinedSizeSq 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 

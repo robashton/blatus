@@ -11,7 +11,8 @@
         "effect",
         "canvas",
         "web-html",
-        "aff"
+        "aff",
+        "exists"
     ],
     "name": "client",
     "source": "git@github.com:purescript/package-sets.git"
