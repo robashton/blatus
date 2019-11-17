@@ -4078,7 +4078,6 @@ var PS = {};
                           mass: v.mass,
                           velocity: v.velocity,
                           friction: v.friction,
-                          health: v.health,
                           rotation: v.rotation,
                           renderables: v.renderables,
                           behaviour: new Data_List_Types.Cons(Data_Exists.mkExists(new EntityBehaviour({
@@ -4096,7 +4095,6 @@ var PS = {};
                           mass: v2.value1.mass,
                           velocity: v2.value1.velocity,
                           friction: v2.value1.friction,
-                          health: v2.value1.health,
                           rotation: v2.value1.rotation,
                           renderables: v2.value1.renderables,
                           behaviour: new Data_List_Types.Cons(Data_Exists.mkExists(new EntityBehaviour({
@@ -4114,13 +4112,12 @@ var PS = {};
                           mass: v2.value0.mass,
                           velocity: v2.value0.velocity,
                           friction: v2.value0.friction,
-                          health: v2.value0.health,
                           rotation: v2.value0.rotation,
                           renderables: v2.value0.renderables,
                           behaviour: new Data_List_Types.Cons(Data_Exists.mkExists(new EntityBehaviour(v1.value0)), v.behaviour)
                       };
                   };
-                  throw new Error("Failed pattern match at Pure.Game (line 92, column 142 - line 98, column 152): " + [ v2.constructor.name ]);
+                  throw new Error("Failed pattern match at Pure.Game (line 91, column 142 - line 97, column 152): " + [ v2.constructor.name ]);
               };
           };
           var executeCommand = function (behaviour) {
@@ -4136,7 +4133,6 @@ var PS = {};
               mass: e.mass,
               velocity: e.velocity,
               friction: e.friction,
-              health: e.health,
               rotation: e.rotation,
               renderables: e.renderables,
               behaviour: Data_List_Types.Nil.value
@@ -4168,14 +4164,29 @@ var PS = {};
           }))()(Data_Ring.ringRecordNil)(Data_Ring.ringNumber))(Data_Ring.ringNumber)))(d)(s));
       };
   };
+  var hasHealth = function (amount) {
+      return Data_Exists.mkExists(new EntityBehaviour({
+          state: amount,
+          handleCommand: function (command) {
+              return function (amount1) {
+                  return function (e) {
+                      if (command instanceof Damage) {
+                          return new StateUpdated(amount1 - command.value0);
+                      };
+                      return new EntityUpdated(e);
+                  };
+              };
+          }
+      }));
+  };
   var eqEntityId = Data_Eq.eqString;
   var sendCommand = function (id) {
       return function (command) {
           return function (v) {
               return {
                   entities: Data_Functor.map(Data_List_Types.functorList)(function (e) {
-                      var $67 = Data_Eq.eq(eqEntityId)(e.id)(id);
-                      if ($67) {
+                      var $68 = Data_Eq.eq(eqEntityId)(e.id)(id);
+                      if ($68) {
                           return processCommand(e)(command);
                       };
                       return e;
@@ -4218,22 +4229,6 @@ var PS = {};
                               mass: v1.mass,
                               velocity: Pure_Math.scalePoint(v1.friction)(v1.velocity),
                               friction: v1.friction,
-                              health: v1.health,
-                              rotation: v1.rotation,
-                              renderables: v1.renderables,
-                              behaviour: v1.behaviour
-                          };
-                      };
-                      if (command instanceof Damage) {
-                          return {
-                              id: v1.id,
-                              location: v1.location,
-                              width: v1.width,
-                              height: v1.height,
-                              mass: v1.mass,
-                              velocity: v1.velocity,
-                              friction: v1.friction,
-                              health: v1.health - command.value0,
                               rotation: v1.rotation,
                               renderables: v1.renderables,
                               behaviour: v1.behaviour
@@ -4259,7 +4254,6 @@ var PS = {};
                   return "y";
               }))()(Data_Semiring.semiringRecordNil)(Data_Semiring.semiringNumber))(Data_Semiring.semiringNumber)))(v1.velocity)(scale(v.force / v1.mass)(v.direction)),
               friction: v1.friction,
-              health: v1.health,
               rotation: v1.rotation,
               renderables: v1.renderables,
               behaviour: v1.behaviour
@@ -4304,7 +4298,6 @@ var PS = {};
                                   mass: v1.mass,
                                   velocity: v1.velocity,
                                   friction: v1.friction,
-                                  health: v1.health,
                                   rotation: v1.rotation - config.turningSpeed,
                                   renderables: v1.renderables,
                                   behaviour: v1.behaviour
@@ -4319,7 +4312,6 @@ var PS = {};
                                   mass: v1.mass,
                                   velocity: v1.velocity,
                                   friction: v1.friction,
-                                  health: v1.health,
                                   rotation: v1.rotation + config.turningSpeed,
                                   renderables: v1.renderables,
                                   behaviour: v1.behaviour
@@ -4346,12 +4338,11 @@ var PS = {};
               friction: 0.9,
               rotation: -0.25,
               mass: 10.0,
-              health: 100.0,
-              behaviour: new Data_List_Types.Cons(basicBitchPhysics, new Data_List_Types.Cons(driven({
+              behaviour: new Data_List_Types.Cons(hasHealth(100.0), new Data_List_Types.Cons(basicBitchPhysics, new Data_List_Types.Cons(driven({
                   maxSpeed: 5.0,
                   acceleration: 30.0,
                   turningSpeed: 3.0e-2
-              }), Data_List_Types.Nil.value)),
+              }), Data_List_Types.Nil.value))),
               renderables: new Data_List_Types.Cons({
                   transform: {
                       x: -12.5,
@@ -4393,8 +4384,8 @@ var PS = {};
               return target;
           };
           if (Data_Boolean.otherwise) {
-              var $94 = circleCheck(target)(e);
-              if ($94) {
+              var $93 = circleCheck(target)(e);
+              if ($93) {
                   return applyForce({
                       direction: vectorBetween(e.location)(target.location),
                       force: magnitude(e.velocity) * e.mass
@@ -4402,7 +4393,7 @@ var PS = {};
               };
               return target;
           };
-          throw new Error("Failed pattern match at Pure.Game (line 184, column 1 - line 184, column 46): " + [ target.constructor.name, e.constructor.name ]);
+          throw new Error("Failed pattern match at Pure.Game (line 192, column 1 - line 192, column 46): " + [ target.constructor.name, e.constructor.name ]);
       };
   };
   var performChecks = function (entities) {

@@ -59,7 +59,6 @@ type Entity = { id :: EntityId
               , mass :: Number
               , velocity :: Point
               , friction :: Number
-              , health :: Number
               , rotation :: Number
               , renderables :: List Renderable
               , behaviour :: List (Exists EntityBehaviour) --  Would prefer a typeclass based  solution, I'm pretty sure it can exist
@@ -111,8 +110,11 @@ tank id location = { id
                    , friction: 0.9
                    , rotation: (-0.25)
                    , mass: 10.0
-                   , health: 100.0
-                   , behaviour : basicBitchPhysics : (driven { maxSpeed: 5.0, acceleration: 30.0, turningSpeed: 0.03 } : Nil)  
+                   , behaviour : hasHealth 100.0 
+                               : basicBitchPhysics 
+                               : (driven { maxSpeed: 5.0, acceleration: 30.0, turningSpeed: 0.03 } 
+                               : Nil)  
+
                    , renderables : ({transform: { x: (-12.5)
                                                 , y: (-12.5)
                                                 , width: 25.0
@@ -143,12 +145,18 @@ driven config = mkExists $ EntityBehaviour {  state: unit
 
 basicBitchPhysics :: Exists EntityBehaviour 
 basicBitchPhysics = mkExists $ EntityBehaviour { state: unit
-                                               , handleCommand: EntityCommandHandler \command _ e@{ location, velocity, friction, health } ->
+                                               , handleCommand: EntityCommandHandler \command _ e@{ location, velocity, friction } ->
                                                                   EntityUpdated $ case command of 
                                                                                         Tick -> e { location = location + velocity, velocity = scalePoint friction velocity }
-                                                                                        Damage amount -> 
-                                                                                          e { health = health - amount } -- if < 0 then raise that event.. (and that'll only get handled on the server)
                                                                                         _ -> e
+                                               }
+
+hasHealth :: Number -> Exists EntityBehaviour 
+hasHealth amount = mkExists $ EntityBehaviour { state: amount
+                                               , handleCommand: EntityCommandHandler \command amount e ->
+                                                                  case command of 
+                                                                       Damage damage -> StateUpdated (amount - damage)
+                                                                       _ -> EntityUpdated e
                                                }
 
 applyThrust :: Number -> Number -> Entity -> Entity
