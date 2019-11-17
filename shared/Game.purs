@@ -5,7 +5,7 @@ import Prelude
 
 import Data.Foldable (foldl)
 import Data.List (List(..), (:))
-import Data.Maybe (Maybe)
+import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 import Data.Traversable (find)
 import Math (cos, pi, pow, sin, sqrt) as Math
@@ -25,14 +25,14 @@ derive newtype instance ordEntityId :: Ord EntityId
 
 type Renderable = { transform :: Rect
                   , color :: HtmlColor
+                  , image :: Maybe String
                   , rotation :: Number
                   }
 
-data EntityCommand = PushForward | PushBackward | TurnLeft | TurnRight
+data EntityCommand = Tick | PushForward | PushBackward | TurnLeft | TurnRight
 
 derive instance eqEntityCommand :: Eq EntityCommand
 
-newtype EntityBehaviour = EntityBehaviour (Entity -> Entity)
 newtype EntityCommandHandler = EntityCommandHandler (EntityCommand -> Entity -> Entity)
 
 type Entity = { id :: EntityId
@@ -45,11 +45,10 @@ type Entity = { id :: EntityId
               , rotation :: Number
               , renderables :: List Renderable
               , commandHandlers :: List EntityCommandHandler
-              , behaviour :: List EntityBehaviour
               }
 
 
-type Game =  { entities  :: List Entity 
+type Game =  { entities  :: List (Entity)
              , world :: Rect
   }
 
@@ -82,8 +81,7 @@ tank id location = { id
                    , friction: 0.9
                    , rotation: (-0.25)
                    , mass: 10.0
-                   , behaviour : basicBitchPhysics : Nil
-                   , commandHandlers : (driven { maxSpeed: 5.0, acceleration: 30.0, turningSpeed: 0.03 } : Nil)  
+                   , commandHandlers : basicBitchPhysics : (driven { maxSpeed: 5.0, acceleration: 30.0, turningSpeed: 0.03 } : Nil)  
                    , renderables : ({transform: { x: (-12.5)
                                                 , y: (-12.5)
                                                 , width: 25.0
@@ -91,6 +89,7 @@ tank id location = { id
                                                 }
                                    , rotation: 0.0
                                    , color: HtmlColor "#f00"
+                                   , image: Just "ship"
                                    }) : Nil
                                  }
 
@@ -107,14 +106,17 @@ driven config = EntityCommandHandler \command entity@{ rotation } ->
        PushBackward -> applyThrust (-config.acceleration) config.maxSpeed entity
        TurnLeft -> entity { rotation = rotation - config.turningSpeed }
        TurnRight -> entity { rotation = rotation + config.turningSpeed }
+       _ -> entity
 
 -- This is more likely to be handled in its own global manner
 -- As we'll need do collision detection at the same time if we're to be remotely efficient
 -- iirc you can't just do overlaping quads for collision detection either because otherwise they'll
 -- just pass through each other (it may be fine keeping basic bitch physics, so long as the collision is pre-emptive)
-basicBitchPhysics :: EntityBehaviour 
-basicBitchPhysics = EntityBehaviour \e@{ location, velocity, friction } ->
-  e { location = location + velocity, velocity = scalePoint friction velocity }
+basicBitchPhysics :: EntityCommandHandler 
+basicBitchPhysics = EntityCommandHandler \command e@{ location, velocity, friction } ->
+  case command of 
+       Tick -> e { location = location + velocity, velocity = scalePoint friction velocity }
+       _ -> e
 
 applyThrust :: Number -> Number -> Entity -> Entity
 applyThrust accel maxSpeed entity =
@@ -132,7 +134,7 @@ rotate e@{ rotation } =
 
 tick :: Game -> Game 
 tick game@ { entities } =
-  applyPhysics $ game { entities = map (\e -> foldl (\i (EntityBehaviour f) -> f i) e e.behaviour) entities }
+  applyPhysics $ game { entities = map (\e -> foldl (\i (EntityCommandHandler f) -> f Tick i) e e.commandHandlers) entities }
 
 
 -- Note: There isn't a fn for it in core PS, but we effectively 

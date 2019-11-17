@@ -41,6 +41,7 @@ init :: PureWebStartArgs -> Effect State
 init args = do
   Stetson.configure
     # Stetson.static "/assets/[...]" (PrivDir "pure_ps" "www/assets")
+    # Stetson.static "/art/[...]" (PrivDir "pure_ps" "www/art")
     # Stetson.static "/[...]" (PrivFile "pure_ps" "www/index.html")
     # Stetson.port args.webPort
     # Stetson.bindTo 0 0 0 0

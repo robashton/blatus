@@ -2,11 +2,13 @@ module Pure.Main where
 
 import Prelude
 
+import Assets (AssetPackage)
 import Assets (AssetPackage, load) as Assets
 import Data.Either (hush, isLeft, isRight)
 import Data.Filterable (filterMap)
 import Data.Foldable (foldl)
 import Data.List (List(..), (:))
+import Data.Map (lookup) as Map
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Monoid (guard)
 import Data.Newtype (unwrap, wrap)
@@ -57,6 +59,7 @@ tickSignal = sampleOn (every $ second / 30.0) <$> inputSignal
 
 -- We're going to use Aff to make loading pretty instead of trying
 -- to chain Signals around the place
+-- TODO: Loading screen, convert maybes to eithers instead of vice versa, display errors
 load ::  (LocalContext -> Effect Unit) -> Effect Unit
 load cb = do
   runAff_ (\assets -> do
@@ -112,12 +115,12 @@ gatherCommandsFromInput { isLeft, isUp, isRight, isDown } =
                        (if isUp then Just $ PlayerCommand PushForward else Nothing)  : Nil
 
 scheduleRender :: LocalContext -> Effect Unit
-scheduleRender context@{ camera: { viewport, config: { target: { width, height }} }, game, offscreenContext } = do
+scheduleRender context@{ camera: { viewport, config: { target: { width, height }} }, game, offscreenContext, assets } = do
   _ <- Canvas.clearRect offscreenContext { x: 0.0, y: 0.0, width, height }
   _ <- Canvas.save offscreenContext
   _ <- applyViewport viewport offscreenContext
   _ <- Background.render viewport game offscreenContext 
-  _ <- renderScene game offscreenContext
+  _ <- renderScene game assets offscreenContext
   _ <- Canvas.restore offscreenContext
   _ <- Window.requestAnimationFrame (render context) context.window
   pure unit
@@ -132,17 +135,19 @@ render { camera: { viewport, config: { target: { width, height }} }, game, rende
   _ <- Canvas.drawImage renderContext image 0.0 0.0
   pure unit
 
-renderScene :: Game -> Canvas.Context2D -> Effect Unit
-renderScene { entities } ctx = do
+renderScene :: Game -> AssetPackage -> Canvas.Context2D -> Effect Unit
+renderScene { entities } assets ctx = do
   _ <- for entities \{ location, renderables, rotation } -> Canvas.withContext ctx $ do
          _ <- Canvas.translate ctx { translateX: location.x, translateY: location.y }
          _ <- Canvas.rotate ctx (rotation * 2.0 * Math.pi)
-         _ <- for renderables \{ transform, color, rotation: rr } -> Canvas.withContext ctx $ do
+         _ <- for renderables \{ transform, color, image, rotation: rr } -> Canvas.withContext ctx $ do
                 _ <- Canvas.translate ctx { translateX: transform.x, translateY:  transform.y }
                 _ <- Canvas.rotate ctx (rr * 2.0 * Math.pi)
                 _ <- Canvas.translate ctx { translateX: (-transform.x), translateY: (-transform.y) }
                 _ <- Canvas.setFillStyle ctx (unwrap color) 
-                _ <- Canvas.fillRect ctx transform
+                _ <- fromMaybe (Canvas.fillRect ctx transform) 
+                        $ map (\img -> Canvas.drawImageScale ctx img transform.x transform.y transform.width transform.height) 
+                        $ (flip Map.lookup assets) =<< image 
                 pure unit
          Canvas.translate ctx { translateX: (-location.x), translateY: (-location.y) }
   pure unit
