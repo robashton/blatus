@@ -4,15 +4,13 @@ module Pure.Game where
 import Prelude
 
 import Data.Foldable (foldl)
-import Data.List (List(..), elem, manyRec, (:))
-import Data.Maybe (Maybe(..))
+import Data.List (List(..), (:))
+import Data.Maybe (Maybe)
 import Data.Newtype (class Newtype)
 import Data.Traversable (find)
-import Data.Tuple (Tuple(..))
 import Math (cos, pi, pow, sin, sqrt) as Math
 import Pure.Math (Rect, Point, scalePoint)
 import Simple.JSON (class ReadForeign, class WriteForeign)
-import Web.HTML.Window (location)
 
 newtype HtmlColor = HtmlColor String
 derive instance ntHtmlColor :: Newtype HtmlColor _

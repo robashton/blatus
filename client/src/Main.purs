@@ -2,7 +2,8 @@ module Pure.Main where
 
 import Prelude
 
-import Data.Either (isLeft, isRight)
+import Assets (AssetPackage, load) as Assets
+import Data.Either (hush, isLeft, isRight)
 import Data.Filterable (filterMap)
 import Data.Foldable (foldl)
 import Data.List (List(..), (:))
@@ -11,6 +12,9 @@ import Data.Monoid (guard)
 import Data.Newtype (unwrap, wrap)
 import Data.Traversable (for)
 import Effect (Effect)
+import Effect.Aff (runAff, runAff_)
+import Effect.Aff.Class (liftAff)
+import Effect.Class (liftEffect)
 import Effect.Console (log)
 import Effect.Timer (setTimeout)
 import Graphics.Canvas (CanvasElement, clearRect, fillRect, getContext2D)
@@ -32,6 +36,7 @@ type LocalContext = { renderContext :: Canvas.Context2D
                     , canvasElement :: Canvas.CanvasElement
                     , offscreenContext :: Canvas.Context2D
                     , offscreenCanvas :: Canvas.CanvasElement
+                    , assets :: Assets.AssetPackage
                     , camera :: Camera
                     , window :: HTML.Window
                     , game :: Game
@@ -50,24 +55,33 @@ inputSignal =
 tickSignal :: Effect (Signal InputState)
 tickSignal = sampleOn (every $ second / 30.0) <$> inputSignal
 
-main :: Effect Unit
-main =  do
-  maybeCanvas <- Canvas.getCanvasElementById "target"
-  maybeOffscreen <- Canvas.getCanvasElementById "offscreen"
-  fromMaybe (pure unit) $ program <$> maybeCanvas <*> maybeOffscreen 
-  where program canvasElement offscreenCanvas = do
+-- We're going to use Aff to make loading pretty instead of trying
+-- to chain Signals around the place
+load ::  (LocalContext -> Effect Unit) -> Effect Unit
+load cb = do
+  runAff_ (\assets -> do
+              maybeCanvas <- Canvas.getCanvasElementById "target"
+              maybeOffscreen <- Canvas.getCanvasElementById "offscreen"
+              fromMaybe (pure unit) $ prepareContexts <$> maybeCanvas <*> maybeOffscreen <*> (hush assets)
+              ) $ Assets.load
+  where prepareContexts canvasElement offscreenCanvas assets = do
           window <- HTML.window
           renderContext <- Canvas.getContext2D canvasElement
           offscreenContext <- Canvas.getContext2D offscreenCanvas
           canvasWidth <- Canvas.getCanvasWidth canvasElement
           canvasHeight <- Canvas.getCanvasHeight canvasElement
-          input <- tickSignal
           let camera = setupCamera { width: canvasWidth, height: canvasHeight }
               game = initialModel
-              context = foldp tickContext { offscreenContext, offscreenCanvas, renderContext, canvasElement, camera, window, game } input
-          runSignal (map scheduleRender context)
-          pure unit
-
+          cb $ { offscreenContext, offscreenCanvas, renderContext, assets, canvasElement, camera, window, game }
+  
+-- But we're going to use signalling for game input/etc as that's quite pretty
+-- even if we haven't worked out how to adjust for elapsed time during render/frame-rate yet in that world
+main :: Effect Unit
+main =  do
+  load (\loadedContext -> do
+          input <- tickSignal
+          let context = foldp tickContext loadedContext input
+          runSignal (map scheduleRender context))
 
 tickContext :: InputState -> LocalContext  -> LocalContext
 tickContext input context@{ game, camera: { config } } = 

@@ -2108,7 +2108,7 @@ var PS = {};
                       behaviour: v.behaviour
                   };
               };
-              throw new Error("Failed pattern match at Pure.Game (line 107, column 3 - line 111, column 73): " + [ command.constructor.name ]);
+              throw new Error("Failed pattern match at Pure.Game (line 105, column 3 - line 109, column 73): " + [ command.constructor.name ]);
           };
       };
   };
@@ -2181,7 +2181,7 @@ var PS = {};
               };
               return target;
           };
-          throw new Error("Failed pattern match at Pure.Game (line 151, column 1 - line 151, column 46): " + [ target.constructor.name, e.constructor.name ]);
+          throw new Error("Failed pattern match at Pure.Game (line 149, column 1 - line 149, column 46): " + [ target.constructor.name, e.constructor.name ]);
       };
   };
   var performChecks = function (entities) {

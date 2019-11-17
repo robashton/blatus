@@ -10,7 +10,8 @@
         "filterable",
         "effect",
         "canvas",
-        "web-html"
+        "web-html",
+        "aff"
     ],
     "name": "client",
     "source": "git@github.com:purescript/package-sets.git"
