@@ -13,6 +13,7 @@ import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Monoid (guard)
 import Data.Newtype (unwrap, wrap)
 import Data.Traversable (for)
+import Data.Tuple (fst)
 import Effect (Effect)
 import Effect.Aff (runAff, runAff_)
 import Effect.Aff.Class (liftAff)
@@ -25,9 +26,9 @@ import Math (abs)
 import Math (pi) as Math
 import Pure.Background (render) as Background
 import Pure.Camera (Camera, CameraViewport, CameraConfiguration, applyViewport, setupCamera, viewportFromConfig)
-import Pure.Game (EntityCommand(..), Game, entityById, initialModel, tick)
+import Pure.Game (EntityCommand(..), Game, entityById, foldEvents, initialModel, tick)
 import Pure.Game (sendCommand) as Game
-import Signal (Signal, foldp, map4, runSignal, sampleOn)
+import Signal (Signal, foldp, map4, map5, runSignal, sampleOn)
 import Signal.DOM (keyPressed)
 import Signal.Time (every, second)
 import Web.HTML as HTML
@@ -48,11 +49,12 @@ type InputState =  { isLeft :: Boolean
                 , isRight :: Boolean
                 , isUp :: Boolean
                 , isDown :: Boolean
-  }
+                , isFiring :: Boolean
+                }
 
 inputSignal :: Effect (Signal InputState)
 inputSignal =
-    map4 (\l u r d -> {  isLeft: l, isUp: u, isRight: r, isDown: d }) <$> (keyPressed 37) <*> (keyPressed 38) <*> (keyPressed 39) <*> (keyPressed 40)
+    map5 (\l u r d f -> {  isLeft: l, isUp: u, isRight: r, isDown: d, isFiring: f }) <$> (keyPressed 37) <*> (keyPressed 38) <*> (keyPressed 39) <*> (keyPressed 40) <*> (keyPressed 32)
 
 tickSignal :: Effect (Signal InputState)
 tickSignal = sampleOn (every $ second / 30.0) <$> inputSignal
@@ -88,7 +90,7 @@ main =  do
 
 tickContext :: InputState -> LocalContext  -> LocalContext
 tickContext input context@{ game, camera: { config } } = 
-  updatedContext { game = tick $ foldl handleCommand game $ gatherCommandsFromInput input }
+  updatedContext { game = foldEvents $ tick $ foldl handleCommand game $ gatherCommandsFromInput input }
       where viewport = viewportFromConfig $ trackPlayer game config 
             updatedContext = context { camera = { config, viewport } }
 
@@ -104,15 +106,16 @@ data ExternalCommand =
 handleCommand :: Game -> ExternalCommand -> Game
 handleCommand game external = 
   case external of
-       PlayerCommand command -> Game.sendCommand (wrap "player") command game
+       PlayerCommand command -> foldEvents $ Game.sendCommand (wrap "player") command game
 
 -- Why didn't 'guard' work? :S
 gatherCommandsFromInput :: InputState -> (List ExternalCommand)
-gatherCommandsFromInput { isLeft, isUp, isRight, isDown } = 
+gatherCommandsFromInput { isLeft, isUp, isRight, isDown, isFiring } = 
   filterMap identity $ (if isLeft then Just $ PlayerCommand TurnLeft else Nothing) :
                        (if isRight then Just $ PlayerCommand TurnRight else Nothing)  :
                        (if isDown then Just $ PlayerCommand PushBackward else Nothing)  : 
-                       (if isUp then Just $ PlayerCommand PushForward else Nothing)  : Nil
+                       (if isUp then Just $ PlayerCommand PushForward else Nothing) : 
+                       (if isFiring then Just $ PlayerCommand FireBullet else Nothing)  : Nil
 
 scheduleRender :: LocalContext -> Effect Unit
 scheduleRender context@{ camera: { viewport, config: { target: { width, height }} }, game, offscreenContext, assets } = do

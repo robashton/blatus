@@ -8,15 +8,19 @@ module Pure.Game where
 -- Events sent from server model to clients (and indeed to itself) are used to enforce the critical decisions
 -- That means things like collisions causing health changes (ButtetHitPlayer), and health getting less than 0 (PlayerDestroyed)
 -- The server will also send a specific command to each client, containing the actual location of the entities, and we'll do some rubber banding - #sorrynotsorry
+-- For now, we'll allow the events to be client-side, because there is no server, but that'll be the working practise
 
 import Prelude
 
 import Data.Exists (Exists, mkExists, runExists)
 import Data.Foldable (foldl)
-import Data.List (List(..), foldr, (:))
+import Data.List (List(..), concat, foldr, (:))
+import Data.Map (Map)
+import Data.Map (fromFoldable, insert, lookup, mapMaybe, values) as Map
 import Data.Maybe (Maybe(..))
-import Data.Newtype (class Newtype)
+import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Traversable (find)
+import Data.Tuple (Tuple(..), fst, snd)
 import Math (cos, pi, pow, sin, sqrt) as Math
 import Pure.Math (Rect, Point, scalePoint)
 import Simple.JSON (class ReadForeign, class WriteForeign)
@@ -38,13 +42,23 @@ type Renderable = { transform :: Rect
                   , rotation :: Number
                   }
 
-data EntityCommand = Damage Number | Tick | PushForward | PushBackward | TurnLeft | TurnRight
+data EntityCommand = Damage Number 
+                   | Tick 
+                   | PushForward 
+                   | PushBackward 
+                   | TurnLeft 
+                   | TurnRight
+                   | FireBullet
+
+data GameEvent = BulletFired { id :: EntityId, location :: Point, velocity :: Point }
 
 derive instance eqEntityCommand :: Eq EntityCommand
 
 data EntityBehaviourResult state = StateUpdated state 
                                  | StateAndEntityUpdated state Entity
                                  | EntityUpdated Entity
+                                 | RaiseEvent GameEvent state
+                                 | NoOp
 
 newtype EntityCommandHandler state = EntityCommandHandler (EntityCommand -> state -> Entity -> EntityBehaviourResult state)
 
@@ -64,37 +78,60 @@ type Entity = { id :: EntityId
               , behaviour :: List (Exists EntityBehaviour) --  Would prefer a typeclass based  solution, I'm pretty sure it can exist
               }
 
+type EntityMap = Map EntityId Entity
 
-type Game =  { entities  :: List (Entity)
+type Game =  { entities  :: EntityMap
              , world :: Rect
   }
 
 initialModel :: Game
-initialModel = { entities : (tank (EntityId "player") { x: 20.0, y: 20.0 } ) :
-                            (tank (EntityId "jimmy") { x: 300.0, y: 500.0 }) :
-                            (tank (EntityId "stacko") { x: 200.0, y: 100.0 }) :
-                            (tank (EntityId "daniel") { x: -200.0, y: -300.0 }) : Nil
+initialModel = { entities : Map.fromFoldable $ (Tuple (EntityId "player") (tank (EntityId "player") { x: 20.0, y: 20.0 } )) :
+                                               (Tuple (EntityId "jimmy") (tank (EntityId "jimmy") { x: 300.0, y: 500.0 } )) :
+                                               (Tuple (EntityId "stacko") (tank (EntityId "stacko") { x: 200.0, y: 100.0 })) :
+                                               (Tuple (EntityId "daniel") (tank (EntityId "daniel") { x: -200.0, y: -300.0 })) : Nil
                , world:  { x: -1000.0, y: -1000.0, width: 2000.0, height: 2000.0 }
 }
 
 
-sendCommand :: EntityId -> EntityCommand -> Game -> Game
+sendCommand :: EntityId -> EntityCommand -> Game -> Tuple Game (List GameEvent)
 sendCommand id command game@{ entities } =
-  game { entities = map (\e -> if e.id == id then processCommand e command else e) entities }
+  case (Map.lookup id entities) of
+    Nothing -> Tuple game Nil
+    Just entity -> let (Tuple newEntity evs) = processCommand entity command 
+                   in Tuple (game { entities = Map.insert id newEntity entities }) evs
 
-processCommand :: Entity -> EntityCommand -> Entity
+foldEvents :: Tuple Game (List GameEvent) -> Game
+foldEvents (Tuple game events) = foldr sendEvent game events
+
+sendEvent :: GameEvent -> Game -> Game
+sendEvent ev game = 
+  case ev of
+       BulletFired deets -> addEntity (bullet deets.id deets.location deets.velocity) game
+
+addEntity :: Entity -> Game -> Game
+addEntity entity game =
+  game { entities = Map.insert entity.id entity game.entities }
+
+processCommand :: Entity -> EntityCommand -> Tuple Entity (List GameEvent)
 processCommand e command = 
-  foldr executeCommand e { behaviour = Nil } e.behaviour
+  foldr executeCommand (Tuple (e { behaviour = Nil }) Nil) e.behaviour
        where
-             executeCommand = (\behaviour acc -> runExists (runBehaviour acc) behaviour)
-             runBehaviour :: forall state. Entity -> EntityBehaviour state -> Entity
+             executeCommand :: Exists EntityBehaviour -> (Tuple Entity (List GameEvent)) -> (Tuple Entity (List GameEvent)) 
+             executeCommand = (\behaviour (Tuple acc evs) -> let runResult = runExists (runBehaviour acc) behaviour
+                                                             in Tuple (fst runResult) (concat $ (snd runResult) : evs : Nil))
+             runBehaviour :: forall state. Entity -> EntityBehaviour state -> Tuple Entity (List GameEvent)
              runBehaviour entity@{ behaviour: behaviourList } (EntityBehaviour behaviour@{ handleCommand: (EntityCommandHandler handler)}) = case handler command behaviour.state entity of
                                                                   StateUpdated newState ->
-                                                                    entity { behaviour = ( mkExists $ EntityBehaviour behaviour { state = newState }) : behaviourList }
+                                                                    Tuple (entity { behaviour = ( mkExists $ EntityBehaviour behaviour { state = newState }) : behaviourList }) Nil
                                                                   StateAndEntityUpdated newState newEntity ->
-                                                                    newEntity { behaviour = ( mkExists $ EntityBehaviour behaviour { state = newState }) : behaviourList }
+                                                                    Tuple (newEntity { behaviour = ( mkExists $ EntityBehaviour behaviour { state = newState }) : behaviourList }) Nil
                                                                   EntityUpdated newEntity ->
-                                                                    newEntity { behaviour = ( mkExists $ EntityBehaviour behaviour)  : behaviourList  }
+                                                                    Tuple (newEntity { behaviour = ( mkExists $ EntityBehaviour behaviour)  : behaviourList  }) Nil
+                                                                  RaiseEvent event newState ->
+                                                                    Tuple (entity { behaviour = ( mkExists $ EntityBehaviour behaviour { state = newState })  : behaviourList  }) (event : Nil)
+                                                                  NoOp ->
+                                                                    Tuple (entity { behaviour = ( mkExists $ EntityBehaviour behaviour) : behaviourList }) Nil
+
 
 entityById :: EntityId -> Game -> Maybe Entity
 entityById id { entities } =
@@ -111,8 +148,9 @@ tank id location = { id
                    , rotation: (-0.25)
                    , mass: 10.0
                    , behaviour : hasHealth 100.0 
+                   : firesBullets { max: 100, speed: 15.0, rate: 5 }
                                : basicBitchPhysics 
-                               : (driven { maxSpeed: 5.0, acceleration: 30.0, turningSpeed: 0.03 } 
+                               : (driven { maxSpeed: 5.0, acceleration: 15.0, turningSpeed: 0.03 } 
                                : Nil)  
 
                    , renderables : ({transform: { x: (-12.5)
@@ -126,11 +164,54 @@ tank id location = { id
                                    }) : Nil
                                  }
 
+bullet :: EntityId -> Point -> Point -> Entity
+bullet id location velocity = { id
+             , location: location
+             , width: 5.0
+             , height: 5.0
+             , velocity: velocity
+             , friction: 1.0
+             , rotation: 0.0
+             , mass: 200.0
+             , behaviour : basicBitchPhysics : Nil
+             , renderables : ({ transform: { x: -2.5
+                                           , y: -2.5
+                                           , width: 5.0
+                                           , height: 5.0
+                                           }
+                              , rotation: 0.0
+                              , color: HtmlColor "#ff0"
+                              , image: Nothing
+                              }) : Nil
+                            }
+
 
 type DrivenConfig = { maxSpeed :: Number
                     , acceleration :: Number
                     , turningSpeed :: Number
                     }
+
+firesBullets :: { max :: Int, speed :: Number, rate:: Int } -> Exists EntityBehaviour
+firesBullets { max, speed, rate } = mkExists $ EntityBehaviour { state: { current: 0, firingTimer: 0 }
+                                                               , handleCommand: EntityCommandHandler handleCommand
+                                                         }
+             where handleCommand command state@{ current, firingTimer }  entity = case command of
+                                               FireBullet -> 
+                                                 if firingTimer <= 0 then RaiseEvent (BulletFired { id, location, velocity }) (state { current = current + 1, firingTimer = rate })
+                                                 else NoOp
+                                               Tick -> 
+                                                   StateUpdated $ state { current = if current > max then 0 else current, 
+                                                                        firingTimer = if firingTimer > 0 then firingTimer - 1 else firingTimer
+                                                                        }
+
+                                               _ -> NoOp
+                                          where id = wrap $ (unwrap entity.id) <> "-bullet-" <> (show state.current)
+                                                direction = rotationToVector entity.rotation
+                                                location = entity.location + (scale entity.width direction)
+                                                velocity = (scale speed direction) + entity.velocity
+
+                                                                    
+                                                    
 
 driven :: DrivenConfig -> Exists EntityBehaviour
 driven config = mkExists $ EntityBehaviour {  state: unit
@@ -153,19 +234,24 @@ basicBitchPhysics = mkExists $ EntityBehaviour { state: unit
 
 hasHealth :: Number -> Exists EntityBehaviour 
 hasHealth amount = mkExists $ EntityBehaviour { state: amount
-                                               , handleCommand: EntityCommandHandler \command amount e ->
+                                               , handleCommand: EntityCommandHandler \command state e ->
                                                                   case command of 
-                                                                       Damage damage -> StateUpdated (amount - damage)
+                                                                       Damage damage -> StateUpdated (state - damage)
                                                                        _ -> EntityUpdated e
                                                }
+                                             
+rotationToVector :: Number -> Point
+rotationToVector r = { x: xvel, y: yvel }
+      where 
+        angle = r  * Math.pi * 2.0
+        xvel = (Math.cos angle) 
+        yvel = (Math.sin angle)
+
 
 applyThrust :: Number -> Number -> Entity -> Entity
 applyThrust accel maxSpeed entity =
-  applyForce { direction: { x: xvel, y: yvel }, force: accel } entity
-      where 
-        angle = entity.rotation  * Math.pi * 2.0
-        xvel = (Math.cos angle) 
-        yvel = (Math.sin angle)
+  applyForce { direction, force: accel } entity
+      where direction = rotationToVector entity.rotation
 
 
 rotate :: Entity -> Entity
@@ -173,9 +259,15 @@ rotate e@{ rotation } =
   e { rotation = rotation + 0.01 }
 
 
-tick :: Game -> Game 
+tick :: Game -> Tuple Game (List GameEvent)
 tick game@ { entities } =
-  applyPhysics $ game { entities = map (\e -> processCommand e Tick) entities }
+   let result = foldl tickEntity { entities: mempty, events: Nil } entities
+    in Tuple (applyPhysics $ game { entities = result.entities }) result.events
+  where
+        tickEntity ::  { entities :: EntityMap, events :: List GameEvent } -> Entity -> { entities :: EntityMap, events :: List GameEvent }
+        tickEntity acc entity = let (Tuple newEntity newEvents) =  processCommand entity Tick 
+                                                  in { entities:  Map.insert newEntity.id newEntity acc.entities, events: concat $ acc.events : newEvents : Nil   }
+
 
 
 -- Note: There isn't a fn for it in core PS, but we effectively 
@@ -183,11 +275,11 @@ tick game@ { entities } =
 -- in doing an n^2 operation here
 applyPhysics :: Game -> Game
 applyPhysics game@{ entities } = 
-  game { entities = map (performChecks entities) entities }
+  game { entities = Map.mapMaybe (performChecks (Map.values entities)) entities }
 
-performChecks :: List Entity -> Entity -> Entity
+performChecks :: List Entity -> Entity -> Maybe Entity
 performChecks entities target =
-  foldl collideEntities target entities
+  Just $ foldl collideEntities target entities
 
 collideEntities :: Entity -> Entity -> Entity
 collideEntities target e 
