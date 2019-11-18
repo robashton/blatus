@@ -148,8 +148,8 @@ tank id location = { id
                    , friction: 0.9
                    , rotation: (-0.25)
                    , mass: 10.0
-                   , behaviour : hasHealth 100.0 
                    , networkSync: true
+                   , behaviour : hasHealth 100.0 
                    : firesBullets { max: 100, speed: 15.0, rate: 5 }
                                : basicBitchPhysics 
                                : (driven { maxSpeed: 5.0, acceleration: 15.0, turningSpeed: 0.03 } 
@@ -175,7 +175,7 @@ bullet id location velocity = { id
              , friction: 1.0
              , rotation: 0.0
              , mass: 200.0
-             , networkSync: false,
+             , networkSync: false
              , behaviour : basicBitchPhysics : Nil
              , renderables : ({ transform: { x: -2.5
                                            , y: -2.5

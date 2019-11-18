@@ -4768,6 +4768,7 @@ var PS = {};
                           id: v.id,
                           location: v.location,
                           mass: v.mass,
+                          networkSync: v.networkSync,
                           renderables: v.renderables,
                           rotation: v.rotation,
                           velocity: v.velocity,
@@ -4785,6 +4786,7 @@ var PS = {};
                           id: v2.value1.id,
                           location: v2.value1.location,
                           mass: v2.value1.mass,
+                          networkSync: v2.value1.networkSync,
                           renderables: v2.value1.renderables,
                           rotation: v2.value1.rotation,
                           velocity: v2.value1.velocity,
@@ -4799,6 +4801,7 @@ var PS = {};
                           id: v2.value0.id,
                           location: v2.value0.location,
                           mass: v2.value0.mass,
+                          networkSync: v2.value0.networkSync,
                           renderables: v2.value0.renderables,
                           rotation: v2.value0.rotation,
                           velocity: v2.value0.velocity,
@@ -4816,6 +4819,7 @@ var PS = {};
                           id: v.id,
                           location: v.location,
                           mass: v.mass,
+                          networkSync: v.networkSync,
                           renderables: v.renderables,
                           rotation: v.rotation,
                           velocity: v.velocity,
@@ -4830,13 +4834,14 @@ var PS = {};
                           id: v.id,
                           location: v.location,
                           mass: v.mass,
+                          networkSync: v.networkSync,
                           renderables: v.renderables,
                           rotation: v.rotation,
                           velocity: v.velocity,
                           width: v.width
                       }, Data_List_Types.Nil.value);
                   };
-                  throw new Error("Failed pattern match at Pure.Game (line 123, column 142 - line 133, column 159): " + [ v2.constructor.name ]);
+                  throw new Error("Failed pattern match at Pure.Game (line 124, column 142 - line 134, column 159): " + [ v2.constructor.name ]);
               };
           };
           var executeCommand = function (behaviour) {
@@ -4852,6 +4857,7 @@ var PS = {};
               id: e.id,
               location: e.location,
               mass: e.mass,
+              networkSync: e.networkSync,
               renderables: e.renderables,
               rotation: e.rotation,
               velocity: e.velocity,
@@ -4874,7 +4880,7 @@ var PS = {};
                       world: v.world
                   }, v2.value1);
               };
-              throw new Error("Failed pattern match at Pure.Game (line 98, column 3 - line 101, column 87): " + [ v1.constructor.name ]);
+              throw new Error("Failed pattern match at Pure.Game (line 99, column 3 - line 102, column 87): " + [ v1.constructor.name ]);
           };
       };
   };
@@ -5014,6 +5020,7 @@ var PS = {};
                               friction: v1.friction,
                               rotation: v1.rotation,
                               renderables: v1.renderables,
+                              networkSync: v1.networkSync,
                               behaviour: v1.behaviour
                           };
                       };
@@ -5035,6 +5042,7 @@ var PS = {};
                   friction: 1.0,
                   rotation: 0.0,
                   mass: 200.0,
+                  networkSync: false,
                   behaviour: new Data_List_Types.Cons(basicBitchPhysics, Data_List_Types.Nil.value),
                   renderables: new Data_List_Types.Cons({
                       transform: {
@@ -5067,6 +5075,7 @@ var PS = {};
               friction: v1.friction,
               rotation: v1.rotation,
               renderables: v1.renderables,
+              networkSync: v1.networkSync,
               behaviour: v1.behaviour
           };
       };
@@ -5106,6 +5115,7 @@ var PS = {};
                                   friction: v1.friction,
                                   rotation: v1.rotation - config.turningSpeed,
                                   renderables: v1.renderables,
+                                  networkSync: v1.networkSync,
                                   behaviour: v1.behaviour
                               };
                           };
@@ -5120,6 +5130,7 @@ var PS = {};
                                   friction: v1.friction,
                                   rotation: v1.rotation + config.turningSpeed,
                                   renderables: v1.renderables,
+                                  networkSync: v1.networkSync,
                                   behaviour: v1.behaviour
                               };
                           };
@@ -5144,6 +5155,7 @@ var PS = {};
               friction: 0.9,
               rotation: -0.25,
               mass: 10.0,
+              networkSync: true,
               behaviour: new Data_List_Types.Cons(hasHealth(100.0), new Data_List_Types.Cons(firesBullets({
                   max: 100,
                   speed: 15.0,
@@ -5203,7 +5215,7 @@ var PS = {};
               };
               return target;
           };
-          throw new Error("Failed pattern match at Pure.Game (line 284, column 1 - line 284, column 46): " + [ target.constructor.name, e.constructor.name ]);
+          throw new Error("Failed pattern match at Pure.Game (line 287, column 1 - line 287, column 46): " + [ target.constructor.name, e.constructor.name ]);
       };
   };
   var performChecks = function (entities) {

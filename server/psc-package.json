@@ -19,6 +19,7 @@
     "maybe",
     "prelude",
     "lists",
-    "transformers"
+    "transformers",
+    "exists"
   ]
 }
