@@ -2,11 +2,205 @@
     <head>
       <meta charset="utf-8">
       <title>Pure Unit</title>
+      <style type="text/css">
+body {
+  background-color: #0a0a0a;
+}
+* {
+    margin: 0;
+    padding: 0;
+}
+
+h1, h3{
+  text-transform: uppercase;
+  font-weight: normal;
+}
+
+.tabs{
+    width: 600px;
+    display: block;
+    margin: 40px auto;
+    position: relative;
+}
+
+.tabs .tab{
+    float: left;
+    display: block;
+}
+
+.tabs .tab>input[type="radio"] {
+    position: absolute;
+    top: -9999px;
+    left: -9999px;
+}
+
+.tabs .tab>label {
+    display: block;
+    padding: 6px 21px;
+    font-size: 12px;
+    text-transform: uppercase;
+    cursor: pointer;
+    position: relative;
+    color: #FFF;
+    background: #4A83FD;
+}
+
+.tabs .content {
+    z-index: 0;/* or display: none; */
+    overflow: hidden;
+    width: 600px;
+    padding: 25px;
+    position: absolute;
+    top: 27px;
+    left: 0;
+    background: #303030;
+    color: #DFDFDF;
+    
+    opacity:0;
+    transition: opacity 400ms ease-out;
+}
+
+.tabs>.tab>[id^="tab-"]:checked + label {
+    top: 0;
+    background: #303030;
+    color: #F5F5F5;
+}
+
+.tabs>.tab>[id^="tab-"]:checked ~ [id^="tab-content-"] {
+    z-index: 1;/* or display: block; */
+   
+    opacity: 1;
+    transition: opacity 400ms ease-out;
+}
+
+.form{
+	font: 95% Arial, Helvetica, sans-serif;
+	max-width: 400px;
+	margin: 10px auto;
+	padding: 16px;
+	background: transparent;
+  border: none;
+}
+.form h1{
+	background: #43D1AF;
+	padding: 20px 0;
+	font-size: 140%;
+	font-weight: 300;
+	text-align: center;
+	color: #fff;
+	margin: -16px -16px 16px -16px;
+}
+.form input[type="text"],
+.form input[type="date"],
+.form input[type="datetime"],
+.form input[type="email"],
+.form input[type="number"],
+.form input[type="search"],
+.form input[type="time"],
+.form input[type="url"],
+.form textarea,
+.form select 
+{
+	-webkit-transition: all 0.30s ease-in-out;
+	-moz-transition: all 0.30s ease-in-out;
+	-ms-transition: all 0.30s ease-in-out;
+	-o-transition: all 0.30s ease-in-out;
+	outline: none;
+	box-sizing: border-box;
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	width: 100%;
+	background: #fff;
+	margin-bottom: 4%;
+	border: 1px solid #ccc;
+	padding: 3%;
+	color: #555;
+	font: 95% Arial, Helvetica, sans-serif;
+}
+.form input[type="text"]:focus,
+.form input[type="date"]:focus,
+.form input[type="datetime"]:focus,
+.form input[type="email"]:focus,
+.form input[type="number"]:focus,
+.form input[type="search"]:focus,
+.form input[type="time"]:focus,
+.form input[type="url"]:focus,
+.form textarea:focus,
+.form select:focus
+{
+	box-shadow: 0 0 5px #43D1AF;
+	padding: 3%;
+	border: 1px solid #43D1AF;
+}
+
+.form input[type="submit"],
+.form input[type="button"]{
+	box-sizing: border-box;
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	width: 100%;
+	padding: 3%;
+	background: #43D1AF;
+	border-bottom: 2px solid #30C29E;
+	border-top-style: none;
+	border-right-style: none;
+	border-left-style: none;	
+	color: #fff;
+}
+.form input[type="submit"]:hover,
+.form input[type="button"]:hover{
+	background: #2EBC99;
+}
+.form input[type="checkbox"] {
+  margin-bottom: 20px;
+}
+
+
+.form
+</style>
+      </style>
     </head>
-  <body style="background-color: #000">  
-    <canvas  id="target" width="800px" height="600px"></canvas>
-    <canvas  id="offscreen" style="display: none;" width="800px" height="600px"></canvas>
-    <script src="/assets/bundle.js"></script>
+  <body>  
+    <h5>Pure Unit</h5>
+      <ul class="tabs">
+        <li class="tab">
+            <input type="radio" name="tabs" checked="checked" id="tab-new-game" />
+            <label for="tab-new-game">New Game</label>
+            <div id="tab-content-new-game" class="content">
+              <h1>New Game</h1>
+              <hr/>
+              <h3>Create a game and invite your friends to join you</h3>
+              <br />
+              <form class="form">
+                  <div>
+                    <label for="name">Your Name</label>
+                    <input autofocus type="text" id="player-name" />
+                  </div>
+                  <div>
+                    <label for="name">Game Name</label>
+                    <input type="text" id="game-name" />
+                  </div>
+                  <div>
+                    <input checked type="checkbox" id="public"/>
+                    <label for="public">Make Public?</label>
+                  </div>
+                  <input type="submit" value="Go"></input>
+              </form>
+            </div>
+        </li>
+        <li class="tab">
+          <input type="radio" name="tabs" id="tab-join-game" />
+          <label for="tab-join-game">Find A Game</label>   
+          <div id="tab-content-join-game" class="content">
+              <h1>Find Game</h1>
+              <hr/>
+              <h3>Select a game from the list</h3>
+              <br/>
+              <p>Nam cursus, massa ac imperdiet posuere, mauris metus gravida ligula, et rutrum ligula mi ut tellus. Quisque elit dolor, sagittis ac purus accumsan, sagittis rhoncus felis. Morbi nec bibendum arcu, sit amet pharetra orci. Nulla pulvinar ultrices quam. Cras nulla erat, eleifend non euismod vel, accumsan quis lacus. Ut bibendum augue vel magna rhoncus, sed rutrum massa vulputate. Nullam lectus diam, venenatis vel elit vel, ornare fermentum metus. Praesent euismod non mauris et dignissim. Sed in diam nec diam pellentesque lacinia at vitae lorem. Quisque et neque condimentum, viverra dolor mollis, feugiat justo.</p>    
+           </div>
+        </li>
+      </ul>
+    <footer>A crappy game written by <a href="http://twitter.com/robashton">@robashton</a></footer>
   </body>
 </html>
 
