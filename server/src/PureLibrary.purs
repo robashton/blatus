@@ -17,12 +17,12 @@ type PureLibraryStartArgs = {
 type State = {
 }
 
-serverName :: ServerName State
-serverName = ServerName "pure_library"
+serverName :: ServerName State Unit
+serverName = Local "pure_library"
 
 startLink :: PureLibraryStartArgs -> Effect StartLinkResult
 startLink args =
-  Gen.startLink serverName $ init args
+  Gen.startLink serverName (init args) Gen.defaultHandleInfo
 
 init :: PureLibraryStartArgs -> Effect State
 init args = do

@@ -8,7 +8,6 @@ module PureWeb
 
 import Prelude
 
-import PureLibrary as PureLibrary
 import Data.Either (Either(..), either)
 import Data.Maybe (Maybe(..), isJust, maybe)
 import Effect (Effect)
@@ -19,7 +18,9 @@ import Erl.Data.Binary.IOData (IOData, fromBinary, toBinary)
 import Erl.Data.List (List, nil, (:))
 import Erl.Data.Tuple (Tuple2, tuple2)
 import Pinto (ServerName(..), StartLinkResult)
+import Pinto.Gen (defaultHandleInfo)
 import Pinto.Gen as Gen
+import PureLibrary as PureLibrary
 import Simple.JSON (class WriteForeign, readJSON, writeJSON)
 import Stetson (RestResult, StaticAssetLocation(..), StetsonHandler)
 import Stetson as Stetson
@@ -30,12 +31,12 @@ newtype State = State {}
 
 type PureWebStartArgs = { webPort :: Int }
 
-serverName :: ServerName State
-serverName = ServerName "pure_web"
+serverName :: ServerName State Unit
+serverName = Local "pure_web"
 
 startLink :: PureWebStartArgs -> Effect StartLinkResult
 startLink args =
-  Gen.startLink serverName $ init args
+  Gen.startLink serverName (init args) Gen.defaultHandleInfo
 
 init :: PureWebStartArgs -> Effect State
 init args = do
