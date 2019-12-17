@@ -13,3 +13,4 @@ releases
 primary_*
 _checkouts
 default.etcd
+.spago

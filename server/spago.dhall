@@ -1,8 +1,7 @@
-{
-  "name": "demo",
-  "set": "erl-0.13.2-20190808",
-  "source": "git@github.com:purerl/package-sets.git",
-  "depends": [
+{ name = "pure-unit"
+, backend = "purerl"
+, dependencies =
+    [
     "console",
     "erl-atom",
     "erl-binary",
@@ -19,6 +18,12 @@
     "maybe",
     "prelude",
     "lists",
-    "transformers"
-  ]
+    "transformers",
+    "tuples",
+    "foldable-traversable",
+    "exists"
+    ]
+, packages = ./packages.dhall
+, sources = [ "src/**/*.purs" ]
 }
+
