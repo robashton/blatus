@@ -13,3 +13,6 @@ releases
 primary_*
 _checkouts
 default.etcd
+node_modules
+dist
+.spago

@@ -4,15 +4,19 @@ import Effect
 import Erl.Data.List
 import Prelude
 
+import Erl.Atom (atom)
 import Pinto as Pinto
+import Pinto  (ServerName(..) ,SupervisorName(..))
 import Pinto.Sup (startLink) as Sup
 import Pinto.Sup 
 import PureWeb as PureWeb
 import PureConfig as PureConfig
-import PureLibrary as PureLibrary
+
+serverName :: SupervisorName
+serverName = (Local $ atom "pure_sup")
 
 startLink :: Effect Pinto.StartLinkResult
-startLink = Sup.startLink "pure_sup" init
+startLink = Sup.startLink serverName init
 
 init :: Effect SupervisorSpec
 init = do
@@ -23,11 +27,6 @@ init = do
                                        # childType Worker
                                        # childId "pure_web"
                                        # childStart PureWeb.startLink  { webPort } )
-                                       : 
-                                       ( buildChild
-                                       # childType Worker
-                                       # childId "pure_library"
-                                       # childStart PureLibrary.startLink {} )
                                         : nil)
 
 

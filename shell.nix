@@ -44,6 +44,8 @@ mkShell {
 
     purerl.purerl-0-0-6
 
+    nodejs
+
     purerl-support.purescript-0-13-6
     purerl-support.spago-0-12-1-0
     purerl-support.dhall-json-1-5-0

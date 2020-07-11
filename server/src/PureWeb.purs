@@ -8,7 +8,6 @@ module PureWeb
 
 import Prelude
 
-import PureLibrary as PureLibrary
 import Data.Either (Either(..), either)
 import Data.Maybe (Maybe(..), isJust, maybe)
 import Effect (Effect)
@@ -25,31 +24,30 @@ import Stetson (RestResult, StaticAssetLocation(..), StetsonHandler)
 import Stetson as Stetson
 import Stetson.Rest as Rest
 import Unsafe.Coerce (unsafeCoerce)
+import Shared.ServerRoutes as ServerRoutes
 
 newtype State = State {}
 
 type PureWebStartArgs = { webPort :: Int }
 
-serverName :: ServerName State
-serverName = ServerName "pure_web"
+serverName :: ServerName State Unit
+serverName = Local $ atom "pure_web"
 
 startLink :: PureWebStartArgs -> Effect StartLinkResult
 startLink args =
   Gen.startLink serverName $ init args
 
-init :: PureWebStartArgs -> Effect State
-init args = do
-  Stetson.configure
-    # Stetson.static "/assets/[...]" (PrivDir "pure_ps" "www/assets")
-    # Stetson.static "/art/[...]" (PrivDir "pure_ps" "www/art")
-    # Stetson.static "/game/:id" (PrivFile "pure_ps" "www/game.html")
---    # Stetson.static "/games" gamesHandler
-    # Stetson.static "/" (PrivFile "pure_ps" "www/index.html")
-    # Stetson.port args.webPort
+init :: PureWebStartArgs -> Gen.Init State Unit
+init { webPort } = Gen.lift $ do
+  _ <- Stetson.configure
+    # Stetson.routes 
+        ServerRoutes.apiRoute
+        { "Assets": PrivDir "pure_ps" "www/assets"
+        , "Art": PrivDir "pure_ps" "www/art"
+        , "Index": PrivFile "pure_ps" "www/index.html"
+        , "Game": PrivFile "pure_ps" "www/game.html"
+        }
+    # Stetson.port webPort
     # Stetson.bindTo 0 0 0 0
     # Stetson.startClear "http_listener"
   pure $ State {}
-
-
---gamesHandler :: StetsonHandler Unit
---gamesHandler = Rest.handler (\req -> 
