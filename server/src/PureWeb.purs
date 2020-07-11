@@ -42,9 +42,14 @@ init args = do
   Stetson.configure
     # Stetson.static "/assets/[...]" (PrivDir "pure_ps" "www/assets")
     # Stetson.static "/art/[...]" (PrivDir "pure_ps" "www/art")
-    # Stetson.static "/[...]" (PrivFile "pure_ps" "www/index.html")
+    # Stetson.static "/game/:id" (PrivFile "pure_ps" "www/game.html")
+--    # Stetson.static "/games" gamesHandler
+    # Stetson.static "/" (PrivFile "pure_ps" "www/index.html")
     # Stetson.port args.webPort
     # Stetson.bindTo 0 0 0 0
     # Stetson.startClear "http_listener"
   pure $ State {}
 
+
+--gamesHandler :: StetsonHandler Unit
+--gamesHandler = Rest.handler (\req -> 
