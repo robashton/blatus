@@ -18,6 +18,7 @@ data TopRoute =
   | GameStart
   | GameJoinHtml String
   | GameJoin String
+  | GameComms
   | GamePlay
   | Index 
 
@@ -35,6 +36,7 @@ topRoute = path "" $ sum
   , "GameJoinHtml" : "game" / segment / ""
   , "GameJoin" : "game" / segment  / "join"
   , "GamePlay": "play" / noArgs
+  , "GameComms":  "game" / "messaging" / noArgs
   , "Index": noArgs
   }
 

@@ -126,7 +126,11 @@ main =  do
               gameStateSignal = foldp (\msg lc -> 
                                 case msg of
                                   Input i -> tickContext i lc
-                                  Ws _ -> lc
+                                  Ws msg -> 
+                                    -- parse message
+                                    -- pass into game world 
+                                    -- 
+                                    lc
                                   ) loadedContext mergedSignals
       
           -- We'll need to run that gameStateSignal

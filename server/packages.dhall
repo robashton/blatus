@@ -4,7 +4,7 @@ let overrides =
       { erl-cowboy =
           { dependencies = [ "erl-modules" ]
           , repo = "https://github.com/robashton/purescript-erl-cowboy.git"
-          , version = "8285ba2df39a74a537cdd3869e9c3a262c742cf3"
+          , version = "2e095b7fb6f7bc3602269fb142c00c7a9e090659"
           },
 
       erl-pinto =

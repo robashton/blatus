@@ -10,14 +10,14 @@ import Prelude
 
 import Data.Either (Either(..), either)
 import Data.Maybe (Maybe(..), isJust, maybe, fromMaybe)
-import Control.Apply (lift3)
+import Control.Apply (lift3, lift2)
 import Effect (Effect)
 import Data.Map (fromFoldable)
 import Data.Map as Map
 import Erl.Data.Map as ErlMap
 import Data.Tuple (Tuple(..))
 import Erl.Atom (atom)
-import Erl.Cowboy.Req (ReadBodyResult(..), Req, binding, readBody, setBody, readUrlEncodedBody, ReadUrlEncodedBodyResult(..), replyWithoutBody, StatusCode(..), setCookie)
+import Erl.Cowboy.Req (ReadBodyResult(..), Req, binding, readBody, setBody, readUrlEncodedBody, ReadUrlEncodedBodyResult(..), replyWithoutBody, StatusCode(..), setCookie, parseCookies)
 import Erl.Data.Binary (Binary)
 import Erl.Data.Binary.IOData (IOData, fromBinary, toBinary)
 import Erl.Data.List (List, nil, (:))
@@ -25,7 +25,8 @@ import Erl.Data.Tuple (Tuple2, tuple2, uncurry2)
 import Pinto (ServerName(..), StartLinkResult)
 import Pinto.Gen as Gen
 import Simple.JSON (class WriteForeign, readJSON, writeJSON)
-import Stetson (RestResult, StaticAssetLocation(..), StetsonHandler, SimpleStetsonHandler)
+import Erl.Cowboy.Handlers.WebSocket (Frame(..))
+import Stetson (RestResult, StaticAssetLocation(..), StetsonHandler, SimpleStetsonHandler, WebSocketCallResult(..))
 import Stetson as Stetson
 import Stetson.Rest as Rest
 import Stetson.Routing (class GDispatch, gDispatch)
@@ -34,6 +35,7 @@ import Shared.ServerRoutes as ServerRoutes
 import Pure.Api (RunningGame(..))
 import Pure.Logging as Log
 import Pure.RunningGameList as PureRunningGameList
+import Stetson.WebSocket as WebSocket
 
 newtype State = State {}
 
@@ -58,12 +60,37 @@ init { webPort } = Gen.lift $ do
         , "GameJoin": gameJoinHandler
         , "GameJoinHtml": (\(id :: String) -> PrivFile "pure_unit" "www/join.html")
         , "GamePlay" : PrivFile "pure_unit" "www/game.html"
+        , "GameComms" : gameCommsHandler
         , "Index" : PrivFile "pure_unit" "www/index.html"
         } 
     # Stetson.port webPort
     # Stetson.bindTo 0 0 0 0
     # Stetson.startClear "http_listener"
   pure $ State {}
+
+type GameCommsState = { game :: String
+                      , playerName :: String
+                      }
+
+gameCommsHandler :: StetsonHandler Unit GameCommsState
+gameCommsHandler = 
+  WebSocket.handler (\req -> do
+           let cookies = fromFoldable $ map (uncurry2 Tuple) $ parseCookies req
+           fromMaybe (WebSocket.initResult req { game: "", playerName: ""}) $
+             lift2 (\playerName gameName -> do
+                 Log.info Log.Web "Player connected" { playerName, gameName }
+                 WebSocket.initResult req { game: gameName, playerName }
+             )
+             (Map.lookup "player-name" cookies)
+             (Map.lookup "game-name" cookies)
+             )
+
+  # WebSocket.init (\s ->  
+                     pure $ NoReply s
+                   )
+  # WebSocket.handle (\msg state -> pure $ NoReply state)
+
+  # WebSocket.info (\msg state -> pure $ Reply ((TextFrame $ "") : nil) state)
 
 
 gamesHandler :: SimpleStetsonHandler (List RunningGame)
@@ -83,7 +110,7 @@ gamesHandler =
                                Log.info Log.Web "Attempt to create game" { playerName, gameName, public }
                                gameId <- PureRunningGameList.create playerName gameName (public == "on")
                                ir <- replyWithoutBody (StatusCode 302) (ErlMap.fromFoldable [ (Tuple "Location" $ ServerRoutes.routeUrl ServerRoutes.GamePlay) ]) 
-                                        $ setCookie "game_id" gameId $ setCookie "player-name" playerName req
+                                        $ setCookie "game-name" gameId $ setCookie "player-name" playerName req
                                Rest.stop ir state
                            )
                            (Map.lookup "player-name" processed)
@@ -107,7 +134,7 @@ gameJoinHandler gameId =
                          (\playerName -> do
                                Log.info Log.Web "Attempt to join game" { playerName }
                                ir <- replyWithoutBody (StatusCode 302) (ErlMap.fromFoldable [ (Tuple "Location" $ ServerRoutes.routeUrl ServerRoutes.GamePlay) ]) 
-                                        $ setCookie "game_id" gameId $ setCookie "player-name" playerName req
+                                        $ setCookie "game-name" gameId $ setCookie "player-name" playerName req
                                Rest.stop ir state
                            ) <$>
                            (Map.lookup "player-name" processed))
