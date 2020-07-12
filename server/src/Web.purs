@@ -106,13 +106,11 @@ gameJoinHandler gameId =
                        fromMaybe (Rest.result false (setBody "unable to comply" req) state) $
                          (\playerName -> do
                                Log.info Log.Web "Attempt to join game" { playerName }
-                               req2 <- replyWithoutBody (StatusCode 302) (ErlMap.fromFoldable [ (Tuple "Location" $ ServerRoutes.routeUrl ServerRoutes.GamePlay) ]) 
+                               ir <- replyWithoutBody (StatusCode 302) (ErlMap.fromFoldable [ (Tuple "Location" $ ServerRoutes.routeUrl ServerRoutes.GamePlay) ]) 
                                         $ setCookie "game_id" gameId $ setCookie "player-name" playerName req
-                               Rest.stop req2 state
+                               Rest.stop ir state
                            ) <$>
-                           (Map.lookup "player-name" processed)
-                       )
-
+                           (Map.lookup "player-name" processed))
 
 
 jsonWriter :: forall a. WriteForeign a => Tuple2 String (Req -> a -> (Effect (RestResult String a)))

@@ -12,28 +12,39 @@ import Data.Map (lookup) as Map
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Monoid (guard)
 import Data.Newtype (unwrap, wrap)
+import Control.Monad.Except (runExcept)
 import Data.Traversable (for)
+import Effect.Class (liftEffect)
 import Data.Tuple (fst)
 import Effect (Effect)
 import Effect.Aff (runAff, runAff_)
 import Effect.Aff.Class (liftAff)
 import Effect.Class (liftEffect)
 import Effect.Console (log)
+import Foreign (readString)
 import Effect.Timer (setTimeout)
 import Graphics.Canvas (CanvasElement, clearRect, fillRect, getContext2D)
 import Graphics.Canvas as Canvas
 import Math (abs)
 import Math (pi) as Math
+import Data.Foldable (for_)
 import Pure.Background (render) as Background
 import Pure.Camera (Camera, CameraViewport, CameraConfiguration, applyViewport, setupCamera, viewportFromConfig)
 import Pure.Game (Game, entityById, foldEvents, initialModel, tick)
 import Pure.Entity (EntityCommand(..))
 import Pure.Game (sendCommand) as Game
-import Signal (Signal, foldp, map4, map5, runSignal, sampleOn)
+import Signal (Signal, foldp, map4, map5, runSignal, sampleOn, squigglyMap)
+import Signal as Signal
 import Signal.DOM (keyPressed)
 import Signal.Time (every, second)
+import Signal.Channel as Channel
 import Web.HTML as HTML
 import Web.HTML.Window (requestAnimationFrame) as Window
+
+import Web.Event.EventTarget as EET
+import Web.Socket.Event.EventTypes as WSET
+import Web.Socket.Event.MessageEvent as ME
+import Web.Socket.WebSocket as WS
 
 
 type LocalContext = { renderContext :: Canvas.Context2D
@@ -57,8 +68,16 @@ inputSignal :: Effect (Signal InputState)
 inputSignal =
     map5 (\l u r d f -> {  isLeft: l, isUp: u, isRight: r, isDown: d, isFiring: f }) <$> (keyPressed 37) <*> (keyPressed 38) <*> (keyPressed 39) <*> (keyPressed 40) <*> (keyPressed 32)
 
-tickSignal :: Effect (Signal InputState)
-tickSignal = sampleOn (every $ second / 30.0) <$> inputSignal
+
+data LoopMsg = Input InputState
+             | Ws String
+
+
+tickSignal :: Effect (Signal LoopMsg)
+tickSignal = squigglyMap Input <$> sampleOn (every $ second / 30.0) <$> inputSignal
+
+--wsSignal :: Effect (Signal String)
+
 
 -- We're going to use Aff to make loading pretty instead of trying
 -- to chain Signals around the place
@@ -78,16 +97,51 @@ load cb = do
           canvasHeight <- Canvas.getCanvasHeight canvasElement
           let camera = setupCamera { width: canvasWidth, height: canvasHeight }
               game = initialModel
-          cb $ { offscreenContext, offscreenCanvas, renderContext, assets, canvasElement, camera, window, game }
+          cb $ { offscreenContext, offscreenCanvas, renderContext, assets, canvasElement, camera, window, game}
   
 -- But we're going to use signalling for game input/etc as that's quite pretty
 -- even if we haven't worked out how to adjust for elapsed time during render/frame-rate yet in that world
+-- I think what we need to do here
+-- create a global message type
+
+-- Tick -> Do a logic loop based on the current input (pull that the input signal as we need it)
+        -- Fire another Tick in  (second / 30.0) - elapsedTimeSinceLastTickEnd
+
+-- WebSocketMessage -> Handle it by firing it through the game
+
+-- RenderRequest -> Just render the curreent scene... (requestAnimationFrame)
+
+-- Probably need to use channels for the render message rather than a continual stream of scenes
 main :: Effect Unit
 main =  do
   load (\loadedContext -> do
-          input <- tickSignal
-          let context = foldp tickContext loadedContext input
-          runSignal (map scheduleRender context))
+          socketChannel <- Channel.channel $ Ws ""
+          renderChannel <- Channel.channel 0
+          socket <- createSocket "ws://localhost:3000/game/messaging" $ Ws >>> Channel.send socketChannel
+          _ <- Window.requestAnimationFrame (Channel.send renderChannel 0) loadedContext.window
+          gameTick <- tickSignal
+          let socketSignal = Channel.subscribe socketChannel
+              mergedSignals = Signal.merge gameTick socketSignal
+
+              gameStateSignal = foldp (\msg lc -> 
+                                case msg of
+                                  Input i -> tickContext i lc
+                                  Ws _ -> lc
+                                  ) loadedContext mergedSignals
+      
+          -- We'll need to run that gameStateSignal
+          -- and pump any side effects up the web socket
+          -- or update the UI and all that jazz
+
+          -- The render loop, meanwhile, is separate
+          -- And just pulls whatever is current off the signal and displays it
+          runSignal (map (\_ -> do
+                    latestState <- Signal.get gameStateSignal
+                    render latestState
+                    _ <- Window.requestAnimationFrame (Channel.send renderChannel 0) loadedContext.window
+                    pure unit
+                    ) $ Channel.subscribe renderChannel)
+      )
 
 tickContext :: InputState -> LocalContext  -> LocalContext
 tickContext input context@{ game, camera: { config } } = 
@@ -118,26 +172,21 @@ gatherCommandsFromInput { isLeft, isUp, isRight, isDown, isFiring } =
                        (if isUp then Just $ PlayerCommand PushForward else Nothing) : 
                        (if isFiring then Just $ PlayerCommand FireBullet else Nothing)  : Nil
 
-scheduleRender :: LocalContext -> Effect Unit
-scheduleRender context@{ camera: { viewport, config: { target: { width, height }} }, game, offscreenContext, assets } = do
+render :: LocalContext -> Effect Unit
+render context@{ camera: { viewport, config: { target: { width, height }} }, game, offscreenContext, offscreenCanvas, renderContext, assets } = do
   _ <- Canvas.clearRect offscreenContext { x: 0.0, y: 0.0, width, height }
   _ <- Canvas.save offscreenContext
   _ <- applyViewport viewport offscreenContext
   _ <- Background.render viewport game offscreenContext 
   _ <- renderScene game assets offscreenContext
   _ <- Canvas.restore offscreenContext
-  _ <- Window.requestAnimationFrame (render context) context.window
-  pure unit
-
-prepareScene :: CameraViewport -> Game -> Game
-prepareScene viewport game = game 
-
-render :: LocalContext -> Effect Unit
-render { camera: { viewport, config: { target: { width, height }} }, game, renderContext, offscreenCanvas} = do
   let image = Canvas.canvasElementToImageSource offscreenCanvas
   _ <- Canvas.clearRect renderContext { x: 0.0, y: 0.0, width, height }
   _ <- Canvas.drawImage renderContext image 0.0 0.0
   pure unit
+
+prepareScene :: CameraViewport -> Game -> Game
+prepareScene viewport game = game 
 
 renderScene :: Game -> AssetPackage -> Canvas.Context2D -> Effect Unit
 renderScene { entities } assets ctx = do
@@ -154,4 +203,18 @@ renderScene { entities } assets ctx = do
                         $ (flip Map.lookup assets) =<< image 
                 pure unit
          Canvas.translate ctx { translateX: (-location.x), translateY: (-location.y) }
+  pure unit
+
+createSocket :: String -> (String -> Effect Unit) -> Effect WS.WebSocket
+createSocket url cb = do
+  socket <- WS.create url []
+  listener <- EET.eventListener \ev ->
+    for_ (ME.fromEvent ev) \msgEvent ->
+      for_ (runExcept $ readString $ ME.data_ msgEvent) cb
+  EET.addEventListener WSET.onMessage listener false (WS.toEventTarget socket)
+  pure socket
+
+destroySocket  :: WS.WebSocket -> Effect Unit
+destroySocket socket =  do
+  _ <- WS.close socket
   pure unit
