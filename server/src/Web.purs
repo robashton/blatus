@@ -14,9 +14,10 @@ import Control.Apply (lift3)
 import Effect (Effect)
 import Data.Map (fromFoldable)
 import Data.Map as Map
+import Erl.Data.Map as ErlMap
 import Data.Tuple (Tuple(..))
 import Erl.Atom (atom)
-import Erl.Cowboy.Req (ReadBodyResult(..), Req, binding, readBody, setBody, readUrlEncodedBody, ReadUrlEncodedBodyResult(..))
+import Erl.Cowboy.Req (ReadBodyResult(..), Req, binding, readBody, setBody, readUrlEncodedBody, ReadUrlEncodedBodyResult(..), replyWithoutBody, StatusCode(..))
 import Erl.Data.Binary (Binary)
 import Erl.Data.Binary.IOData (IOData, fromBinary, toBinary)
 import Erl.Data.List (List, nil, (:))
@@ -51,10 +52,10 @@ init { webPort } = Gen.lift $ do
   _ <- Stetson.configure
     # Stetson.routes 
         ServerRoutes.topRoute
-        { "Assets": PrivDir "pure_ps" "www/assets"
-        , "Art": PrivDir "pure_ps" "www/art"
-        , "Index": PrivFile "pure_ps" "www/index.html"
-        , "Game": PrivFile "pure_ps" "www/game.html"
+        { "Assets": PrivDir "pure_unit" "www/assets"
+        , "Art": PrivDir "pure_unit" "www/art"
+        , "Index": PrivFile "pure_unit" "www/index.html"
+        , "Game": PrivFile "pure_unit" "www/game.html"
         , "ApiGames" : gamesHandler
         } 
     # Stetson.port webPort
@@ -79,7 +80,8 @@ gamesHandler =
                          lift3 (\playerName gameName public -> do
                                Log.info Log.Web "Attempt to create game" { playerName, gameName, public }
                                gameId <- PureRunningGameList.create playerName gameName (public == "on")
-                               Rest.result true (setBody "Great stuff" req) state
+                               req2 <- replyWithoutBody (StatusCode 302) (ErlMap.fromFoldable [ (Tuple "Location" ("/game/" <> gameId)) ]) req
+                               Rest.stop req2 state
                            )
                            (Map.lookup "player-name" processed)
                            (Map.lookup "game-name" processed)
