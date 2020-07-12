@@ -12,12 +12,13 @@ import Routing.Duplex as RouteDuplex
 import Routing.Duplex.Generic (noArgs, sum)
 import Routing.Duplex.Generic.Syntax ((/))
 
-
 data TopRoute =
     Assets (Array String)
   | Art (Array String)
-  | Game (Array String)
-  | ApiGames
+  | GameStart
+  | GameJoinHtml String
+  | GameJoin String
+  | GamePlay
   | Index 
 
 derive instance genericTopRoute :: Generic TopRoute _
@@ -30,13 +31,15 @@ topRoute :: RouteDuplex' TopRoute
 topRoute = path "" $ sum
   { "Assets" : "assets" / rest
   , "Art" : "art" / rest
-  , "Game" : "game" / rest
+  , "GameStart" : "game" / noArgs 
+  , "GameJoinHtml" : "game" / segment / ""
+  , "GameJoin" : "game" / segment  / "join"
+  , "GamePlay": "play" / noArgs
   , "Index": noArgs
-  , "ApiGames": "api" / "games" / noArgs
   }
 
-topRouteUrl :: TopRoute -> String
-topRouteUrl = RouteDuplex.print topRoute
+routeUrl :: TopRoute -> String
+routeUrl = RouteDuplex.print topRoute
 
 asNewtype :: forall a. Newtype a String => RouteDuplex' String -> RouteDuplex' a
 asNewtype = as unwrap (pure <<< wrap)

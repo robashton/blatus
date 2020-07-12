@@ -7,7 +7,7 @@ import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.Newtype (wrap, unwrap)
 import Effect (Effect)
-import Erl.Data.List (List, (:), nil)
+import Erl.Data.List (List, (:), nil, head, filter)
 import Pinto (ServerName(..), StartLinkResult)
 import Pinto.Gen (CallResult(..))
 import Pinto.Gen as Gen
@@ -39,6 +39,11 @@ findAll :: Effect (List RunningGame)
 findAll =
   Gen.call serverName \s@{ knownGames } -> do
      pure $ CallReply knownGames s
+
+findById :: String -> Effect (Maybe RunningGame)
+findById id =
+  Gen.call serverName \s@{ knownGames } -> do
+     pure $ CallReply (head $ filter (\g -> g.id == id) knownGames) s
 
 startLink :: StartArgs -> Effect StartLinkResult
 startLink args =
