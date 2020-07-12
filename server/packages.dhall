@@ -3,8 +3,8 @@ let upstream = https://github.com/purerl/package-sets/releases/download/erl-0.13
 let overrides =
       { erl-cowboy =
           { dependencies = [ "erl-modules" ]
-          , repo = "https://github.com/id3as/purescript-erl-cowboy.git"
-          , version = "4ee391f0349c00d92f68e4331425174eb8bdff9e"
+          , repo = "https://github.com/robashton/purescript-erl-cowboy.git"
+          , version = "8285ba2df39a74a537cdd3869e9c3a262c742cf3"
           },
 
       erl-pinto =

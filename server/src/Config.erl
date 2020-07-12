@@ -1,4 +1,4 @@
--module(pureConfig@foreign).
+-module(pure_config@foreign).
 
 -export([
          readInt_/1,

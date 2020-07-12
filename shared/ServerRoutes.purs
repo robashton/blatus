@@ -13,16 +13,30 @@ import Routing.Duplex.Generic (noArgs, sum)
 import Routing.Duplex.Generic.Syntax ((/))
 
 
-data Route =
+data TopRoute =
     Assets (Array String)
   | Art (Array String)
-  | Index (Array String)
   | Game (Array String)
+  | ApiGames
+  | Index 
 
-derive instance genericRoute :: Generic Route _
+derive instance genericTopRoute :: Generic TopRoute _
 
-instance showRoute :: Show Route where
+instance showTopRoute :: Show TopRoute where
   show = genericShow
+
+-- TODO: Ask Nick about nesting these
+topRoute :: RouteDuplex' TopRoute
+topRoute = path "" $ sum
+  { "Assets" : "assets" / rest
+  , "Art" : "art" / rest
+  , "Game" : "game" / rest
+  , "Index": noArgs
+  , "ApiGames": "api" / "games" / noArgs
+  }
+
+topRouteUrl :: TopRoute -> String
+topRouteUrl = RouteDuplex.print topRoute
 
 asNewtype :: forall a. Newtype a String => RouteDuplex' String -> RouteDuplex' a
 asNewtype = as unwrap (pure <<< wrap)
@@ -36,13 +50,3 @@ segmentExcept s = as identity f $ segment
   f x = if x == s then Left "matched except" else Right x
         
 
-apiRoute :: RouteDuplex' Route
-apiRoute = path "" $ sum
-  { "Assets" : "assets" / rest
-  , "Art" : "art" / rest
-  , "Index": "index.html" / rest
-  , "Game" : "game.html" / rest
-  }
-
-routeUrl :: Route -> String
-routeUrl = RouteDuplex.print apiRoute

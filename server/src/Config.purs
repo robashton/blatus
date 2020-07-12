@@ -1,4 +1,4 @@
-module PureConfig where
+module Pure.Config where
 
 import Prelude
 

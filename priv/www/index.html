@@ -171,17 +171,17 @@ h1, h3{
               <hr/>
               <h3>Create a game and invite your friends to join you</h3>
               <br />
-              <form method="post" target="/game" class="form">
+              <form method="post" target="_self" action="/api/games" class="form">
                   <div>
-                    <label for="name">Your Name</label>
-                    <input autofocus type="text" id="player-name" />
+                    <label for="player-name">Your Name</label>
+                    <input autofocus type="text" name="player-name" />
                   </div>
                   <div>
-                    <label for="name">Game Name</label>
-                    <input type="text" id="game-name" />
+                    <label for="game-name">Game Name</label>
+                    <input type="text" name="game-name" />
                   </div>
                   <div>
-                    <input checked type="checkbox" id="public"/>
+                    <input checked type="checkbox" name="public"/>
                     <label for="public">Make Public?</label>
                   </div>
                   <input type="submit" value="Go"></input>

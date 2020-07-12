@@ -1,4 +1,4 @@
-module PureSup where
+module Pure.PrimarySup where
 
 import Effect
 import Erl.Data.List
@@ -10,7 +10,7 @@ import Pinto  (ServerName(..) ,SupervisorName(..))
 import Pinto.Sup (startLink) as Sup
 import Pinto.Sup 
 import PureWeb as PureWeb
-import PureConfig as PureConfig
+import Pure.Config as PureConfig
 
 serverName :: SupervisorName
 serverName = (Local $ atom "pure_sup")
