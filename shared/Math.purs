@@ -1,6 +1,7 @@
 module Pure.Math where
 
 import Prelude
+import Math as Math
 
 type Point = { x :: Number
             ,  y :: Number
@@ -17,4 +18,11 @@ point x y = { x, y }
 
 scalePoint :: Number -> Point -> Point
 scalePoint factor p@{ x, y } = p { x = x * factor, y = y * factor }
+
+rotationToVector :: Number -> Point
+rotationToVector r = { x: xvel, y: yvel }
+      where 
+        angle = r  * Math.pi * 2.0
+        xvel = (Math.cos angle) 
+        yvel = (Math.sin angle)
 

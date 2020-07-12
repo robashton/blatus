@@ -26,7 +26,8 @@ import Math (abs)
 import Math (pi) as Math
 import Pure.Background (render) as Background
 import Pure.Camera (Camera, CameraViewport, CameraConfiguration, applyViewport, setupCamera, viewportFromConfig)
-import Pure.Game (EntityCommand(..), Game, entityById, foldEvents, initialModel, tick)
+import Pure.Game (Game, entityById, foldEvents, initialModel, tick)
+import Pure.Entity (EntityCommand(..))
 import Pure.Game (sendCommand) as Game
 import Signal (Signal, foldp, map4, map5, runSignal, sampleOn)
 import Signal.DOM (keyPressed)
