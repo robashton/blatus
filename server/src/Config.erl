@@ -26,7 +26,7 @@ readString_(Name) -> fun() ->
                   end.
 
 get_config_value(Name) ->
-  gproc:get_env(l, pure_ps, Name, [os_env, app_env, error]).
+  gproc:get_env(l, pure_unit, Name, [os_env, app_env, error]).
 
 get_config_value(Name, Default) ->
-  gproc:get_env(l, pure_ps, Name, [os_env, app_env, {default, Default}]).
+  gproc:get_env(l, pure_unit, Name, [os_env, app_env, {default, Default}]).

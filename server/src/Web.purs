@@ -65,7 +65,9 @@ init { webPort } = Gen.lift $ do
 
 gamesHandler :: SimpleStetsonHandler (List RunningGame)
 gamesHandler =
-  Rest.handler (\req -> Rest.initResult req nil)
+  Rest.handler (\req -> do
+    all <- PureRunningGameList.findAll
+    Rest.initResult req all)
     # Rest.allowedMethods (\req state -> Rest.result (Stetson.POST :  Stetson.HEAD : Stetson.GET : Stetson.OPTIONS : nil) req state)
     # Rest.contentTypesProvided (\req state -> Rest.result (jsonWriter : nil) req state)
     # Rest.contentTypesAccepted (\req state -> Rest.result ((tuple2 "application/x-www-form-urlencoded" acceptForm) : nil) req state)

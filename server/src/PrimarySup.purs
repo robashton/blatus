@@ -11,6 +11,8 @@ import Pinto.Sup (startLink) as Sup
 import Pinto.Sup 
 import PureWeb as PureWeb
 import Pure.Config as PureConfig
+import Pure.RunningGameList as RunningGameList
+import Pure.RunningGameSup as RunningGameSup
 
 serverName :: SupervisorName
 serverName = (Local $ atom "pure_sup")
@@ -27,6 +29,16 @@ init = do
                                        # childType Worker
                                        # childId "pure_web"
                                        # childStart PureWeb.startLink  { webPort } )
+                                       :
+                                       ( buildChild
+                                       # childType Worker
+                                       # childId "game_list"
+                                       # childStart RunningGameList.startLink  {} )
+                                       :
+                                       ( buildChild
+                                       # childType Supervisor
+                                       # childId "game_sup"
+                                       # childStart RunningGameSup.startLink unit )
                                         : nil)
 
 
