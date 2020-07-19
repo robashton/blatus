@@ -32,11 +32,11 @@ topRoute :: RouteDuplex' TopRoute
 topRoute = path "" $ sum
   { "Assets" : "assets" / rest
   , "Art" : "art" / rest
-  , "GameStart" : "game" / noArgs 
-  , "GameJoinHtml" : "game" / segment / ""
-  , "GameJoin" : "game" / segment  / "join"
+  , "GameStart" : "games" / noArgs 
+  , "GameJoinHtml" : "games" / segment / ""
+  , "GameJoin" : "games" / segment  / "join"
   , "GamePlay": "play" / noArgs
-  , "GameComms":  "game" / "messaging" / noArgs
+  , "GameComms": "messaging" / noArgs
   , "Index": noArgs
   }
 

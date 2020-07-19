@@ -17,6 +17,11 @@ import Data.Tuple (Tuple(..), fst, snd)
 import Math (cos, pi, pow, sin, sqrt) as Math
 import Pure.Math (Rect, Point, scalePoint)
 import Simple.JSON (class ReadForeign, class WriteForeign)
+import Simple.JSON (class ReadForeign, class WriteForeign, readImpl, writeImpl)
+import GenericJSON (writeTaggedSumRep, taggedSumRep)
+import Data.Generic.Rep (class Generic)
+import Data.Newtype (class Newtype)
+import Data.Generic.Rep.Show (genericShow)
 
 newtype HtmlColor = HtmlColor String
 derive instance ntHtmlColor :: Newtype HtmlColor _
@@ -29,6 +34,15 @@ derive newtype instance writeEntityId :: WriteForeign EntityId
 derive newtype instance showEntityId :: Show EntityId
 derive newtype instance ordEntityId :: Ord EntityId
 
+data EntityClass = Tank | Bullet 
+
+derive instance genericEntityClass :: Generic EntityClass _
+instance showEntityClass :: Show EntityClass where
+  show = genericShow
+instance writeForeignEntityClass :: WriteForeign EntityClass where
+  writeImpl = writeTaggedSumRep
+instance readForeignEntityClass :: ReadForeign EntityClass where
+  readImpl = taggedSumRep
 
 type Renderable = { transform :: Rect
                   , color :: HtmlColor
@@ -67,6 +81,7 @@ data EntityBehaviour state = EntityBehaviour { state :: state
                                              }
 
 type Entity = { id :: EntityId
+              , class :: EntityClass
               , location :: Point
               , width :: Number
               , height :: Number

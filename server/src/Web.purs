@@ -34,8 +34,10 @@ import Unsafe.Coerce (unsafeCoerce)
 import Shared.ServerRoutes as ServerRoutes
 import Pure.Api (RunningGame(..))
 import Pure.Logging as Log
+import Pure.RunningGame as RunningGame
 import Pure.RunningGameList as PureRunningGameList
 import Stetson.WebSocket as WebSocket
+import Pure.Comms as Comms
 
 newtype State = State {}
 
@@ -72,12 +74,15 @@ type GameCommsState = { game :: String
                       , playerName :: String
                       }
 
-gameCommsHandler :: StetsonHandler Unit GameCommsState
+data GameCommsMsg = Noop 
+
+gameCommsHandler :: StetsonHandler GameCommsMsg GameCommsState
 gameCommsHandler = 
   WebSocket.handler (\req -> do
            let cookies = fromFoldable $ map (uncurry2 Tuple) $ parseCookies req
            fromMaybe (WebSocket.initResult req { game: "", playerName: ""}) $
              lift2 (\playerName gameName -> do
+                 _ <- RunningGame.addPlayer gameName playerName
                  Log.info Log.Web "Player connected" { playerName, gameName }
                  WebSocket.initResult req { game: gameName, playerName }
              )
@@ -85,9 +90,18 @@ gameCommsHandler =
              (Map.lookup "game-name" cookies)
              )
 
-  # WebSocket.init (\s ->  
-                     pure $ NoReply s
+  # WebSocket.init (\s -> do
+                     game <- WebSocket.lift $ RunningGame.currentState s.game
+                     pure $ Reply ((TextFrame $ writeJSON $ Comms.InitialState $ Comms.gameToSync game) : nil) s
                    )
+
+  # WebSocket.terminate (\_ req s -> do
+    -- At this point we can notify the running game
+    -- that this player is disconnected
+    Log.info Log.Web "Player disconnected" s
+    pure unit
+    )
+
   # WebSocket.handle (\msg state -> pure $ NoReply state)
 
   # WebSocket.info (\msg state -> pure $ Reply ((TextFrame $ "") : nil) state)

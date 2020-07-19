@@ -24,7 +24,7 @@ import Data.Tuple (Tuple(..), fst, snd)
 import Math (cos, pi, pow, sin, sqrt) as Math
 import Pure.Math (Rect, Point, scalePoint, rotationToVector)
 import Simple.JSON (class ReadForeign, class WriteForeign)
-import Pure.Entity (Entity, EntityId(..), EntityCommand(..), GameEvent(..), HtmlColor(..), EntityBehaviour(..))
+import Pure.Entity (Entity, EntityId(..), EntityCommand(..), GameEvent(..), HtmlColor(..), EntityBehaviour(..), EntityClass(..))
 import Pure.Entity as Entity
 import Pure.Behaviour as B 
 
@@ -36,10 +36,7 @@ type Game =  { entities  :: EntityMap
   }
 
 initialModel :: Game
-initialModel = { entities : Map.fromFoldable $ (Tuple (EntityId "player") (tank (EntityId "player") { x: 20.0, y: 20.0 } )) :
-                                               (Tuple (EntityId "jimmy") (tank (EntityId "jimmy") { x: 300.0, y: 500.0 } )) :
-                                               (Tuple (EntityId "stacko") (tank (EntityId "stacko") { x: 200.0, y: 100.0 })) :
-                                               (Tuple (EntityId "daniel") (tank (EntityId "daniel") { x: -200.0, y: -300.0 })) : Nil
+initialModel = { entities : mempty
                , world:  { x: -1000.0, y: -1000.0, width: 2000.0, height: 2000.0 }
 }
 
@@ -72,6 +69,7 @@ entityById id { entities } =
 tank :: EntityId -> Point -> Entity
 tank id location = { id
                    , location
+                   , class: Tank
                    , width: 25.0
                    , height: 25.0
                    , velocity: { x: 0.0, y: 0.0 }
@@ -99,6 +97,7 @@ tank id location = { id
 bullet :: EntityId -> Point -> Point -> Entity
 bullet id location velocity = { id
              , location: location
+             , class: Bullet
              , width: 5.0
              , height: 5.0
              , velocity: velocity

@@ -11,6 +11,7 @@
     , "psci-support"
     , "simple-json"
     , "erl-simplebus"
+    , "random"
     ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]
