@@ -44,7 +44,7 @@ currentState id = Gen.call (serverName id) \s ->
 addPlayer :: String -> String -> Effect Unit
 addPlayer id playerId = Gen.call (serverName id) \s -> do
   ns <- Gen.lift $ addPlayerToGame playerId s
-  pure $ CallReply unit s
+  pure $ CallReply unit ns
 
 
 startLink :: StartArgs -> Effect StartLinkResult

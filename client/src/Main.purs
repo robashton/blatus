@@ -4,7 +4,7 @@ import Prelude
 
 import Assets (AssetPackage)
 import Assets (AssetPackage, load) as Assets
-import Data.Either (hush, isLeft, isRight)
+import Data.Either (hush, isLeft, isRight, either)
 import Data.Filterable (filterMap)
 import Data.Foldable (foldl)
 import Data.List (List(..), (:))
@@ -40,6 +40,9 @@ import Signal.Time (every, second)
 import Signal.Channel as Channel
 import Web.HTML as HTML
 import Web.HTML.Window (requestAnimationFrame) as Window
+import Simple.JSON (readJSON)
+import Pure.Comms (ServerMsg(..))
+import Pure.Comms as Comms
 
 import Web.Event.EventTarget as EET
 import Web.Socket.Event.EventTypes as WSET
@@ -55,6 +58,7 @@ type LocalContext = { renderContext :: Canvas.Context2D
                     , camera :: Camera
                     , window :: HTML.Window
                     , game :: Game
+                    , playerName :: String
                     }
 
 type InputState =  { isLeft :: Boolean
@@ -97,7 +101,7 @@ load cb = do
           canvasHeight <- Canvas.getCanvasHeight canvasElement
           let camera = setupCamera { width: canvasWidth, height: canvasHeight }
               game = initialModel
-          cb $ { offscreenContext, offscreenCanvas, renderContext, assets, canvasElement, camera, window, game}
+          cb $ { offscreenContext, offscreenCanvas, renderContext, assets, canvasElement, camera, window, game, playerName: ""}
   
 -- But we're going to use signalling for game input/etc as that's quite pretty
 -- even if we haven't worked out how to adjust for elapsed time during render/frame-rate yet in that world
@@ -117,7 +121,7 @@ main =  do
   load (\loadedContext -> do
           socketChannel <- Channel.channel $ Ws ""
           renderChannel <- Channel.channel 0
-          socket <- createSocket "ws://localhost:3000/game/messaging" $ Ws >>> Channel.send socketChannel
+          socket <- createSocket "ws://localhost:3000/messaging" $ Ws >>> Channel.send socketChannel
           _ <- Window.requestAnimationFrame (Channel.send renderChannel 0) loadedContext.window
           gameTick <- tickSignal
           let socketSignal = Channel.subscribe socketChannel
@@ -126,11 +130,7 @@ main =  do
               gameStateSignal = foldp (\msg lc -> 
                                 case msg of
                                   Input i -> tickContext i lc
-                                  Ws msg -> 
-                                    -- parse message
-                                    -- pass into game world 
-                                    -- 
-                                    lc
+                                  Ws str -> either (\err -> lc) (handleMessage lc) $ readJSON str
                                   ) loadedContext mergedSignals
       
           -- We'll need to run that gameStateSignal
@@ -147,17 +147,24 @@ main =  do
                     ) $ Channel.subscribe renderChannel)
       )
 
+handleMessage :: LocalContext -> ServerMsg -> LocalContext
+handleMessage lc msg =
+  case msg of
+    InitialState gameSync ->
+      lc { playerName = gameSync.playerName, game = Comms.gameFromSync gameSync }
+
+
 tickContext :: InputState -> LocalContext  -> LocalContext
-tickContext input context@{ game, camera: { config } } = 
+tickContext input context@{ game, camera: { config }, playerName } = 
   updatedContext { game = foldEvents $ tick $ foldl handleCommand game $ gatherCommandsFromInput input }
-      where viewport = viewportFromConfig $ trackPlayer game config 
+      where viewport = viewportFromConfig $ trackPlayer playerName game config 
             updatedContext = context { camera = { config, viewport } }
 
-trackPlayer :: Game -> CameraConfiguration -> CameraConfiguration
-trackPlayer game config = 
+trackPlayer :: String -> Game -> CameraConfiguration -> CameraConfiguration
+trackPlayer playerName game config = 
   maybe config (\player -> config { lookAt = player.location,
                                     distance = 500.0 + (abs player.velocity.x + abs player.velocity.y) * 10.0
-                                    }) $ entityById (wrap "player") game
+                                    }) $ entityById (wrap playerName) game
 
 data ExternalCommand = 
   PlayerCommand EntityCommand

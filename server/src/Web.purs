@@ -92,7 +92,7 @@ gameCommsHandler =
 
   # WebSocket.init (\s -> do
                      game <- WebSocket.lift $ RunningGame.currentState s.game
-                     pure $ Reply ((TextFrame $ writeJSON $ Comms.InitialState $ Comms.gameToSync game) : nil) s
+                     pure $ Reply ((TextFrame $ writeJSON $ Comms.InitialState $ Comms.gameToSync s.playerName game) : nil) s
                    )
 
   # WebSocket.terminate (\_ req s -> do

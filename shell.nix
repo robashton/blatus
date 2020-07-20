@@ -33,12 +33,6 @@ let
       ];
     };
     
-    psl = nixpkgs.nodePackages.purescript-language-server.overrideAttrs (oldAttrs: {
-      src = builtins.fetchurl {
-        url = "https://registry.npmjs.org/purescript-language-server/-/purescript-language-server-0.13.3.tgz";
-        sha256 = "444da298f2378deda9e0e20d3891976c43ae57a5796eb0f3b19250f457a5c101";
-      };
-    });
 
 in
 
@@ -46,7 +40,14 @@ with nixpkgs;
 
 mkShell {
   buildInputs = with pkgs; [
-    psl
+
+    (nixpkgs.nodePackages.purescript-language-server.override ({
+      version = "0.13.3";
+      src = builtins.fetchurl {
+        url = "https://registry.npmjs.org/purescript-language-server/-/purescript-language-server-0.13.3.tgz";
+        sha256 = "444da298f2378deda9e0e20d3891976c43ae57a5796eb0f3b19250f457a5c101";
+      };
+    }))
 
     purerl-support.erlang_ls-0-4-1
 
