@@ -32,6 +32,13 @@ let
         (import supportPackages)
       ];
     };
+    
+    psl = nixpkgs.nodePackages.purescript-language-server.overrideAttrs (oldAttrs: {
+      src = builtins.fetchurl {
+        url = "https://registry.npmjs.org/purescript-language-server/-/purescript-language-server-0.13.3.tgz";
+        sha256 = "444da298f2378deda9e0e20d3891976c43ae57a5796eb0f3b19250f457a5c101";
+      };
+    });
 
 in
 
@@ -39,8 +46,8 @@ with nixpkgs;
 
 mkShell {
   buildInputs = with pkgs; [
-  
-    nodePackages.purescript-language-server
+    psl
+
     purerl-support.erlang_ls-0-4-1
 
     nixerl.erlang-22-3.erlang
@@ -53,5 +60,6 @@ mkShell {
     purerl-support.purescript-0-13-6
     purerl-support.spago-0-12-1-0
     purerl-support.dhall-json-1-5-0
+    purerl-support.erlang_ls-0-4-1
    ];
 }
