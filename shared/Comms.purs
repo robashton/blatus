@@ -3,7 +3,7 @@ module Pure.Comms where
 import Prelude
 import Pure.Game (Game)
 import Pure.Game as Game
-import Pure.Entity (EntityId(..), Entity, EntityClass(..))
+import Pure.Entity (EntityId(..), Entity, EntityClass(..), EntityCommand(..))
 import Data.List (toUnfoldable)
 import Data.Foldable (foldl)
 import Pure.Math (Point(..))
@@ -19,6 +19,9 @@ import GenericJSON (writeTaggedSumRep, taggedSumRep)
 import Pure.Math (Rect)
 
 data ServerMsg = InitialState GameSync
+               | ServerCommand { cmd :: EntityCommand, id  :: EntityId }
+
+data ClientMsg = ClientComand EntityCommand
 
 
 type GameSync = { world :: Rect

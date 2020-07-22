@@ -42,10 +42,10 @@ mkShell {
   buildInputs = with pkgs; [
 
     (nixpkgs.nodePackages.purescript-language-server.override ({
-      version = "0.13.3";
+      version = "0.13.5";
       src = builtins.fetchurl {
-        url = "https://registry.npmjs.org/purescript-language-server/-/purescript-language-server-0.13.3.tgz";
-        sha256 = "444da298f2378deda9e0e20d3891976c43ae57a5796eb0f3b19250f457a5c101";
+        url = "https://registry.npmjs.org/purescript-language-server/-/purescript-language-server-0.13.5.tgz";
+        sha256 = "0jr3hfa4ywb97ybrq4b64pbngwd1x297vppps7cqf4mmiwz9chb9";
       };
     }))
 

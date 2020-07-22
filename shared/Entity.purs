@@ -58,6 +58,15 @@ data EntityCommand = Damage Number
                    | TurnRight
                    | FireBullet
 
+derive instance genericEntityCommand :: Generic EntityCommand _
+instance showEntityCommand :: Show EntityCommand where
+  show = genericShow
+instance writeForeignEntityCommand :: WriteForeign EntityCommand where
+  writeImpl = writeTaggedSumRep
+instance readForeignEntityCommand :: ReadForeign EntityCommand where
+  readImpl = taggedSumRep
+
+
 data GameEvent = BulletFired { id :: EntityId, location :: Point, velocity :: Point }
 
 derive instance eqEntityCommand :: Eq EntityCommand

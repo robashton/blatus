@@ -152,11 +152,14 @@ handleMessage lc msg =
   case msg of
     InitialState gameSync ->
       lc { playerName = gameSync.playerName, game = Comms.gameFromSync gameSync }
+    ServerCommand { id, cmd } ->
+      lc  { game = foldEvents $ Game.sendCommand id cmd lc.game }
+
 
 
 tickContext :: InputState -> LocalContext  -> LocalContext
 tickContext input context@{ game, camera: { config }, playerName } = 
-  updatedContext { game = foldEvents $ tick $ foldl handleCommand game $ gatherCommandsFromInput input }
+  updatedContext { game = foldEvents $ tick $ foldl (handleCommand playerName) game $ gatherCommandsFromInput input }
       where viewport = viewportFromConfig $ trackPlayer playerName game config 
             updatedContext = context { camera = { config, viewport } }
 
@@ -169,10 +172,10 @@ trackPlayer playerName game config =
 data ExternalCommand = 
   PlayerCommand EntityCommand
 
-handleCommand :: Game -> ExternalCommand -> Game
-handleCommand game external = 
+handleCommand :: String -> Game -> ExternalCommand -> Game
+handleCommand playerName game external = 
   case external of
-       PlayerCommand command -> foldEvents $ Game.sendCommand (wrap "player") command game
+       PlayerCommand command -> foldEvents $ Game.sendCommand (wrap playerName) command game
 
 -- Why didn't 'guard' work? :S
 gatherCommandsFromInput :: InputState -> (List ExternalCommand)
