@@ -27,12 +27,18 @@ import Pure.Logging as Log
 import Pure.Game (Game)
 import Pure.Game as Game
 import Pure.Comms (ClientMsg(..), ServerMsg(..))
+import Pure.Comms as Comms
 import Effect.Random as Random
+import SimpleBus as Bus
 
 type State = { info :: RunningGame, game :: Game  }
 data Msg = Tick
 
 type StartArgs = { game :: RunningGame }
+
+
+bus :: String -> Bus.Bus String ServerMsg
+bus game = Bus.bus $ "game-" <> game
 
 serverName :: String -> ServerName State Msg
 serverName id = Local $ atom $ "runninggame-" <> id
@@ -44,7 +50,8 @@ currentState id = Gen.call (serverName id) \s ->
 sendCommand :: String -> String -> ClientMsg -> Effect Unit
 sendCommand id playerId msg = Gen.call (serverName id) (\s@{ game } -> do
   case msg of
-    ClientCommand entityCommand ->
+    ClientCommand entityCommand -> do
+      Gen.lift $ Bus.raise (bus id) $ ServerCommand { cmd: entityCommand, id: wrap id }
       pure $ CallReply unit $ s { game = Game.foldEvents $ Game.sendCommand (wrap playerId) entityCommand game }
   )
 
@@ -90,13 +97,12 @@ emptyGame :: Game
 emptyGame = Game.initialModel
 
 addPlayerToGame :: String -> State -> Effect State
-addPlayerToGame playerId s@{ game } = do
+addPlayerToGame playerId s@{ info, game } = do
   x <- Random.randomInt 0 1000
   y <- Random.randomInt 0 1000
   let player = Game.tank (wrap playerId) { x: Int.toNumber $ x - 500, y: Int.toNumber $ y - 500 }
       newGame = Game.addEntity player game
-
-  -- Raise bus message so everybody else knows about it
+  Bus.raise  (bus info.id) (NewEntity $ Comms.entityToSync player)
   pure $ s { game = newGame }
 
 

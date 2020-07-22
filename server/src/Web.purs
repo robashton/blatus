@@ -12,6 +12,7 @@ import Data.Either (Either(..), either)
 import Data.Maybe (Maybe(..), isJust, maybe, fromMaybe)
 import Control.Apply (lift3, lift2)
 import Effect (Effect)
+import Erl.Process (send)
 import Data.Map (fromFoldable)
 import Data.Map as Map
 import Erl.Data.Map as ErlMap
@@ -38,6 +39,7 @@ import Pure.RunningGame as RunningGame
 import Pure.RunningGameList as PureRunningGameList
 import Stetson.WebSocket as WebSocket
 import Pure.Comms as Comms
+import SimpleBus as Bus
 
 newtype State = State {}
 
@@ -74,12 +76,13 @@ type GameCommsState = { game :: String
                       , playerName :: String
                       }
 
-data GameCommsMsg = Noop 
+data GameCommsMsg = ProxiedServerMessage Comms.ServerMsg
 
 gameCommsHandler :: StetsonHandler GameCommsMsg GameCommsState
 gameCommsHandler = 
   WebSocket.handler (\req -> do
            let cookies = fromFoldable $ map (uncurry2 Tuple) $ parseCookies req
+           Log.info Log.Web "cookies" { cookies }
            fromMaybe (WebSocket.initResult req { game: "", playerName: ""}) $
              lift2 (\playerName gameName -> do
                  _ <- RunningGame.addPlayer gameName playerName
@@ -91,6 +94,8 @@ gameCommsHandler =
              )
 
   # WebSocket.init (\s -> do
+                     self <- WebSocket.self
+                     _ <- WebSocket.lift $ Bus.subscribe (RunningGame.bus s.game) $ ProxiedServerMessage >>> send self
                      game <- WebSocket.lift $ RunningGame.currentState s.game
                      pure $ Reply ((TextFrame $ writeJSON $ Comms.InitialState $ Comms.gameToSync s.playerName game) : nil) s
                    )
@@ -113,7 +118,10 @@ gameCommsHandler =
            _ <- Gen.lift $ Log.info Log.Web "Non text frame sent from client" { other }
            pure $ NoReply state)
 
-  # WebSocket.info (\msg state -> pure $ Reply ((TextFrame $ "") : nil) state)
+  # WebSocket.info (\msg state -> 
+    case msg of
+      ProxiedServerMessage msg ->
+        pure $ Reply ((TextFrame $ writeJSON msg) : nil) state)
 
 
 gamesHandler :: SimpleStetsonHandler (List RunningGame)
@@ -155,7 +163,7 @@ gameJoinHandler gameId =
                        let processed = fromFoldable $ map (uncurry2 Tuple) kvs
                        fromMaybe (Rest.result false (setBody "unable to comply" req) state) $
                          (\playerName -> do
-                               Log.info Log.Web "Attempt to join game" { playerName }
+                               Log.info Log.Web "Attempt to join game" { gameId, playerName }
                                ir <- replyWithoutBody (StatusCode 302) (ErlMap.fromFoldable [ (Tuple "Location" $ ServerRoutes.routeUrl ServerRoutes.GamePlay) ]) 
                                         $ setCookie "game-name" gameId $ setCookie "player-name" playerName req
                                Rest.stop ir state

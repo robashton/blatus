@@ -30,7 +30,7 @@ import Math (pi) as Math
 import Data.Foldable (for_)
 import Pure.Background (render) as Background
 import Pure.Camera (Camera, CameraViewport, CameraConfiguration, applyViewport, setupCamera, viewportFromConfig)
-import Pure.Game (Game, entityById, foldEvents, initialModel, tick)
+import Pure.Game (Game, entityById, foldEvents, initialModel, tick, addEntity)
 import Pure.Entity (EntityCommand(..))
 import Pure.Game (sendCommand) as Game
 import Signal (Signal, foldp, map4, map5, runSignal, sampleOn, squigglyMap)
@@ -152,9 +152,12 @@ handleMessage lc msg =
   case msg of
     InitialState gameSync ->
       lc { playerName = gameSync.playerName, game = Comms.gameFromSync gameSync }
+
     ServerCommand { id, cmd } ->
       lc  { game = foldEvents $ Game.sendCommand id cmd lc.game }
 
+    NewEntity sync ->
+      lc { game  = addEntity (Comms.entityFromSync sync) lc.game }
 
 
 tickContext :: InputState -> LocalContext  -> LocalContext
