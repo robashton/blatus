@@ -96,13 +96,22 @@ gameCommsHandler =
                    )
 
   # WebSocket.terminate (\_ req s -> do
-    -- At this point we can notify the running game
+    -- TODO: At this point we can notify the running game
     -- that this player is disconnected
     Log.info Log.Web "Player disconnected" s
     pure unit
     )
 
-  # WebSocket.handle (\msg state -> pure $ NoReply state)
+  # WebSocket.handle (\msg state -> do
+       case msg of 
+        TextFrame str -> Gen.lift do
+          _ <- either (\err -> 
+           Log.info Log.Web "Sent unintelligable command  from client" { err }) 
+           (RunningGame.sendCommand state.game state.playerName) $ readJSON str
+          pure $ NoReply state
+        other -> do
+           _ <- Gen.lift $ Log.info Log.Web "Non text frame sent from client" { other }
+           pure $ NoReply state)
 
   # WebSocket.info (\msg state -> pure $ Reply ((TextFrame $ "") : nil) state)
 

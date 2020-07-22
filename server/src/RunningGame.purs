@@ -26,6 +26,7 @@ import Pure.Api (RunningGame)
 import Pure.Logging as Log
 import Pure.Game (Game)
 import Pure.Game as Game
+import Pure.Comms (ClientMsg(..), ServerMsg(..))
 import Effect.Random as Random
 
 type State = { info :: RunningGame, game :: Game  }
@@ -40,11 +41,24 @@ currentState :: String -> Effect Game
 currentState id = Gen.call (serverName id) \s ->
    pure $ CallReply s.game s
 
+sendCommand :: String -> String -> ClientMsg -> Effect Unit
+sendCommand id playerId msg = Gen.call (serverName id) (\s@{ game } -> do
+  case msg of
+    ClientCommand entityCommand ->
+      pure $ CallReply unit $ s { game = Game.foldEvents $ Game.sendCommand (wrap playerId) entityCommand game }
+  )
 
+-- TODO: EntityId pls
 addPlayer :: String -> String -> Effect Unit
 addPlayer id playerId = Gen.call (serverName id) \s -> do
   ns <- Gen.lift $ addPlayerToGame playerId s
   pure $ CallReply unit ns
+
+-- TODO: we'll do these as sendAfters or something
+-- but essentially don't remove the player just cos we've disconnected temporariily
+-- give it 10 seconds in case they've just refreshed the browser
+
+-- startPlayerTimeout :: String -> String -> Effect Unit
 
 
 startLink :: StartArgs -> Effect StartLinkResult
@@ -55,6 +69,7 @@ init :: StartArgs -> Gen.Init State Msg
 init { game } = do
   Gen.lift $ Log.info Log.RunningGame "Started game" game
   self <- Gen.self
+  _ <- Gen.lift $ Timer.sendAfter 0 Tick self
   Gen.lift do
     pure $ { info: game, game: emptyGame }
 
@@ -64,7 +79,12 @@ handleInfo msg state@{ game } = do
      Tick -> do
         self <- Gen.self
         Gen.lift do
-          pure $ CastNoReply state 
+           newGame <- doTick game
+           -- TODO: Calculate how long tick took and adjust this based on that
+           -- We probably need to do an overall timer for this too
+           -- cos 33.333333 means every three frames we'd lose a ms..
+           _ <- Timer.sendAfter 33 Tick self
+           pure $ CastNoReply $ state { game = newGame }
 
 emptyGame :: Game
 emptyGame = Game.initialModel
@@ -75,13 +95,14 @@ addPlayerToGame playerId s@{ game } = do
   y <- Random.randomInt 0 1000
   let player = Game.tank (wrap playerId) { x: Int.toNumber $ x - 500, y: Int.toNumber $ y - 500 }
       newGame = Game.addEntity player game
-  -- Raise bus message
+
+  -- Raise bus message so everybody else knows about it
   pure $ s { game = newGame }
 
 
-
-
-
-
-
+doTick :: Game -> Effect Game
+doTick game = 
+  -- TODO: Send events out on bus for folding into clients
+  -- as they ignore their own
+  pure $ Game.foldEvents $ Game.tick game
 

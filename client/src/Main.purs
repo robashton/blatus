@@ -178,6 +178,9 @@ handleCommand playerName game external =
        PlayerCommand command -> foldEvents $ Game.sendCommand (wrap playerName) command game
 
 -- Why didn't 'guard' work? :S
+-- This is actually no good anyway
+-- we can't be doing input on a 'command command command' basis
+-- input needs to be down on input states and changes to input states only
 gatherCommandsFromInput :: InputState -> (List ExternalCommand)
 gatherCommandsFromInput { isLeft, isUp, isRight, isDown, isFiring } = 
   filterMap identity $ (if isLeft then Just $ PlayerCommand TurnLeft else Nothing) :

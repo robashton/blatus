@@ -21,7 +21,7 @@ import Pure.Math (Rect)
 data ServerMsg = InitialState GameSync
                | ServerCommand { cmd :: EntityCommand, id  :: EntityId }
 
-data ClientMsg = ClientComand EntityCommand
+data ClientMsg = ClientCommand EntityCommand
 
 
 type GameSync = { world :: Rect
@@ -44,6 +44,14 @@ instance showServerMsg :: Show ServerMsg where
 instance writeForeignServerMsg :: WriteForeign ServerMsg where
   writeImpl = writeTaggedSumRep
 instance readForeignServerMsg :: ReadForeign ServerMsg where
+  readImpl = taggedSumRep
+
+derive instance genericClientMsg :: Generic ClientMsg _
+instance showClientMsg :: Show ClientMsg where
+  show = genericShow
+instance writeForeignClientMsg :: WriteForeign ClientMsg where
+  writeImpl = writeTaggedSumRep
+instance readForeignClientMsg :: ReadForeign ClientMsg where
   readImpl = taggedSumRep
 
   
