@@ -21,8 +21,10 @@ import Pure.Math (Rect)
 data ServerMsg = InitialState GameSync
                | ServerCommand { cmd :: EntityCommand, id  :: EntityId }
                | NewEntity EntitySync
+               | ServerTick
 
 data ClientMsg = ClientCommand EntityCommand
+               | ClientTick
 
 
 type GameSync = { world :: Rect

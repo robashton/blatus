@@ -57,6 +57,13 @@ data EntityCommand = Damage Number
                    | TurnLeft 
                    | TurnRight
                    | FireBullet
+                   | StopPushForward
+                   | StopPushBackward
+                   | StopTurnLeft
+                   | StopTurnRight
+                   | StopFiring
+
+
 
 derive instance genericEntityCommand :: Generic EntityCommand _
 instance showEntityCommand :: Show EntityCommand where

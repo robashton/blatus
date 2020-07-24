@@ -51,6 +51,9 @@ sendCommand id command game@{ entities } =
 foldEvents :: Tuple Game (List GameEvent) -> Game
 foldEvents (Tuple game events) = foldr sendEvent game events
 
+discardEvents :: Tuple Game (List GameEvent) -> Game
+discardEvents (Tuple game _events) = game
+
 sendEvent :: GameEvent -> Game -> Game
 sendEvent ev game = 
   case ev of
@@ -147,20 +150,29 @@ firesBullets { max, speed, rate } = mkExists $ EntityBehaviour { state: { curren
                                                 velocity entity = (scalePoint speed $ direction entity) + entity.velocity
 
                                                                     
-                                                    
-
 driven :: DrivenConfig -> Exists EntityBehaviour
-driven config = mkExists $ EntityBehaviour {  state: unit
+driven config = mkExists $ EntityBehaviour {  state: { forward: false, backward: false, left: false, right: false }
                                             , handleCommand:  \command s  ->
                                                 case command of
-                                                  PushForward -> B.applyThrust config.acceleration config.maxSpeed
-                                                  PushBackward -> B.applyThrust (-config.acceleration) config.maxSpeed
-                                                  TurnLeft -> B.rotate (-config.turningSpeed)
-                                                  TurnRight -> B.rotate config.turningSpeed 
-                                                  _ -> pure unit
-                                                  
-                                          }
-
+                                                  Tick -> do
+                                                    (if s.forward then B.applyThrust config.acceleration config.maxSpeed
+                                                          else if s.backward then B.applyThrust (-config.acceleration) config.maxSpeed
+                                                          else pure unit)
+                                                    (if s.left then B.rotate (-config.turningSpeed)
+                                                          else if s.right then B.rotate config.turningSpeed 
+                                                          else pure unit)
+                                                    pure s
+                                                  PushForward -> pure s { forward = true }
+                                                  PushBackward -> pure s { backward = true }
+                                                  TurnLeft -> pure s { left = true }
+                                                  TurnRight -> pure s { right = true }
+                                                  StopPushForward -> pure s { forward = false }
+                                                  StopPushBackward -> pure s { backward = false }
+                                                  StopTurnLeft -> pure s { left = false }
+                                                  StopTurnRight -> pure s { right = false }
+                                                  _ -> 
+                                                    pure s
+                                                  }
 basicBitchPhysics :: Exists EntityBehaviour 
 basicBitchPhysics = mkExists $ EntityBehaviour { state: unit
                                                , handleCommand:  \command _ ->

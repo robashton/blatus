@@ -51,8 +51,11 @@ sendCommand :: String -> String -> ClientMsg -> Effect Unit
 sendCommand id playerId msg = Gen.call (serverName id) (\s@{ game } -> do
   case msg of
     ClientCommand entityCommand -> do
-      Gen.lift $ Bus.raise (bus id) $ ServerCommand { cmd: entityCommand, id: wrap id }
+      Gen.lift $ Bus.raise (bus id) $ ServerCommand { cmd: entityCommand, id: wrap (playerId) }
       pure $ CallReply unit $ s { game = Game.foldEvents $ Game.sendCommand (wrap playerId) entityCommand game }
+    ClientTick  -> do
+      -- TODO: Keep alive
+      pure $ CallReply unit s
   )
 
 -- TODO: EntityId pls
@@ -68,6 +71,7 @@ addPlayer id playerId = Gen.call (serverName id) \s -> do
 -- startPlayerTimeout :: String -> String -> Effect Unit
 
 
+
 startLink :: StartArgs -> Effect StartLinkResult
 startLink args =
   Gen.buildStartLink (serverName args.game.id) (init args) $ Gen.defaultStartLink { handleInfo = handleInfo }
@@ -81,12 +85,13 @@ init { game } = do
     pure $ { info: game, game: emptyGame }
 
 handleInfo :: Msg -> State -> Gen.HandleInfo State Msg
-handleInfo msg state@{ game } = do
+handleInfo msg state@{ info, game } = do
   case msg of
      Tick -> do
         self <- Gen.self
         Gen.lift do
            newGame <- doTick game
+           Bus.raise (bus info.id) ServerTick
            -- TODO: Calculate how long tick took and adjust this based on that
            -- We probably need to do an overall timer for this too
            -- cos 33.333333 means every three frames we'd lose a ms..

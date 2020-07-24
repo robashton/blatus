@@ -18,7 +18,7 @@ import Data.Map as Map
 import Erl.Data.Map as ErlMap
 import Data.Tuple (Tuple(..))
 import Erl.Atom (atom)
-import Erl.Cowboy.Req (ReadBodyResult(..), Req, binding, readBody, setBody, readUrlEncodedBody, ReadUrlEncodedBodyResult(..), replyWithoutBody, StatusCode(..), setCookie, parseCookies)
+import Erl.Cowboy.Req (ReadBodyResult(..), Req, binding, readBody, setBody, readUrlEncodedBody, ReadUrlEncodedBodyResult(..), replyWithoutBody, StatusCode(..), setCookieWithOpts, parseCookies, CookieOpts(..))
 import Erl.Data.Binary (Binary)
 import Erl.Data.Binary.IOData (IOData, fromBinary, toBinary)
 import Erl.Data.List (List, nil, (:))
@@ -120,7 +120,8 @@ gameCommsHandler =
 
   # WebSocket.info (\msg state -> 
     case msg of
-      ProxiedServerMessage msg ->
+      ProxiedServerMessage msg -> do 
+        _ <- Gen.lift $ Log.info Log.Web "Proxying message to client " { msg, state }
         pure $ Reply ((TextFrame $ writeJSON msg) : nil) state)
 
 
@@ -141,7 +142,7 @@ gamesHandler =
                                Log.info Log.Web "Attempt to create game" { playerName, gameName, public }
                                gameId <- PureRunningGameList.create playerName gameName (public == "on")
                                ir <- replyWithoutBody (StatusCode 302) (ErlMap.fromFoldable [ (Tuple "Location" $ ServerRoutes.routeUrl ServerRoutes.GamePlay) ]) 
-                                        $ setCookie "game-name" gameId $ setCookie "player-name" playerName req
+                                        $ setCookieWithOpts "game-name" gameId cookieOpts $ setCookieWithOpts "player-name" playerName cookieOpts req
                                Rest.stop ir state
                            )
                            (Map.lookup "player-name" processed)
@@ -165,11 +166,19 @@ gameJoinHandler gameId =
                          (\playerName -> do
                                Log.info Log.Web "Attempt to join game" { gameId, playerName }
                                ir <- replyWithoutBody (StatusCode 302) (ErlMap.fromFoldable [ (Tuple "Location" $ ServerRoutes.routeUrl ServerRoutes.GamePlay) ]) 
-                                        $ setCookie "game-name" gameId $ setCookie "player-name" playerName req
+                                        $ setCookieWithOpts "game-name" gameId cookieOpts $ setCookieWithOpts "player-name" playerName cookieOpts req
                                Rest.stop ir state
                            ) <$>
                            (Map.lookup "player-name" processed))
 
+cookieOpts :: CookieOpts
+cookieOpts = { max_age : 3600
+             , domain : ""
+             , path: "/"
+             , secure : false
+             , http_only: false
+             , same_site: (atom "strict")
+             }
 
 jsonWriter :: forall a. WriteForeign a => Tuple2 String (Req -> a -> (Effect (RestResult String a)))
 jsonWriter = tuple2 "application/json" (\req state -> Rest.result (writeJSON state) req state)

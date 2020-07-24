@@ -14,5 +14,6 @@
   "web-html",
   "aff",
   "routing-duplex",
+  "debug",
   "exists"    ]
 }
