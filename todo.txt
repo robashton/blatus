@@ -1,0 +1,36 @@
+-- Features
+
+[x] Pings need sending from client/server every second
+[x] Deal with players disconnecting (10 second timeout)
+[x] Deal with players (re) connecting
+[x] Display game URL in UI
+[x] Display player info in UI
+[x] Send (valid) events to clients for processing
+[ ] Ignore our own messages when they come back to us
+[ ] Rubberbanding :(
+[ ] Ship destruction means points
+[ ] Ship destruction means respawn required
+[ ] Ship has regenerable health (prolonged attack required to destroy)
+[ ] List public games in UI for easy selection
+[ ] suspend+terminate unused games
+[ ] Auth (bare minimum, preferably no data needed)
+[ ] Encrypted cookie for telling who somebody is
+[ ] Ticks (especially on server side) need to be adjusted for elapsed time
+[ ] Player name != Player Id
+[ ] Graceful disconnect
+[ ] Admin UI (view games / players / latency / etc)
+[ ] Handle disconection as client (either server rejection or socket gone pop)
+
+-- Code
+
+[ ] Newtypes for Game/Player... 
+[ ] Break up LocalContext
+[ ] Probably need to spin up the game itself in a spawnProcess on the server to avoid blocking
+
+-- Entirely unnecessary stuff
+
+[ ] Radar for tracking other players
+[ ] Infinite background (load/render on demand (yawn))
+[ ] Shaders/layers
+[ ] Proper collision 
+[ ] Asteroids

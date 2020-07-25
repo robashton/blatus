@@ -72,11 +72,19 @@ instance writeForeignEntityCommand :: WriteForeign EntityCommand where
   writeImpl = writeTaggedSumRep
 instance readForeignEntityCommand :: ReadForeign EntityCommand where
   readImpl = taggedSumRep
+derive instance eqEntityCommand :: Eq EntityCommand
 
 
 data GameEvent = BulletFired { id :: EntityId, location :: Point, velocity :: Point }
 
-derive instance eqEntityCommand :: Eq EntityCommand
+derive instance genericGameEvent :: Generic GameEvent _
+instance showGameEvent :: Show GameEvent where
+  show = genericShow
+instance writeForeignGameEvent :: WriteForeign GameEvent where
+  writeImpl = writeTaggedSumRep
+instance readForeignGameEvent :: ReadForeign GameEvent where
+  readImpl = taggedSumRep
+
 
 data EntityBehaviourResult state = StateUpdated state 
                                  | StateAndEntityUpdated state Entity

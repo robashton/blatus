@@ -96,33 +96,41 @@ gameCommsHandler =
   # WebSocket.init (\s -> do
                      self <- WebSocket.self
                      _ <- WebSocket.lift $ Bus.subscribe (RunningGame.bus s.game) $ ProxiedServerMessage >>> send self
-                     game <- WebSocket.lift $ RunningGame.currentState s.game
-                     pure $ Reply ((TextFrame $ writeJSON $ Comms.InitialState $ Comms.gameToSync s.playerName game) : nil) s
+                     sync <- WebSocket.lift $ RunningGame.sync s.game s.playerName
+
+
+                     pure $ Reply ((TextFrame $ writeJSON $ Comms.InitialState sync) 
+                                 : (TextFrame $ writeJSON $ Comms.Welcome { gameUrl: ServerRoutes.routeUrl $ ServerRoutes.GameJoinHtml s.game,
+                                                                            playerId: s.playerName
+                                                                          }) 
+                                 : nil) s
                    )
 
   # WebSocket.terminate (\_ req s -> do
-    -- TODO: At this point we can notify the running game
-    -- that this player is disconnected
-    Log.info Log.Web "Player disconnected" s
+    -- actually need to do nothing here
+    -- player will timeout anyway
     pure unit
     )
 
   # WebSocket.handle (\msg state -> do
        case msg of 
         TextFrame str -> Gen.lift do
-          _ <- either (\err -> 
-           Log.info Log.Web "Sent unintelligable command  from client" { err }) 
-           (RunningGame.sendCommand state.game state.playerName) $ readJSON str
-          pure $ NoReply state
+          either (\err -> do
+           Log.info Log.Web "Sent unintelligable command  from client" { err }
+           pure $ NoReply state) 
+           (\cmd -> RunningGame.sendCommand state.game state.playerName cmd
+                       >>= case _ of 
+                             Nothing -> pure $ NoReply state
+                             Just reply -> pure $ Reply ((TextFrame $ writeJSON $ reply) : nil) state
+              ) $ readJSON str 
         other -> do
            _ <- Gen.lift $ Log.info Log.Web "Non text frame sent from client" { other }
            pure $ NoReply state)
 
   # WebSocket.info (\msg state -> 
     case msg of
-      ProxiedServerMessage msg -> do 
-        _ <- Gen.lift $ Log.info Log.Web "Proxying message to client " { msg, state }
-        pure $ Reply ((TextFrame $ writeJSON msg) : nil) state)
+      ProxiedServerMessage m -> do 
+        pure $ Reply ((TextFrame $ writeJSON m) : nil) state)
 
 
 gamesHandler :: SimpleStetsonHandler (List RunningGame)

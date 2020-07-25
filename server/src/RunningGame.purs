@@ -2,37 +2,43 @@ module Pure.RunningGame where
 
 import Prelude
 
-import Erl.Process.Raw (Pid)
-import Erl.Process ((!))
 import Erl.Atom (atom)
-import Erl.Data.Tuple (tuple2, tuple3)
 import Data.Int as Int
-import Data.Either (Either(..))
-import Erl.Data.Binary (Binary(..))
 import Data.Maybe (Maybe(..))
-import Erl.Data.Map as Map
-import Erl.Process (Process)
-import Data.Traversable (traverse)
+import Data.Tuple (Tuple(..), uncurry)
+import Data.Map as Map
+import Data.List (toUnfoldable)
+import Data.Foldable (foldM)
 import Data.Newtype (wrap, unwrap)
 import Effect (Effect)
-import Erl.Data.List (List)
-import Pinto as Pinto
 import Pinto (ServerName(..), StartLinkResult)
 import Pinto.Gen (CallResult(..), CastResult(..))
 import Pinto.Gen as Gen
 import Pinto.Timer as Timer
-import Pinto.Monitor as Monitor
 import Pure.Api (RunningGame)
 import Pure.Logging as Log
 import Pure.Game (Game)
+import Pure.Entity (EntityId)
 import Pure.Game as Game
-import Pure.Comms (ClientMsg(..), ServerMsg(..))
+import Pure.Comms (ClientMsg(..), GameSync, ServerMsg(..))
 import Pure.Comms as Comms
 import Effect.Random as Random
 import SimpleBus as Bus
 
-type State = { info :: RunningGame, game :: Game  }
+type State = { info :: RunningGame
+             , game :: Game
+             , players :: Map.Map EntityId RegisteredPlayer
+             , lastTick :: Int
+             }
+
+type RegisteredPlayer = { id :: EntityId
+                        , score :: Int
+                        , lastTick :: Int
+                        }
+
 data Msg = Tick
+         | Maintenance
+         | SendPlayerList
 
 type StartArgs = { game :: RunningGame }
 
@@ -43,33 +49,27 @@ bus game = Bus.bus $ "game-" <> game
 serverName :: String -> ServerName State Msg
 serverName id = Local $ atom $ "runninggame-" <> id
 
-currentState :: String -> Effect Game
-currentState id = Gen.call (serverName id) \s ->
-   pure $ CallReply s.game s
+sync :: String -> String -> Effect GameSync
+sync id playerId = Gen.call (serverName id) \s -> do
+  let reply = Comms.gameToSync playerId s.game s.lastTick
+  pure $ CallReply reply s
 
-sendCommand :: String -> String -> ClientMsg -> Effect Unit
-sendCommand id playerId msg = Gen.call (serverName id) (\s@{ game } -> do
+sendCommand :: String -> String -> ClientMsg -> Effect (Maybe ServerMsg)
+sendCommand id playerId msg = Gen.call (serverName id) \s@{ game, lastTick, info, players } -> do
   case msg of
-    ClientCommand entityCommand -> do
-      Gen.lift $ Bus.raise (bus id) $ ServerCommand { cmd: entityCommand, id: wrap (playerId) }
-      pure $ CallReply unit $ s { game = Game.foldEvents $ Game.sendCommand (wrap playerId) entityCommand game }
-    ClientTick  -> do
-      -- TODO: Keep alive
-      pure $ CallReply unit s
-  )
+    ClientCommand entityCommand -> Gen.lift do
+      Bus.raise (bus id) $ ServerCommand { cmd: entityCommand, id: wrap (playerId) }
+      let result@(Tuple _ evs) = Game.sendCommand (wrap playerId) entityCommand game
+      Bus.raise (bus info.id) $ Comms.ServerEvents $ toUnfoldable evs
+      pure $ CallReply Nothing $ s { game = uncurry Game.foldEvents result }
+    Ping tick  -> do
+      pure $ CallReply (Just $ Pong lastTick) $ s { players = Map.update (\v -> Just $ v { lastTick = tick }) (wrap playerId) players }
 
 -- TODO: EntityId pls
 addPlayer :: String -> String -> Effect Unit
 addPlayer id playerId = Gen.call (serverName id) \s -> do
   ns <- Gen.lift $ addPlayerToGame playerId s
   pure $ CallReply unit ns
-
--- TODO: we'll do these as sendAfters or something
--- but essentially don't remove the player just cos we've disconnected temporariily
--- give it 10 seconds in case they've just refreshed the browser
-
--- startPlayerTimeout :: String -> String -> Effect Unit
-
 
 
 startLink :: StartArgs -> Effect StartLinkResult
@@ -81,39 +81,76 @@ init { game } = do
   Gen.lift $ Log.info Log.RunningGame "Started game" game
   self <- Gen.self
   _ <- Gen.lift $ Timer.sendAfter 0 Tick self
+  _ <- Gen.lift $ Timer.sendAfter 1000 SendPlayerList self
+  _ <- Gen.lift $ Timer.sendAfter 10000 Maintenance self
   Gen.lift do
-    pure $ { info: game, game: emptyGame }
+    pure $ { info: game
+           , game: emptyGame
+           , lastTick: 0
+           , players: Map.empty
+           }
 
 handleInfo :: Msg -> State -> Gen.HandleInfo State Msg
-handleInfo msg state@{ info, game } = do
-  case msg of
-     Tick -> do
-        self <- Gen.self
-        Gen.lift do
-           newGame <- doTick game
-           Bus.raise (bus info.id) ServerTick
-           -- TODO: Calculate how long tick took and adjust this based on that
-           -- We probably need to do an overall timer for this too
-           -- cos 33.333333 means every three frames we'd lose a ms..
-           _ <- Timer.sendAfter 33 Tick self
-           pure $ CastNoReply $ state { game = newGame }
+handleInfo msg state@{ info, game, lastTick } = do
+  self <- Gen.self
+  CastNoReply <$> case msg of
+                     Tick -> Gen.lift do
+                           newState <- doTick state
+                           _ <- Timer.sendAfter 33 Tick self
+                           pure $ newState 
+                     Maintenance -> Gen.lift do
+                           newState <- doMaintenance state
+                           _ <- Timer.sendAfter 10000 Maintenance self
+                           pure newState
+                     SendPlayerList -> Gen.lift do
+                           sendPlayerList state
+                           _ <- Timer.sendAfter 1000 SendPlayerList self
+                           pure state
+
 
 emptyGame :: Game
 emptyGame = Game.initialModel
 
 addPlayerToGame :: String -> State -> Effect State
-addPlayerToGame playerId s@{ info, game } = do
-  x <- Random.randomInt 0 1000
-  y <- Random.randomInt 0 1000
-  let player = Game.tank (wrap playerId) { x: Int.toNumber $ x - 500, y: Int.toNumber $ y - 500 }
-      newGame = Game.addEntity player game
-  Bus.raise  (bus info.id) (NewEntity $ Comms.entityToSync player)
-  pure $ s { game = newGame }
+addPlayerToGame playerId s@{ info, game, players } = do
+  if
+    Map.member (wrap playerId) players then pure s
+  else do
+    x <- Random.randomInt 0 1000
+    y <- Random.randomInt 0 1000
+    let player = Game.tank (wrap playerId) { x: Int.toNumber $ x - 500, y: Int.toNumber $ y - 500 }
+        newGame = Game.addEntity player game
+    Bus.raise  (bus info.id) (NewEntity $ Comms.entityToSync player)
+    pure $ s { game = newGame, players = Map.insert (wrap playerId) { id: (wrap playerId), lastTick: s.lastTick, score: 0 } s.players  }
 
 
-doTick :: Game -> Effect Game
-doTick game = 
-  -- TODO: Send events out on bus for folding into clients
-  -- as they ignore their own
-  pure $ Game.foldEvents $ Game.tick game
+doTick :: State -> Effect State
+doTick state@{ game, info, lastTick } = do
+  let result@(Tuple _ evs) = Game.tick game
+  _ <- Bus.raise (bus info.id) $ Comms.ServerEvents $ toUnfoldable evs
+  pure $ state { game = uncurry Game.foldEvents result, lastTick = lastTick + 1 }
+
+playerTimeout :: Int
+playerTimeout = 300 -- 10 seconds give or take
+
+doMaintenance :: State -> Effect State
+doMaintenance state = do
+  foldM (\acc p -> 
+     if state.lastTick - p.lastTick > playerTimeout then do
+       Bus.raise (bus state.info.id) $ EntityDeleted p.id
+       pure $ acc { players = Map.delete p.id acc.players
+                  , game = Game.removeEntity p.id acc.game
+                  }
+     else
+       pure acc
+    ) state state.players
+
+
+sendPlayerList :: State -> Effect Unit
+sendPlayerList { info, players }  = 
+  Bus.raise (bus info.id) $ Comms.UpdatePlayerList $ toUnfoldable $ map (\p -> { 
+              playerId: unwrap p.id
+            , score: p.score
+            , lastTick: p.lastTick
+            }) $ Map.values players
 

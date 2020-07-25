@@ -12,6 +12,7 @@
   "effect",
   "canvas",
   "web-html",
+  "web-dom",
   "aff",
   "routing-duplex",
   "debug",

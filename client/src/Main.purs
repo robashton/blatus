@@ -14,7 +14,7 @@ import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Monoid (guard)
 import Data.Newtype (unwrap, wrap)
 import Control.Monad.Except (runExcept)
-import Data.Traversable (for)
+import Data.Traversable (for, traverse)
 import Effect.Class (liftEffect)
 import Data.Tuple (fst)
 import Effect (Effect)
@@ -31,7 +31,7 @@ import Math (pi) as Math
 import Data.Foldable (for_)
 import Pure.Background (render) as Background
 import Pure.Camera (Camera, CameraViewport, CameraConfiguration, applyViewport, setupCamera, viewportFromConfig)
-import Pure.Game (Game, entityById, foldEvents, initialModel, tick, addEntity, discardEvents)
+import Pure.Game (Game, entityById, foldEvents, initialModel, tick, addEntity, removeEntity, discardEvents)
 import Pure.Entity (EntityCommand(..))
 import Pure.Game (sendCommand) as Game
 import Signal (Signal, foldp, map4, map5, runSignal, sampleOn, squigglyMap, dropRepeats)
@@ -40,7 +40,13 @@ import Signal.DOM (keyPressed, animationFrame)
 import Signal.Time (every, second)
 import Signal.Channel as Channel
 import Web.HTML as HTML
-import Web.HTML.Window (requestAnimationFrame) as Window
+import Web.HTML.Window  as Window
+import Web.HTML.HTMLDocument  as HTMLDocument
+import Web.DOM.Document as Document
+import Web.DOM.Element as Element
+import Web.DOM.Node as Node
+import Web.DOM.NodeList as NodeList
+import Web.DOM.ParentNode (QuerySelector(..), querySelector)
 import Simple.JSON (readJSON, writeJSON)
 import Pure.Comms (ServerMsg(..), ClientMsg(..))
 import Pure.Comms as Comms
@@ -63,6 +69,10 @@ type LocalContext = { renderContext :: Canvas.Context2D
                     , playerName :: String
                     , socketChannel :: Channel.Channel String
                     , socket :: WS.WebSocket
+                    , clientTick :: Int
+                    , serverTick :: Int
+                    , gameUrl :: String
+                    , playerList :: Array Comms.PlayerListItem
                     }
 
 rotateLeftSignal :: Effect (Signal EntityCommand)
@@ -106,6 +116,9 @@ data GameLoopMsg = Input EntityCommand
 
 tickSignal :: Signal GameLoopMsg
 tickSignal = sampleOn (every $ second / 30.0) $ Signal.constant GameTick
+  
+pingSignal :: Signal Unit
+pingSignal = sampleOn (every $ second) $ Signal.constant unit
 
 -- We're going to use Aff to make loading pretty instead of trying
 -- to chain Signals around the place
@@ -127,14 +140,24 @@ load cb = do
           canvasHeight <- Canvas.getCanvasHeight canvasElement
           let camera = setupCamera { width: canvasWidth, height: canvasHeight }
               game = initialModel
-          cb $ { offscreenContext, offscreenCanvas, renderContext, assets, canvasElement, camera, window, game, playerName: "", socket, socketChannel}
+          cb $ { offscreenContext, offscreenCanvas, renderContext, assets, canvasElement, camera, window, game, playerName: "", gameUrl: "", socket, socketChannel, clientTick: 0, serverTick: 0, playerList: []}
   
+gameInfoSelector :: QuerySelector
+gameInfoSelector = QuerySelector ("#game-info")
+
+playerListSelector :: QuerySelector
+playerListSelector = QuerySelector ("#player-list")
 
 main :: Effect Unit
 main =  do
-  load (\loadedContext@{ socket } -> do
+  load (\loadedContext@{ socket, window } -> do
           gameInput <- inputSignal
           renderSignal <- animationFrame
+          document <- HTMLDocument.toDocument <$> Window.document window
+
+          gameInfoElement <- querySelector gameInfoSelector $ Document.toParentNode document
+          playerListElement <- querySelector playerListSelector $ Document.toParentNode document
+
 
           -- Just alter context state as messages come in
           let socketSignal = Channel.subscribe loadedContext.socketChannel
@@ -150,7 +173,29 @@ main =  do
           runSignal $ (\cmd -> safeSend socket $ writeJSON $ ClientCommand cmd) <$> gameInput
 
           -- Tick as well
-          runSignal $ (\cmd -> safeSend socket $ writeJSON $ ClientTick) <$> tickSignal
+          runSignal $ (\_ -> do
+            lc <- Signal.get gameStateSignal
+
+            -- Update the display
+            _ <- maybe (pure unit) (\element -> do
+                      Element.setAttribute "href" lc.gameUrl element
+                      Node.setTextContent lc.gameUrl $ Element.toNode element) gameInfoElement
+
+            _ <- maybe (pure unit) (\element -> do
+                       let node = Element.toNode element
+                       existingChildren <- NodeList.toArray =<< Node.childNodes node
+                       _ <- traverse (\child -> Node.removeChild child node) $ existingChildren
+                       _ <- traverse (\player -> do
+                           li <- Element.toNode <$> Document.createElement "li" document
+                           Node.setTextContent (player.playerId <> ": " <> (show player.score)) li
+                           Node.appendChild li node) $ lc.playerList
+
+
+
+                       pure unit) playerListElement
+            
+
+            safeSend socket $ writeJSON $ Ping lc.clientTick ) <$> pingSignal 
       
           -- Take whatever the latest state is and render it every time we get a render frame request
           runSignal $ (\_ -> do
@@ -174,16 +219,31 @@ handleServerMessage :: LocalContext -> ServerMsg -> LocalContext
 handleServerMessage lc msg =
   case msg of
     InitialState gameSync ->
-      lc { playerName = gameSync.playerName, game = Comms.gameFromSync gameSync }
+      lc { playerName = gameSync.playerName, game = Comms.gameFromSync gameSync, clientTick = gameSync.tick, serverTick = gameSync.tick }
+
+    Welcome info ->
+      lc { gameUrl = info.gameUrl }
+
+    UpdatePlayerList list ->
+      lc { playerList = list }
 
     ServerCommand { id, cmd } ->
 
-      lc  { game = foldEvents $ Game.sendCommand id cmd lc.game }
+      if (unwrap id) == lc.playerName then lc
+        else lc  { game = discardEvents $ Game.sendCommand id cmd lc.game }
+
+    ServerEvents evs ->
+
+      lc  { game = foldEvents lc.game evs }
 
     NewEntity sync ->
       lc { game  = addEntity (Comms.entityFromSync sync) lc.game }
 
-    ServerTick  ->
+    EntityDeleted id ->
+      lc { game  = removeEntity id lc.game }
+
+
+    Pong ticks  ->
       lc
 
 handleClientCommand :: LocalContext-> EntityCommand ->  LocalContext
@@ -191,8 +251,8 @@ handleClientCommand lc@{ playerName, game } msg =
   lc { game = discardEvents $ Game.sendCommand (wrap playerName) msg game }
 
 handleTick :: LocalContext  -> LocalContext
-handleTick context@{ game, camera: { config }, playerName, socket } =  do
-  updatedContext { game = nextGame }
+handleTick context@{ game, camera: { config }, playerName, socket, clientTick } =  do
+  updatedContext { game = nextGame, clientTick = clientTick + 1 }
       where nextGame = discardEvents $ tick game 
             viewport = viewportFromConfig $ trackPlayer playerName game config 
             updatedContext = context { camera = { config, viewport } }

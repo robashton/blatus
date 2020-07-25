@@ -3,7 +3,7 @@ module Pure.Comms where
 import Prelude
 import Pure.Game (Game)
 import Pure.Game as Game
-import Pure.Entity (EntityId(..), Entity, EntityClass(..), EntityCommand(..))
+import Pure.Entity (EntityId(..), Entity, EntityClass(..), EntityCommand(..), GameEvent)
 import Data.List (toUnfoldable)
 import Data.Foldable (foldl)
 import Pure.Math (Point(..))
@@ -19,17 +19,30 @@ import GenericJSON (writeTaggedSumRep, taggedSumRep)
 import Pure.Math (Rect)
 
 data ServerMsg = InitialState GameSync
+               | Welcome WelcomeInfo
                | ServerCommand { cmd :: EntityCommand, id  :: EntityId }
+               | ServerEvents (Array GameEvent)
+               | UpdatePlayerList (Array PlayerListItem)
                | NewEntity EntitySync
-               | ServerTick
+               | EntityDeleted EntityId
+               | Pong Int
+
+type PlayerListItem = { playerId :: String
+                      , score :: Int
+                      , lastTick :: Int
+                      }
 
 data ClientMsg = ClientCommand EntityCommand
-               | ClientTick
+               | Ping Int
 
+type WelcomeInfo = { gameUrl :: String
+                   , playerId :: String
+                   }
 
 type GameSync = { world :: Rect
                 , entities :: Array EntitySync
                 , playerName :: String
+                , tick :: Int
                 }
 
 
@@ -58,11 +71,12 @@ instance readForeignClientMsg :: ReadForeign ClientMsg where
   readImpl = taggedSumRep
 
   
-gameToSync :: String -> Game -> GameSync
-gameToSync playerName { entities, world } =
+gameToSync :: String -> Game -> Int -> GameSync
+gameToSync playerName { entities, world } tick =
   { entities: toUnfoldable $ map entityToSync $ Map.values entities
   , playerName
-  , world }
+  , world
+  , tick}
 
 entityToSync :: Entity -> EntitySync
 entityToSync { id, class: c, location, velocity, rotation } =

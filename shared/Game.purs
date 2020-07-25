@@ -13,10 +13,10 @@ module Pure.Game where
 import Prelude
 
 import Data.Exists (Exists, mkExists, runExists)
-import Data.Foldable (foldl)
+import Data.Foldable (foldl, class Foldable)
 import Data.List (List(..), concat, foldr, (:))
 import Data.Map (Map)
-import Data.Map (fromFoldable, insert, lookup, mapMaybe, values) as Map
+import Data.Map (fromFoldable, insert, lookup, mapMaybe, values, delete) as Map
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Traversable (find)
@@ -48,8 +48,8 @@ sendCommand id command game@{ entities } =
     Just entity -> let (Tuple newEntity evs) = Entity.processCommand entity command 
                    in Tuple (game { entities = Map.insert id newEntity entities }) evs
 
-foldEvents :: Tuple Game (List GameEvent) -> Game
-foldEvents (Tuple game events) = foldr sendEvent game events
+foldEvents :: forall m. Foldable m => Game -> (m GameEvent) -> Game
+foldEvents game events = foldr sendEvent game events
 
 discardEvents :: Tuple Game (List GameEvent) -> Game
 discardEvents (Tuple game _events) = game
@@ -62,6 +62,10 @@ sendEvent ev game =
 addEntity :: Entity -> Game -> Game
 addEntity entity game =
   game { entities = Map.insert entity.id entity game.entities }
+
+removeEntity :: EntityId -> Game -> Game
+removeEntity id game =
+  game { entities = Map.delete id game.entities }
 
 
 entityById :: EntityId -> Game -> Maybe Entity
