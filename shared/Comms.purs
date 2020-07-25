@@ -5,11 +5,13 @@ import Pure.Game (Game)
 import Pure.Game as Game
 import Pure.Entity (EntityId(..), Entity, EntityClass(..), EntityCommand(..), GameEvent)
 import Data.List (toUnfoldable)
+import Data.Maybe (maybe)
 import Data.Foldable (foldl)
 import Pure.Math (Point(..))
+import Pure.Math as Math
 import Control.Alt ((<|>))
 import Data.Generic.Rep (class Generic)
-import Data.Newtype (class Newtype)
+import Data.Newtype (class Newtype, wrap)
 import Data.Generic.Rep.Show (genericShow)
 import Foreign (Foreign)
 import Foreign as Foreign
@@ -18,7 +20,7 @@ import Simple.JSON (class ReadForeign, class WriteForeign, readImpl, writeImpl)
 import GenericJSON (writeTaggedSumRep, taggedSumRep)
 import Pure.Math (Rect)
 
-data ServerMsg = InitialState GameSync
+data ServerMsg = Sync GameSync
                | Welcome WelcomeInfo
                | ServerCommand { cmd :: EntityCommand, id  :: EntityId }
                | ServerEvents (Array GameEvent)
@@ -41,10 +43,8 @@ type WelcomeInfo = { gameUrl :: String
 
 type GameSync = { world :: Rect
                 , entities :: Array EntitySync
-                , playerName :: String
                 , tick :: Int
                 }
-
 
 type EntitySync = { id :: EntityId
                   , class ::  EntityClass
@@ -71,10 +71,9 @@ instance readForeignClientMsg :: ReadForeign ClientMsg where
   readImpl = taggedSumRep
 
   
-gameToSync :: String -> Game -> Int -> GameSync
-gameToSync playerName { entities, world } tick =
+gameToSync :: Game -> Int -> GameSync
+gameToSync { entities, world } tick =
   { entities: toUnfoldable $ map entityToSync $ Map.values entities
-  , playerName
   , world
   , tick}
 
@@ -88,6 +87,18 @@ gameFromSync { entities, world } = {
   world,
   entities: foldl (\m e -> Map.insert e.id (entityFromSync e) m) mempty entities
   }
+
+mergeSyncInfo :: Game -> GameSync -> Game
+mergeSyncInfo game sync =
+  foldl (\acc es -> 
+       Game.updateEntity (\e -> e { location = Math.lerp e.location es.location
+                                  , velocity = Math.lerp e.velocity es.velocity
+                                  , rotation = (e.rotation + es.rotation) / 2.0
+                                  }) es.id game
+    ) game sync.entities
+
+
+
 
 entityFromSync :: EntitySync -> Entity
 entityFromSync sync =

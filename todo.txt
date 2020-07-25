@@ -6,8 +6,9 @@
 [x] Display game URL in UI
 [x] Display player info in UI
 [x] Send (valid) events to clients for processing
-[ ] Ignore our own messages when they come back to us
-[ ] Rubberbanding :(
+[x] Ignore our own messages when they come back to us
+[x] Rubberbanding (simple lerp)
+[ ] Delay processing commands by [latency]
 [ ] Ship destruction means points
 [ ] Ship destruction means respawn required
 [ ] Ship has regenerable health (prolonged attack required to destroy)

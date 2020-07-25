@@ -19,6 +19,12 @@ point x y = { x, y }
 scalePoint :: Number -> Point -> Point
 scalePoint factor p@{ x, y } = p { x = x * factor, y = y * factor }
 
+lerp :: Point -> Point -> Point
+lerp p1 p2 = 
+  { x : (p1.x + p2.x) / 2.0
+  , y : (p1.y + p2.y) / 2.0
+  }
+
 rotationToVector :: Number -> Point
 rotationToVector r = { x: xvel, y: yvel }
       where 

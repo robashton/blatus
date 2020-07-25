@@ -96,11 +96,8 @@ gameCommsHandler =
   # WebSocket.init (\s -> do
                      self <- WebSocket.self
                      _ <- WebSocket.lift $ Bus.subscribe (RunningGame.bus s.game) $ ProxiedServerMessage >>> send self
-                     sync <- WebSocket.lift $ RunningGame.sync s.game s.playerName
 
-
-                     pure $ Reply ((TextFrame $ writeJSON $ Comms.InitialState sync) 
-                                 : (TextFrame $ writeJSON $ Comms.Welcome { gameUrl: ServerRoutes.routeUrl $ ServerRoutes.GameJoinHtml s.game,
+                     pure $ Reply ((TextFrame $ writeJSON $ Comms.Welcome { gameUrl: ServerRoutes.routeUrl $ ServerRoutes.GameJoinHtml s.game,
                                                                             playerId: s.playerName
                                                                           }) 
                                  : nil) s

@@ -73,6 +73,7 @@ type LocalContext = { renderContext :: Canvas.Context2D
                     , serverTick :: Int
                     , gameUrl :: String
                     , playerList :: Array Comms.PlayerListItem
+                    , isStarted :: Boolean
                     }
 
 rotateLeftSignal :: Effect (Signal EntityCommand)
@@ -140,7 +141,7 @@ load cb = do
           canvasHeight <- Canvas.getCanvasHeight canvasElement
           let camera = setupCamera { width: canvasWidth, height: canvasHeight }
               game = initialModel
-          cb $ { offscreenContext, offscreenCanvas, renderContext, assets, canvasElement, camera, window, game, playerName: "", gameUrl: "", socket, socketChannel, clientTick: 0, serverTick: 0, playerList: []}
+          cb $ { offscreenContext, offscreenCanvas, renderContext, assets, canvasElement, camera, window, game, playerName: "", gameUrl: "", socket, socketChannel, clientTick: 0, serverTick: 0, playerList: [], isStarted: false}
   
 gameInfoSelector :: QuerySelector
 gameInfoSelector = QuerySelector ("#game-info")
@@ -218,11 +219,12 @@ safeSend ws str = do
 handleServerMessage :: LocalContext -> ServerMsg -> LocalContext
 handleServerMessage lc msg =
   case msg of
-    InitialState gameSync ->
-      lc { playerName = gameSync.playerName, game = Comms.gameFromSync gameSync, clientTick = gameSync.tick, serverTick = gameSync.tick }
+    Sync gameSync ->
+      if not lc.isStarted then lc { game = Comms.gameFromSync gameSync, clientTick = gameSync.tick, serverTick = gameSync.tick, isStarted = true }
+      else lc { game = Comms.mergeSyncInfo lc.game gameSync, serverTick = gameSync.tick }
 
     Welcome info ->
-      lc { gameUrl = info.gameUrl }
+      lc { gameUrl = info.gameUrl, playerName = info.playerId }
 
     UpdatePlayerList list ->
       lc { playerList = list }

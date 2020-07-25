@@ -38,7 +38,7 @@ type RegisteredPlayer = { id :: EntityId
 
 data Msg = Tick
          | Maintenance
-         | SendPlayerList
+         | DoSync
 
 type StartArgs = { game :: RunningGame }
 
@@ -48,11 +48,6 @@ bus game = Bus.bus $ "game-" <> game
 
 serverName :: String -> ServerName State Msg
 serverName id = Local $ atom $ "runninggame-" <> id
-
-sync :: String -> String -> Effect GameSync
-sync id playerId = Gen.call (serverName id) \s -> do
-  let reply = Comms.gameToSync playerId s.game s.lastTick
-  pure $ CallReply reply s
 
 sendCommand :: String -> String -> ClientMsg -> Effect (Maybe ServerMsg)
 sendCommand id playerId msg = Gen.call (serverName id) \s@{ game, lastTick, info, players } -> do
@@ -81,7 +76,7 @@ init { game } = do
   Gen.lift $ Log.info Log.RunningGame "Started game" game
   self <- Gen.self
   _ <- Gen.lift $ Timer.sendAfter 0 Tick self
-  _ <- Gen.lift $ Timer.sendAfter 1000 SendPlayerList self
+  _ <- Gen.lift $ Timer.sendAfter 1000 DoSync self
   _ <- Gen.lift $ Timer.sendAfter 10000 Maintenance self
   Gen.lift do
     pure $ { info: game
@@ -102,9 +97,9 @@ handleInfo msg state@{ info, game, lastTick } = do
                            newState <- doMaintenance state
                            _ <- Timer.sendAfter 10000 Maintenance self
                            pure newState
-                     SendPlayerList -> Gen.lift do
-                           sendPlayerList state
-                           _ <- Timer.sendAfter 1000 SendPlayerList self
+                     DoSync -> Gen.lift do
+                           doSync state
+                           _ <- Timer.sendAfter 1000 DoSync self
                            pure state
 
 
@@ -146,8 +141,9 @@ doMaintenance state = do
     ) state state.players
 
 
-sendPlayerList :: State -> Effect Unit
-sendPlayerList { info, players }  = 
+doSync :: State -> Effect Unit
+doSync { info, players, game, lastTick }  = do
+  Bus.raise (bus info.id) $ Comms.Sync $ Comms.gameToSync game lastTick
   Bus.raise (bus info.id) $ Comms.UpdatePlayerList $ toUnfoldable $ map (\p -> { 
               playerId: unwrap p.id
             , score: p.score

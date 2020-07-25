@@ -16,7 +16,7 @@ import Data.Exists (Exists, mkExists, runExists)
 import Data.Foldable (foldl, class Foldable)
 import Data.List (List(..), concat, foldr, (:))
 import Data.Map (Map)
-import Data.Map (fromFoldable, insert, lookup, mapMaybe, values, delete) as Map
+import Data.Map (fromFoldable, insert, lookup, mapMaybe, values, delete, update) as Map
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Traversable (find)
@@ -62,6 +62,10 @@ sendEvent ev game =
 addEntity :: Entity -> Game -> Game
 addEntity entity game =
   game { entities = Map.insert entity.id entity game.entities }
+
+updateEntity :: (Entity -> Entity) -> EntityId -> Game -> Game
+updateEntity fn id game =
+  game { entities = Map.update (fn >>> Just) id game.entities }
 
 removeEntity :: EntityId -> Game -> Game
 removeEntity id game =
