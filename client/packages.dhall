@@ -18,6 +18,7 @@ let additions =
               , "record"
               , "simple-json"
               , "strings"
+              , "now"
               ]
           , repo =
               "ssh://git@github.com/id3as/apigen.git"

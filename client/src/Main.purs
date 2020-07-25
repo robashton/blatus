@@ -50,6 +50,10 @@ import Web.DOM.ParentNode (QuerySelector(..), querySelector)
 import Simple.JSON (readJSON, writeJSON)
 import Pure.Comms (ServerMsg(..), ClientMsg(..))
 import Pure.Comms as Comms
+import Pure.Ticks as Ticks
+import Effect.Now as Now
+import Data.DateTime.Instant as Instant
+import Data.Time.Duration (Milliseconds(..))
 
 import Web.Event.EventTarget as EET
 import Web.Socket.Event.EventTypes as WSET
@@ -71,6 +75,8 @@ type LocalContext = { renderContext :: Canvas.Context2D
                     , socket :: WS.WebSocket
                     , clientTick :: Int
                     , serverTick :: Int
+                    , tickLatency :: Int
+                    , ticks :: Ticks.State
                     , gameUrl :: String
                     , playerList :: Array Comms.PlayerListItem
                     , isStarted :: Boolean
@@ -115,11 +121,17 @@ data GameLoopMsg = Input EntityCommand
                  | GameTick
                  | Ws String
 
-tickSignal :: Signal GameLoopMsg
-tickSignal = sampleOn (every $ second / 30.0) $ Signal.constant GameTick
+timePerFrame :: Number
+timePerFrame = 1000.0 / 30.0
+
+tickSignal :: Signal Unit
+tickSignal = sampleOn (every $ second / 30.0) $ Signal.constant unit
   
 pingSignal :: Signal Unit
 pingSignal = sampleOn (every $ second) $ Signal.constant unit
+
+uiUpdateSignal :: Signal Unit
+uiUpdateSignal = sampleOn (every $ second * 2.0) $ Signal.constant unit
 
 -- We're going to use Aff to make loading pretty instead of trying
 -- to chain Signals around the place
@@ -139,9 +151,28 @@ load cb = do
           socketChannel <- Channel.channel $ ""
           socket <- createSocket "ws://localhost:3000/messaging" $ Channel.send socketChannel
           canvasHeight <- Canvas.getCanvasHeight canvasElement
+          Milliseconds now <- Instant.unInstant <$> Now.now
+
           let camera = setupCamera { width: canvasWidth, height: canvasHeight }
               game = initialModel
-          cb $ { offscreenContext, offscreenCanvas, renderContext, assets, canvasElement, camera, window, game, playerName: "", gameUrl: "", socket, socketChannel, clientTick: 0, serverTick: 0, playerList: [], isStarted: false}
+          cb $ { offscreenContext
+               , offscreenCanvas
+               , renderContext
+               , assets
+               , canvasElement
+               , camera
+               , window
+               , game
+               , playerName: "",
+               gameUrl: ""
+               , socket
+               , socketChannel
+               , clientTick: 0
+               , serverTick: 0
+               , tickLatency: 0
+               , playerList: []
+               , isStarted: false
+               , ticks: Ticks.init now timePerFrame}
   
 gameInfoSelector :: QuerySelector
 gameInfoSelector = QuerySelector ("#game-info")
@@ -149,38 +180,55 @@ gameInfoSelector = QuerySelector ("#game-info")
 playerListSelector :: QuerySelector
 playerListSelector = QuerySelector ("#player-list")
 
+latencyInfoSelector :: QuerySelector
+latencyInfoSelector = QuerySelector ("#latency-info")
+
 main :: Effect Unit
 main =  do
   load (\loadedContext@{ socket, window } -> do
           gameInput <- inputSignal
           renderSignal <- animationFrame
           document <- HTMLDocument.toDocument <$> Window.document window
+          ticksChannel <- Channel.channel 0
 
           gameInfoElement <- querySelector gameInfoSelector $ Document.toParentNode document
+          latencyInfoElement <- querySelector latencyInfoSelector $ Document.toParentNode document
           playerListElement <- querySelector playerListSelector $ Document.toParentNode document
-
 
           -- Just alter context state as messages come in
           let socketSignal = Channel.subscribe loadedContext.socketChannel
+              gameTickSignal = GameTick <$> Channel.subscribe ticksChannel
 
           let gameStateSignal = foldp (\msg lc ->  do
                                          case msg of
                                            Input i -> handleClientCommand lc i
                                            GameTick -> handleTick lc
                                            Ws str -> either (\err -> lc) (handleServerMessage lc) $ readJSON str
-                                      ) loadedContext $ tickSignal <> (Input <$> gameInput) <> (Ws <$> socketSignal)
+                                      ) loadedContext $ gameTickSignal <$> (Input <$> gameInput) <> (Ws <$> socketSignal)
+
+          -- Feed tick messages into the game state in a regulated manner
+          -- Could probably do this whole thing with Signal.now and Signal.every
+          -- if Signal.now wasn't arbitrary
+          runSignal $ (\_ ->
+            
+            ) <$> tickSignal
+
 
           -- Send player input up to the server
           runSignal $ (\cmd -> safeSend socket $ writeJSON $ ClientCommand cmd) <$> gameInput
 
           -- Tick as well
           runSignal $ (\_ -> do
+
             lc <- Signal.get gameStateSignal
 
             -- Update the display
             _ <- maybe (pure unit) (\element -> do
                       Element.setAttribute "href" lc.gameUrl element
                       Node.setTextContent lc.gameUrl $ Element.toNode element) gameInfoElement
+
+            _ <- maybe (pure unit) (\element -> do
+                      Node.setTextContent ("Ping: " <> (show (lc.tickLatency * 33)) <> "ms") $ Element.toNode element) latencyInfoElement
 
             _ <- maybe (pure unit) (\element -> do
                        let node = Element.toNode element
@@ -194,8 +242,11 @@ main =  do
 
 
                        pure unit) playerListElement
-            
+            pure unit) <$> uiUpdateSignal 
 
+          -- Tick
+          runSignal $ (\_ -> do
+            lc <- Signal.get gameStateSignal
             safeSend socket $ writeJSON $ Ping lc.clientTick ) <$> pingSignal 
       
           -- Take whatever the latest state is and render it every time we get a render frame request
@@ -244,9 +295,8 @@ handleServerMessage lc msg =
     EntityDeleted id ->
       lc { game  = removeEntity id lc.game }
 
-
-    Pong ticks  ->
-      lc
+    Pong tick  ->
+      lc { tickLatency = lc.serverTick - tick }
 
 handleClientCommand :: LocalContext-> EntityCommand ->  LocalContext
 handleClientCommand lc@{ playerName, game } msg =

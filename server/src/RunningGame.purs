@@ -4,11 +4,12 @@ import Prelude
 
 import Erl.Atom (atom)
 import Data.Int as Int
+import Data.Array as Array
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..), uncurry)
 import Data.Map as Map
 import Data.List (toUnfoldable)
-import Data.Foldable (foldM)
+import Data.Foldable (foldM, foldl)
 import Data.Newtype (wrap, unwrap)
 import Effect (Effect)
 import Pinto (ServerName(..), StartLinkResult)
@@ -22,13 +23,19 @@ import Pure.Entity (EntityId)
 import Pure.Game as Game
 import Pure.Comms (ClientMsg(..), GameSync, ServerMsg(..))
 import Pure.Comms as Comms
+import Pure.Timing as Timing
+import Pure.Ticks as Ticks
 import Effect.Random as Random
 import SimpleBus as Bus
+
+timePerFrame :: Number
+timePerFrame = 1000.0 / 30.0
 
 type State = { info :: RunningGame
              , game :: Game
              , players :: Map.Map EntityId RegisteredPlayer
              , lastTick :: Int
+             , ticks :: Ticks.State
              }
 
 type RegisteredPlayer = { id :: EntityId
@@ -58,7 +65,7 @@ sendCommand id playerId msg = Gen.call (serverName id) \s@{ game, lastTick, info
       Bus.raise (bus info.id) $ Comms.ServerEvents $ toUnfoldable evs
       pure $ CallReply Nothing $ s { game = uncurry Game.foldEvents result }
     Ping tick  -> do
-      pure $ CallReply (Just $ Pong lastTick) $ s { players = Map.update (\v -> Just $ v { lastTick = tick }) (wrap playerId) players }
+      pure $ CallReply (Just $ Pong tick) $ s { players = Map.update (\v -> Just $ v { lastTick = tick }) (wrap playerId) players }
 
 -- TODO: EntityId pls
 addPlayer :: String -> String -> Effect Unit
@@ -73,16 +80,18 @@ startLink args =
 
 init :: StartArgs -> Gen.Init State Msg
 init { game } = do
-  Gen.lift $ Log.info Log.RunningGame "Started game" game
   self <- Gen.self
-  _ <- Gen.lift $ Timer.sendAfter 0 Tick self
-  _ <- Gen.lift $ Timer.sendAfter 1000 DoSync self
-  _ <- Gen.lift $ Timer.sendAfter 10000 Maintenance self
   Gen.lift do
+    Log.info Log.RunningGame "Started game" game
+    void $ Timer.sendAfter 0 Tick self
+    void $ Timer.sendAfter 1000 DoSync self
+    void $ Timer.sendAfter 10000 Maintenance self
+    now <- Int.toNumber <$> Timing.currentMs
     pure $ { info: game
            , game: emptyGame
            , lastTick: 0
            , players: Map.empty
+           , ticks: Ticks.init now timePerFrame
            }
 
 handleInfo :: Msg -> State -> Gen.HandleInfo State Msg
@@ -90,9 +99,11 @@ handleInfo msg state@{ info, game, lastTick } = do
   self <- Gen.self
   CastNoReply <$> case msg of
                      Tick -> Gen.lift do
-                           newState <- doTick state
-                           _ <- Timer.sendAfter 33 Tick self
-                           pure $ newState 
+                           now <- Int.toNumber <$> Timing.currentMs
+                           let (Tuple framesToExecute newTicks) = Ticks.update now state.ticks
+                           newState <- foldM (\acc _ -> doTick acc) state $ Array.range 0 framesToExecute
+                           _ <- Timer.sendAfter 30 Tick self
+                           pure $ newState { ticks = newTicks } 
                      Maintenance -> Gen.lift do
                            newState <- doMaintenance state
                            _ <- Timer.sendAfter 10000 Maintenance self
@@ -143,7 +154,9 @@ doMaintenance state = do
 
 doSync :: State -> Effect Unit
 doSync { info, players, game, lastTick }  = do
-  Bus.raise (bus info.id) $ Comms.Sync $ Comms.gameToSync game lastTick
+  let sync = Comms.gameToSync game lastTick
+  Log.info Log.RunningGame "sync" { sync }
+  Bus.raise (bus info.id) $ Comms.Sync $ sync
   Bus.raise (bus info.id) $ Comms.UpdatePlayerList $ toUnfoldable $ map (\p -> { 
               playerId: unwrap p.id
             , score: p.score
