@@ -2,29 +2,20 @@ module Pure.Main where
 
 import Prelude
 
-import Debug.Trace as Trace
 import Assets (AssetPackage)
 import Assets (AssetPackage, load) as Assets
-import Data.Either (hush, isLeft, isRight, either, Either(..))
-import Data.Filterable (filterMap)
-import Data.Foldable (foldl, foldM)
-import Data.List (List(..), (:))
+import Data.Either (either, hush)
+import Data.Array as Array
+import Data.Foldable (foldl, for_)
 import Data.Map (lookup) as Map
-import Data.Maybe (Maybe(..), fromMaybe, maybe)
-import Data.Monoid (guard)
+import Data.Maybe (fromMaybe, maybe)
 import Data.Newtype (unwrap, wrap)
 import Control.Monad.Except (runExcept)
 import Data.Traversable (for, traverse)
-import Effect.Class (liftEffect)
-import Data.Tuple (fst)
+import Data.Tuple (Tuple(..))
 import Effect (Effect)
-import Effect.Aff (runAff, runAff_)
-import Effect.Aff.Class (liftAff)
-import Effect.Class (liftEffect)
-import Effect.Console (log)
+import Effect.Aff (runAff_)
 import Foreign (readString)
-import Effect.Timer (setTimeout)
-import Graphics.Canvas (CanvasElement, clearRect, fillRect, getContext2D)
 import Graphics.Canvas as Canvas
 import Math (abs)
 import Math (pi) as Math
@@ -34,7 +25,7 @@ import Pure.Camera (Camera, CameraViewport, CameraConfiguration, applyViewport, 
 import Pure.Game (Game, entityById, foldEvents, initialModel, tick, addEntity, removeEntity, discardEvents)
 import Pure.Entity (EntityCommand(..))
 import Pure.Game (sendCommand) as Game
-import Signal (Signal, foldp, map4, map5, runSignal, sampleOn, squigglyMap, dropRepeats)
+import Signal (Signal, dropRepeats, foldp, runSignal, sampleOn)
 import Signal as Signal
 import Signal.DOM (keyPressed, animationFrame)
 import Signal.Time (every, second)
@@ -118,7 +109,7 @@ inputSignal = do
 
 
 data GameLoopMsg = Input EntityCommand
-                 | GameTick
+                 | GameTick Number
                  | Ws String
 
 timePerFrame :: Number
@@ -189,7 +180,8 @@ main =  do
           gameInput <- inputSignal
           renderSignal <- animationFrame
           document <- HTMLDocument.toDocument <$> Window.document window
-          ticksChannel <- Channel.channel 0
+          Milliseconds start <- Instant.unInstant <$> Now.now
+          ticksChannel <- Channel.channel start
 
           gameInfoElement <- querySelector gameInfoSelector $ Document.toParentNode document
           latencyInfoElement <- querySelector latencyInfoSelector $ Document.toParentNode document
@@ -202,17 +194,18 @@ main =  do
           let gameStateSignal = foldp (\msg lc ->  do
                                          case msg of
                                            Input i -> handleClientCommand lc i
-                                           GameTick -> handleTick lc
+                                           GameTick now -> handleTick lc now
                                            Ws str -> either (\err -> lc) (handleServerMessage lc) $ readJSON str
-                                      ) loadedContext $ gameTickSignal <$> (Input <$> gameInput) <> (Ws <$> socketSignal)
+                                      ) loadedContext $ gameTickSignal <> (Input <$> gameInput) <> (Ws <$> socketSignal)
 
-          -- Feed tick messages into the game state in a regulated manner
+          -- Feed the current time into the game state in a regulated manner
           -- Could probably do this whole thing with Signal.now and Signal.every
           -- if Signal.now wasn't arbitrary
-          runSignal $ (\_ ->
-            
+          -- Once I refactor that massive LocalContext object I probably can as I won't need to init up front
+          runSignal $ (\_ -> do
+            Milliseconds now <- Instant.unInstant <$> Now.now
+            Channel.send ticksChannel now
             ) <$> tickSignal
-
 
           -- Send player input up to the server
           runSignal $ (\cmd -> safeSend socket $ writeJSON $ ClientCommand cmd) <$> gameInput
@@ -302,12 +295,13 @@ handleClientCommand :: LocalContext-> EntityCommand ->  LocalContext
 handleClientCommand lc@{ playerName, game } msg =
   lc { game = discardEvents $ Game.sendCommand (wrap playerName) msg game }
 
-handleTick :: LocalContext  -> LocalContext
-handleTick context@{ game, camera: { config }, playerName, socket, clientTick } =  do
-  updatedContext { game = nextGame, clientTick = clientTick + 1 }
-      where nextGame = discardEvents $ tick game 
-            viewport = viewportFromConfig $ trackPlayer playerName game config 
-            updatedContext = context { camera = { config, viewport } }
+handleTick :: LocalContext -> Number  -> LocalContext
+handleTick context@{ game, camera: { config }, playerName, socket, clientTick, ticks } now =
+  let (Tuple framesToExecute newTicks) = Ticks.update now ticks
+      viewport = viewportFromConfig $ trackPlayer playerName game config 
+      newGame = foldl (\acc x -> if x == 0 then acc else discardEvents $ tick acc) game $ Array.range 0 framesToExecute
+      updatedContext = context { camera = { config, viewport } } in
+    updatedContext { game = newGame, clientTick = clientTick + 1, ticks = newTicks }
 
 trackPlayer :: String -> Game -> CameraConfiguration -> CameraConfiguration
 trackPlayer playerName game config = 

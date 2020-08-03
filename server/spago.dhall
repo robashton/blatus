@@ -4,6 +4,7 @@
 , dependencies =
     [ "console"
     , "effect"
+    , "sequences"
     , "erl-cowboy"
     , "erl-pinto"
     , "erl-stetson"
@@ -12,6 +13,7 @@
     , "simple-json"
     , "erl-simplebus"
     , "random"
+    , "st"
     ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]

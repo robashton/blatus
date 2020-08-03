@@ -35,6 +35,28 @@ let extras = {
               ]
           , repo = "ssh://git@github.com/id3as/purescript-erl-logger.git"
           , version = "4966aba0f7a3579c1ff8646f0fb6747d49c241a7"
+          },
+       sequences =
+          { dependencies =
+              [ "prelude"
+              , "unsafe-coerce"
+              , "unfoldable"
+              , "lazy"
+              , "arrays"
+              , "profunctor"
+              , "maybe"
+              , "tuples"
+              , "newtype"
+              ]
+          , repo = "ssh://git@github.com/hdgarrood/purescript-sequences.git"
+          , version = "448919594e979cfd2a45ebcde619c22a9fb984fc"
+          },
+       st =
+          { dependencies =
+              [ "effect"
+              ]
+          , repo = "ssh://git@github.com/robashton/purescript-st.git"
+          , version = "463085478446dacb91ede00ad8bcfbd3f76bfec9"
           }
   }
 

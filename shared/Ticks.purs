@@ -21,7 +21,6 @@ update currentTime state =
   let timeSinceLastLogic = (currentTime - state.timeAtLastFrame) + state.leftoverTime
       framesToExecute = Int.floor $ timeSinceLastLogic / state.timePerFrame
    in
-    Tuple framesToExecute $ state {
-       leftoverTime = timeSinceLastLogic - ((Int.toNumber framesToExecute) * state.timePerFrame)
-                                           , timeAtLastFrame = currentTime }
+    Tuple framesToExecute $ state { leftoverTime = timeSinceLastLogic - ((Int.toNumber framesToExecute) * state.timePerFrame)
+                                  , timeAtLastFrame = currentTime }
 

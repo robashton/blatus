@@ -15,6 +15,8 @@
   "web-dom",
   "aff",
   "routing-duplex",
+  "sequences",
   "debug",
+  "st",
   "exists"    ]
 }

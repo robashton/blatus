@@ -4,26 +4,20 @@ let upstream =
 let overrides = {=}
 
 let additions =
-      { apigen =
+      { sequences =
           { dependencies =
-              [ "assert"
-              , "console"
-              , "debug"
-              , "effect"
-              , "generics-rep"
-              , "ordered-collections"
-              , "prelude"
-              , "proxy"
-              , "psci-support"
-              , "record"
-              , "simple-json"
-              , "strings"
-              , "now"
+              [ "prelude"
+              , "unsafe-coerce"
+              , "unfoldable"
+              , "lazy"
+              , "arrays"
+              , "profunctor"
+              , "maybe"
+              , "tuples"
+              , "newtype"
               ]
-          , repo =
-              "ssh://git@github.com/id3as/apigen.git"
-          , version =
-              "v0.0.3"
+          , repo = "ssh://git@github.com/hdgarrood/purescript-sequences.git"
+          , version = "448919594e979cfd2a45ebcde619c22a9fb984fc"
           }
       }
 

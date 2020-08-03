@@ -12,12 +12,16 @@ module Pure.Game where
 
 import Prelude
 
+import Data.Array as Array
+import Data.Sequence as Seq
+import Control.Apply (lift2)
 import Data.Exists (Exists, mkExists, runExists)
 import Data.Foldable (foldl, class Foldable)
+import Data.FoldableWithIndex (foldlWithIndex)
 import Data.List (List(..), concat, foldr, (:))
 import Data.Map (Map)
-import Data.Map (fromFoldable, insert, lookup, mapMaybe, values, delete, update) as Map
-import Data.Maybe (Maybe(..))
+import Data.Map as Map
+import Data.Maybe (Maybe(..), maybe, fromMaybe)
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Traversable (find)
 import Data.Tuple (Tuple(..), fst, snd)
@@ -58,6 +62,7 @@ sendEvent :: GameEvent -> Game -> Game
 sendEvent ev game = 
   case ev of
        BulletFired deets -> addEntity (bullet deets.id deets.location deets.velocity) game
+       EntityCollided _ -> game
 
 addEntity :: Entity -> Game -> Game
 addEntity entity game =
@@ -86,12 +91,12 @@ tank id location = { id
                    , velocity: { x: 0.0, y: 0.0 }
                    , friction: 0.9
                    , rotation: (-0.25)
-                   , mass: 10.0
+                   , mass: 1000.0
                    , networkSync: true
                    , behaviour : hasHealth 100.0 
                    : firesBullets { max: 100, speed: 15.0, rate: 5 }
                                : basicBitchPhysics 
-                               : (driven { maxSpeed: 5.0, acceleration: 15.0, turningSpeed: 0.03 } 
+                               : (driven { maxSpeed: 5.0, acceleration: 1500.0, turningSpeed: 0.03 } 
                                : Nil)  
 
                    , renderables : ({transform: { x: (-12.5)
@@ -114,7 +119,7 @@ bullet id location velocity = { id
              , velocity: velocity
              , friction: 1.0
              , rotation: 0.0
-             , mass: 200.0
+             , mass: 20.0
              , networkSync: false
              , behaviour : basicBitchPhysics : Nil
              , renderables : ({ transform: { x: -2.5
@@ -200,39 +205,56 @@ hasHealth amount = mkExists $ EntityBehaviour { state: amount
                                                }
                                              
 
+type TickState = { entities :: Map.Map Int Entity
+                 , events :: List (List GameEvent)
+                 }
+-- entities = Map.fromFoldable final.entities  
 
 tick :: Game -> Tuple Game (List GameEvent)
 tick game@ { entities } =
-   let result = foldl tickEntity { entities: mempty, events: Nil } entities
-    in Tuple (applyPhysics $ game { entities = result.entities }) result.events
+  Tuple (game { entities = foldl (\m e -> Map.insert e.id e m) mempty (Map.values final.entities) }) $ concat final.events
   where
-        tickEntity ::  { entities :: EntityMap, events :: List GameEvent } -> Entity -> { entities :: EntityMap, events :: List GameEvent }
-        tickEntity acc entity = let (Tuple newEntity newEvents) =  Entity.processCommand entity Tick 
-                                                  in { entities:  Map.insert newEntity.id newEntity acc.entities, events: concat $ acc.events : newEvents : Nil   }
+        final = foldl (collideEntity length)  tickedState range
+        tickedState = foldl tickEntity initialState range
+        range = Array.range 0 length
+        length = Map.size initialState.entities
+        initialState = { entities: foldlWithIndex (\i m (Tuple k v) -> Map.insert i v m) mempty $ (Map.toUnfoldableUnordered entities :: List (Tuple EntityId Entity))
+                       , events: Nil
+                       }
 
+tickEntity :: TickState -> Int -> TickState 
+tickEntity state index = 
+  maybe state (\e -> let
+                        (Tuple newEntity newEvents) = Entity.processCommand e Tick 
+                      in
+                        state { events = newEvents : state.events
+                              , entities = Map.insert index newEntity state.entities
+                              }
+              ) $ Map.lookup index state.entities
+--  
 
+collideEntity :: Int -> TickState -> Int -> TickState
+collideEntity termination state index 
+  | index == termination = state
+  | otherwise = foldl (collidePair index) state $ Array.range (index+1) termination
 
--- Note: There isn't a fn for it in core PS, but we effectively 
--- need an efficient crossjoin-map, as there is little sense
--- in doing an n^2 operation here
-applyPhysics :: Game -> Game
-applyPhysics game@{ entities } = 
-  game { entities = Map.mapMaybe (performChecks (Map.values entities)) entities }
-
-performChecks :: List Entity -> Entity -> Maybe Entity
-performChecks entities target =
-  Just $ foldl collideEntities target entities
-
-collideEntities :: Entity -> Entity -> Entity
-collideEntities target e 
-  | target.id == e.id = target
-  | otherwise =
-      if circleCheck target e then 
-        Entity.applyForce { direction: (vectorBetween e.location target.location)
-                   , force : (magnitude e.velocity) * e.mass
-                   }  target
-       else
-       target
+collidePair :: Int -> TickState -> Int -> TickState
+collidePair li state ri =
+  fromMaybe state $ lift2 (\left right ->
+    if squareCheck left right then
+      let lf = (magnitude left.velocity) * left.mass
+          rf = (magnitude right.velocity) * right.mass
+          ur = Entity.applyForce { direction: (vectorBetween left.location right.location), force: lf } right -- force from left to right, applied to right
+          ul = Entity.applyForce { direction: (vectorBetween right.location left.location), force: rf } left -- force from right to left, applied to left
+       in
+         state { entities = Map.insert ri ur $ Map.insert li ul state.entities
+               , events = (EntityCollided { one: left.id, two: right.id, force: lf }
+                         : EntityCollided { one: right.id, two: left.id, force: rf }
+                         : Nil) : state.events 
+               }
+    else
+      state) (Map.lookup li state.entities) (Map.lookup ri state.entities)
+        
 
 vectorBetween :: Point -> Point -> Point
 vectorBetween s d =
@@ -245,6 +267,13 @@ normalise point@{ x, y } = { x: x / den, y: y / den }
 magnitude :: Point -> Number
 magnitude {x, y} = Math.sqrt $ (x * x) + (y * y)
 
+squareCheck :: Entity -> Entity -> Boolean
+squareCheck inner subject 
+  | inner.location.x > subject.location.x + subject.width = false
+  | inner.location.y > subject.location.y + subject.height = false
+  | subject.location.x > inner.location.x + inner.width = false
+  | subject.location.y > inner.location.y + inner.height = false
+  | otherwise = true
 
 circleCheck :: Entity -> Entity -> Boolean
 circleCheck inner subject = 

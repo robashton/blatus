@@ -27,6 +27,7 @@ import Pure.Timing as Timing
 import Pure.Ticks as Ticks
 import Effect.Random as Random
 import SimpleBus as Bus
+import Fprof as Fprof
 
 timePerFrame :: Number
 timePerFrame = 1000.0 / 30.0
@@ -82,6 +83,7 @@ init :: StartArgs -> Gen.Init State Msg
 init { game } = do
   self <- Gen.self
   Gen.lift do
+    Fprof.start
     Log.info Log.RunningGame "Started game" game
     void $ Timer.sendAfter 0 Tick self
     void $ Timer.sendAfter 1000 DoSync self
@@ -101,7 +103,7 @@ handleInfo msg state@{ info, game, lastTick } = do
                      Tick -> Gen.lift do
                            now <- Int.toNumber <$> Timing.currentMs
                            let (Tuple framesToExecute newTicks) = Ticks.update now state.ticks
-                           newState <- foldM (\acc _ -> doTick acc) state $ Array.range 0 framesToExecute
+                           newState <- foldM (\acc x -> if x == 0 then pure acc else doTick acc) state $ Array.range 0 framesToExecute
                            _ <- Timer.sendAfter 30 Tick self
                            pure $ newState { ticks = newTicks } 
                      Maintenance -> Gen.lift do
@@ -132,8 +134,10 @@ addPlayerToGame playerId s@{ info, game, players } = do
 
 doTick :: State -> Effect State
 doTick state@{ game, info, lastTick } = do
+  start <- Timing.currentMs
   let result@(Tuple _ evs) = Game.tick game
   _ <- Bus.raise (bus info.id) $ Comms.ServerEvents $ toUnfoldable evs
+  end <- Timing.currentMs
   pure $ state { game = uncurry Game.foldEvents result, lastTick = lastTick + 1 }
 
 playerTimeout :: Int
@@ -155,7 +159,6 @@ doMaintenance state = do
 doSync :: State -> Effect Unit
 doSync { info, players, game, lastTick }  = do
   let sync = Comms.gameToSync game lastTick
-  Log.info Log.RunningGame "sync" { sync }
   Bus.raise (bus info.id) $ Comms.Sync $ sync
   Bus.raise (bus info.id) $ Comms.UpdatePlayerList $ toUnfoldable $ map (\p -> { 
               playerId: unwrap p.id
