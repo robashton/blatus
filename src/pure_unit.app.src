@@ -10,7 +10,8 @@
     recon,
     cowboy,
     jsx,
-    eredis
+    eredis,
+    sasl
    ]},
   {env,[]},
   {modules, []},

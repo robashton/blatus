@@ -13,7 +13,6 @@
     , "simple-json"
     , "erl-simplebus"
     , "random"
-    , "st"
     ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]

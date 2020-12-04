@@ -5,7 +5,7 @@ let overrides =
       { erl-cowboy =
           { dependencies = [ "erl-modules" ]
           , repo = "https://github.com/robashton/purescript-erl-cowboy.git"
-          , version = "3475eb3d95d43c054ff7e5d9ddc0c7c93de0ec59"
+          , version = "52ba8267dc4498f8d0d73df6eeec1a7aa4dfa812"
           },
 
       erl-lists =
