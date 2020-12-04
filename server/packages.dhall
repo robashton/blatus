@@ -1,11 +1,16 @@
-let upstream = https://github.com/purerl/package-sets/releases/download/erl-0.13.6-20200402/packages.dhall sha256:5442e50aa76c20bd60b2770ab41c68bae80f6ec96f2df1cfaea310673de567d1
+let upstream =
+      https://github.com/purerl/package-sets/releases/download/erl-0.13.8-20201120/packages.dhall sha256:fae9f78aca10f80d46819a1e836cb817f2b57542d583ec891ffafd670cff9b4c
 
 let overrides =
       { erl-cowboy =
           { dependencies = [ "erl-modules" ]
           , repo = "https://github.com/robashton/purescript-erl-cowboy.git"
-          , version = "2e095b7fb6f7bc3602269fb142c00c7a9e090659"
+          , version = "3475eb3d95d43c054ff7e5d9ddc0c7c93de0ec59"
           },
+
+      erl-lists =
+              upstream.erl-lists
+          //  { version = "1d059f0df04f1c83f35a6eae706bd86cda8b015e" },
 
       erl-pinto =
           { dependencies = [ "erl-process" ]
@@ -16,7 +21,7 @@ let overrides =
       erl-stetson =
           { dependencies = ["erl-atom" , "erl-binary" , "erl-lists" , "erl-maps" , "erl-tuples" , "erl-modules" , "foreign" , "maybe" , "prelude" , "transformers" , "routing-duplex"]
           , repo = "ssh://git@github.com/id3as/purescript-erl-stetson.git"
-          , version = "d584315bb669cd2a6b190e5dbcc193522406f15f"
+          , version = "27aa696d9eac708119e1bf6110dd2a1088b9b7ed"
           }
       }
 
