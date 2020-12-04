@@ -1,26 +1,30 @@
 
 let
-  erlangReleases = builtins.fetchTarball https://github.com/nixerl/nixpkgs-nixerl/archive/v1.0.4-devel.tar.gz;
+  erlangReleases = builtins.fetchGit {
+    name = "nixpkgs-nixerl";
+    url = "https://github.com/nixerl/nixpkgs-nixerl";
+    rev = "6321e5b8b6cfe4c13307a2d2093c4b6243e6ad53";
+  }; #builtins.fetchTarball https://github.com/nixerl/nixpkgs-nixerl/archive/v1.0.15-devel.tar.gz;
 
   pinnedNix =
     builtins.fetchGit {
       name = "nixpkgs-pinned";
       url = "https://github.com/NixOS/nixpkgs.git";
-      rev = "9b195c5369b906825134aafce59744e89b85bd37";
+      rev = "e5f945b13b3f6a39ec9fbb66c9794b277dc32aa1";
     };
 
-  pursPackages =
+  purerlReleases =
     builtins.fetchGit {
-      name = "purerl-packages";
-      url = "git@github.com:purerl/nixpkgs-purerl.git";
-      rev = "547e2ef774c69d33c7fcb5cd140e50c936681846";
+      url = "https://github.com/purerl/nixpkgs-purerl.git";
+      ref = "master";
+      rev = "b3f10cd33107f220e4328f0222d3d026bf4f5f99";
     };
 
-  supportPackages =
+  purerlSupport =
     builtins.fetchGit {
       name = "purerl-support-packages";
       url = "git@github.com:id3as/nixpkgs-purerl-support.git";
-      rev = "c9a9140db5112e74030763292dc93de25adb3482";
+      rev = "47a8bd6ff017dad2208f10dddf91f6f3258a09be";
     };
 
 
@@ -28,8 +32,8 @@ let
     import pinnedNix {
       overlays = [
         (import erlangReleases)
-        (import pursPackages)
-        (import supportPackages)
+        (import purerlReleases)
+        (import purerlSupport)
       ];
     };
     
@@ -41,26 +45,15 @@ with nixpkgs;
 mkShell {
   buildInputs = with pkgs; [
 
-    (nixpkgs.nodePackages.purescript-language-server.override ({
-      version = "0.13.5";
-      src = builtins.fetchurl {
-        url = "https://registry.npmjs.org/purescript-language-server/-/purescript-language-server-0.13.5.tgz";
-        sha256 = "0jr3hfa4ywb97ybrq4b64pbngwd1x297vppps7cqf4mmiwz9chb9";
-      };
-    }))
+    (nixerl.erlang-23-0-4.erlang.override { wxSupport = false; })
+    (nixerl.erlang-23-0-4.rebar3.override { erlang = (nixpkgs.nixerl.erlang-23-0-4.erlang.override { wxSupport = false; }); })
 
-    purerl-support.erlang_ls-0-4-1
+    (purerl-support.erlang_ls-0-5-1.override { erlang = (nixpkgs.nixerl.erlang-23-0-4.erlang.override { wxSupport = false; }); })
 
-    nixerl.erlang-22-3.erlang
-    nixerl.erlang-22-3.rebar3
-
-    purerl.purerl-0-0-6
-
-    nodejs
-
-    purerl-support.purescript-0-13-6
-    purerl-support.spago-0-12-1-0
+    purerl-support.purescript-0-13-8
+    purerl-support.spago-0-16-0
     purerl-support.dhall-json-1-5-0
-    purerl-support.erlang_ls-0-4-1
+
+    purerl.purerl-0-0-7
    ];
 }
