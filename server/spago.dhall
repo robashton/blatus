@@ -1,29 +1,21 @@
-{ name = "pure-unit"
-, backend = "purerl"
+{-
+-}
+{ name = "demo"
 , dependencies =
-    [
-    "console",
-    "erl-atom",
-    "erl-binary",
-    "erl-lists",
-    "erl-tuples",
-    "erl-maps",
-    "erl-cowboy",
-    "erl-process",
-    "erl-stetson",
-    "erl-pinto",
-    "erl-lager",
-    "datetime",
-    "simple-json",
-    "maybe",
-    "prelude",
-    "lists",
-    "transformers",
-    "tuples",
-    "foldable-traversable",
-    "exists"
+    [ "console"
+    , "effect"
+    , "sequences"
+    , "erl-cowboy"
+    , "erl-pinto"
+    , "erl-stetson"
+    , "erl-logger"
+    , "psci-support"
+    , "simple-json"
+    , "erl-simplebus"
+    , "random"
+    , "st"
     ]
 , packages = ./packages.dhall
-, sources = [ "src/**/*.purs" ]
+, sources = [ "src/**/*.purs", "test/**/*.purs" ]
+, backend = "purerl"
 }
-
