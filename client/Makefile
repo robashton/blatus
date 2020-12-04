@@ -1,24 +1,31 @@
-.PHONY: all clean
+.PHONY: all
 
+PUT = output
+BUNDLE_NAME = bundle.js
+PS_SOURCEFILE = ./dist/${BUNDLE_NAME}
+JS_ASSET_FOLDER = ../priv/www/assets/
 
-PS_SRC = src
-OUTPUT = output
-SOURCES = $(shell find -L $(PS_SRC) -name *.purs)
+all: spago parcel
 
-all: bundle.js
+spago: $(PS_SOURCEFILE) 
 
-bundle.js: output
-	purs bundle 'output/**/*.js' -o bundle.js -m 'Pure.Main' --main 'Pure.Main'
-	cp bundle.js ../priv/www/assets/
+parcel: $(JS_ASSET_FOLDER)$(BUNDLE_NAME)
 
-output: $(SOURCES) .psc-package
-	psc-package sources | xargs purs compile --codegen js  'src/**/*.purs' 
-	touch output
+$(PS_SOURCEFILE): $(shell find -L src -type f)
+	spago bundle-app --main Pure.Main --to $(PS_SOURCEFILE)
 
-.psc-package: psc-package.json
-	psc-package install
-	touch .psc-package
+$(JS_ASSET_FOLDER)$(BUNDLE_NAME): $(PS_SOURCEFILE) node_modules
+	echo B $(BUNDLE_NAME), P $(PS_SOURCEFILE)
+	node_modules/.bin/parcel build --out-dir $(JS_ASSET_FOLDER) --out-file $(BUNDLE_NAME) $(PS_SOURCEFILE) --no-source-maps --no-cache
 
-clean:
-	rm -rf $(OUTPUT)/*
+watch-spago:
+	spago bundle-app --watch --main Pure.Client --to $(PS_SOURCEFILE)
 
+watch-parcel: node_modules
+	./node_modules/.bin/parcel watch --out-dir $(JS_ASSET_FOLDER) --out-file $(BUNDLE_NAME) $(PS_SOURCEFILE) --no-source-maps
+
+clean-all:
+	rm -rf node_modules output .spago .cache dist
+
+node_modules: package.json
+	npm install
