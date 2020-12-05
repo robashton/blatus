@@ -12,9 +12,9 @@ module Pure.Game where
 
 import Prelude
 
-import Data.Array as Array
-import Data.Sequence as Seq
 import Control.Apply (lift2)
+import Control.Monad.State as State
+import Data.Array as Array
 import Data.Exists (Exists, mkExists, runExists)
 import Data.Foldable (foldl, class Foldable)
 import Data.FoldableWithIndex (foldlWithIndex)
@@ -23,15 +23,15 @@ import Data.Map (Map)
 import Data.Map as Map
 import Data.Maybe (Maybe(..), maybe, fromMaybe)
 import Data.Newtype (class Newtype, unwrap, wrap)
+import Data.Sequence as Seq
 import Data.Traversable (find)
 import Data.Tuple (Tuple(..), fst, snd)
 import Math (cos, pi, pow, sin, sqrt) as Math
-import Pure.Math (Rect, Point, scalePoint, rotationToVector)
-import Simple.JSON (class ReadForeign, class WriteForeign)
+import Pure.Behaviour as B
 import Pure.Entity (Entity, EntityId(..), EntityCommand(..), GameEvent(..), HtmlColor(..), EntityBehaviour(..), EntityClass(..))
 import Pure.Entity as Entity
-import Pure.Behaviour as B 
-
+import Pure.Math (Rect, Point, scalePoint, rotationToVector, lerp)
+import Simple.JSON (class ReadForeign, class WriteForeign)
 
 type EntityMap = Map EntityId Entity
 
@@ -81,34 +81,36 @@ entityById :: EntityId -> Game -> Maybe Entity
 entityById id { entities } =
   find (\e -> e.id == id) entities
   
+data EntityMode = Server | Client
 
-tank :: EntityId -> Point -> Entity
-tank id location = { id
-                   , location
-                   , class: Tank
-                   , width: 25.0
-                   , height: 25.0
-                   , velocity: { x: 0.0, y: 0.0 }
-                   , friction: 0.9
-                   , rotation: (-0.25)
-                   , mass: 1000.0
-                   , networkSync: true
-                   , behaviour : hasHealth 100.0 
-                   : firesBullets { max: 100, speed: 15.0, rate: 5 }
-                               : basicBitchPhysics 
-                               : (driven { maxSpeed: 5.0, acceleration: 1500.0, turningSpeed: 0.03 } 
-                               : Nil)  
-
-                   , renderables : ({transform: { x: (-12.5)
-                                                , y: (-12.5)
-                                                , width: 25.0
-                                                , height: 25.0
-                                                }
-                                   , rotation: 0.0
-                                   , color: HtmlColor "#f00"
-                                   , image: Just "ship"
-                                   }) : Nil
-                                 }
+tank :: EntityId -> EntityMode -> Point -> Entity
+tank id mode location = { id
+                        , location
+                        , class: Tank
+                        , width: 25.0
+                        , height: 25.0
+                        , velocity: { x: 0.0, y: 0.0 }
+                        , friction: 0.9
+                        , rotation: (-0.25)
+                        , mass: 1000.0
+                        , networkSync: true
+                        , behaviour:  hasHealth 100.0 
+                                    : firesBullets { max: 100, speed: 15.0, rate: 5 }
+                                    : basicBitchPhysics 
+                                    : driven { maxSpeed: 5.0, acceleration: 1500.0, turningSpeed: 0.03 } 
+                                    : case mode of 
+                                        Server -> Nil
+                                        Client -> (networkSync { force: 0.05 }) : Nil
+                        , renderables : ({transform: { x: (-12.5)
+                                                     , y: (-12.5)
+                                                     , width: 25.0
+                                                     , height: 25.0
+                                                     }
+                                        , rotation: 0.0
+                                        , color: HtmlColor "#f00"
+                                        , image: Just "ship"
+                                        }) : Nil
+                                      }
 
 bullet :: EntityId -> Point -> Point -> Entity
 bullet id location velocity = { id
@@ -133,11 +135,43 @@ bullet id location velocity = { id
                               }) : Nil
                             }
 
+type ElasticConfig = { force :: Number }
 
-type DrivenConfig = { maxSpeed :: Number
-                    , acceleration :: Number
-                    , turningSpeed :: Number
-                    }
+networkSync :: ElasticConfig -> Exists EntityBehaviour
+networkSync c = mkExists $ EntityBehaviour { state: { force: c.force
+                                                    , location: { x: 0.0, y: 0.0 }
+                                                    , rotation: 0.0
+                                                    , velocity: { x: 0.0, y: 0.0 }
+                                                    , oldLocation: { x: 0.0, y: 0.0 }
+                                                    , oldRotation: 0.0
+                                                    }
+                                           , handleCommand: handleCommand
+                                           }
+                 where handleCommand command s = do
+                         e <- B.entity 
+                         case command of
+                           UpdateServerState ss ->
+                             pure $ s { oldLocation = e.location
+                                      , oldRotation = e.rotation
+                                      , location = ss.location
+                                      , rotation = ss.rotation
+                                      }
+                           Tick -> do 
+                             let targetRotation = s.rotation + (e.rotation - s.oldRotation)
+                                 targetLocation = s.location + (e.location - s.oldLocation)
+                                 newLocation = lerp e.location targetLocation s.force
+                                 newRotation = e.rotation + s.force * (targetRotation - e.rotation) 
+                             _ <- B.updateEntity (\entity -> entity { location = newLocation
+                                                                    , rotation = newRotation
+                                                                    })
+                             pure s { rotation = targetRotation
+                                    , location = targetLocation
+                                    , oldRotation = newRotation
+                                    , oldLocation = newLocation
+                                    }
+                           _ -> pure s
+
+
 
 firesBullets :: { max :: Int, speed :: Number, rate:: Int } -> Exists EntityBehaviour
 firesBullets { max, speed, rate } = mkExists $ EntityBehaviour { state: { current: 0, firingTimer: 0 }
@@ -162,6 +196,11 @@ firesBullets { max, speed, rate } = mkExists $ EntityBehaviour { state: { curren
                                                 location entity = entity.location + (scalePoint entity.width $ direction entity)
                                                 velocity entity = (scalePoint speed $ direction entity) + entity.velocity
 
+
+type DrivenConfig = { maxSpeed :: Number
+                    , acceleration :: Number
+                    , turningSpeed :: Number
+                    }
                                                                     
 driven :: DrivenConfig -> Exists EntityBehaviour
 driven config = mkExists $ EntityBehaviour {  state: { forward: false, backward: false, left: false, right: false }

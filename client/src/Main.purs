@@ -2,6 +2,7 @@ module Pure.Main where
 
 import Prelude
 
+import Debug.Trace as Trace
 import Assets (AssetPackage)
 import Assets (AssetPackage, load) as Assets
 import Data.Either (either, hush)
@@ -19,7 +20,6 @@ import Foreign (readString)
 import Graphics.Canvas as Canvas
 import Math (abs)
 import Math (pi) as Math
-import Data.Foldable (for_)
 import Pure.Background (render) as Background
 import Pure.Camera (Camera, CameraViewport, CameraConfiguration, applyViewport, setupCamera, viewportFromConfig)
 import Pure.Game (Game, entityById, foldEvents, initialModel, tick, addEntity, removeEntity, discardEvents)
@@ -191,7 +191,7 @@ main =  do
           let socketSignal = Channel.subscribe loadedContext.socketChannel
               gameTickSignal = GameTick <$> Channel.subscribe ticksChannel
 
-          let gameStateSignal = foldp (\msg lc ->  do
+          let gameStateSignal = foldp (\msg lc -> 
                                          case msg of
                                            Input i -> handleClientCommand lc i
                                            GameTick now -> handleTick lc now
@@ -265,7 +265,16 @@ handleServerMessage lc msg =
   case msg of
     Sync gameSync ->
       if not lc.isStarted then lc { game = Comms.gameFromSync gameSync, clientTick = gameSync.tick, serverTick = gameSync.tick, isStarted = true }
-      else lc { game = Comms.mergeSyncInfo lc.game gameSync, serverTick = gameSync.tick }
+      else 
+        let 
+            game = Trace.trace { msg: "pre", game: lc.game } \_ -> lc.game
+            updated = Trace.trace {msg: "sync", sync: gameSync } \_ -> Comms.mergeSyncInfo game gameSync
+            result = Trace.trace {msg: "after", game: updated } \_ -> lc { game = updated, serverTick = gameSync.tick }
+         in
+           result
+
+    PlayerSync sync ->
+      lc { game = Comms.mergePlayerSync lc.game sync }
 
     Welcome info ->
       lc { gameUrl = info.gameUrl, playerName = info.playerId }
@@ -289,7 +298,7 @@ handleServerMessage lc msg =
       lc { game  = removeEntity id lc.game }
 
     Pong tick  ->
-      lc { tickLatency = lc.serverTick - tick }
+      lc { tickLatency = lc.clientTick - tick }
 
 handleClientCommand :: LocalContext-> EntityCommand ->  LocalContext
 handleClientCommand lc@{ playerName, game } msg =
@@ -301,7 +310,7 @@ handleTick context@{ game, camera: { config }, playerName, socket, clientTick, t
       viewport = viewportFromConfig $ trackPlayer playerName game config 
       newGame = foldl (\acc x -> if x == 0 then acc else discardEvents $ tick acc) game $ Array.range 0 framesToExecute
       updatedContext = context { camera = { config, viewport } } in
-    updatedContext { game = newGame, clientTick = clientTick + 1, ticks = newTicks }
+    updatedContext { game = newGame, clientTick = clientTick + framesToExecute, ticks = newTicks }
 
 trackPlayer :: String -> Game -> CameraConfiguration -> CameraConfiguration
 trackPlayer playerName game config = 

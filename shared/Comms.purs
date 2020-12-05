@@ -21,11 +21,12 @@ import GenericJSON (writeTaggedSumRep, taggedSumRep)
 import Pure.Math (Rect)
 
 data ServerMsg = Sync GameSync
+               | NewEntity EntitySync
+               | PlayerSync EntitySync
                | Welcome WelcomeInfo
                | ServerCommand { cmd :: EntityCommand, id  :: EntityId }
                | ServerEvents (Array GameEvent)
                | UpdatePlayerList (Array PlayerListItem)
-               | NewEntity EntitySync
                | EntityDeleted EntityId
                | Pong Int
 
@@ -90,20 +91,25 @@ gameFromSync { entities, world } = {
 
 mergeSyncInfo :: Game -> GameSync -> Game
 mergeSyncInfo game sync =
-  foldl (\acc es -> 
-       Game.updateEntity (\e -> e { location = Math.lerp e.location es.location
-                                  , velocity = Math.lerp e.velocity es.velocity
-                                  , rotation = (e.rotation + es.rotation) / 2.0
-                                  }) es.id game
+  foldl (\acc es -> Game.discardEvents $ Game.sendCommand es.id (UpdateServerState { location: es.location
+                                                                  , velocity: es.velocity
+                                                                  , rotation: es.rotation 
+                                                                  }) acc
     ) game sync.entities
 
 
-
+mergePlayerSync :: Game -> EntitySync -> Game
+mergePlayerSync game es =
+  Game.discardEvents $ Game.sendCommand es.id (UpdateServerState { location: es.location
+                                            , velocity: es.velocity
+                                            , rotation: es.rotation 
+                                            }) game
+                        
 
 entityFromSync :: EntitySync -> Entity
 entityFromSync sync =
   let blank = case sync.class of
-                Tank -> Game.tank sync.id sync.location
+                Tank -> Game.tank sync.id Game.Client sync.location
                 Bullet -> Game.bullet sync.id sync.location sync.velocity
    in
    blank { location = sync.location

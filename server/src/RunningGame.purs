@@ -2,32 +2,33 @@ module Pure.RunningGame where
 
 import Prelude
 
-import Erl.Atom (atom)
-import Data.Int as Int
 import Data.Array as Array
-import Data.Maybe (Maybe(..))
-import Data.Tuple (Tuple(..), uncurry)
-import Data.Map as Map
-import Data.List (toUnfoldable)
 import Data.Foldable (foldM, foldl)
+import Data.Int as Int
+import Data.List (toUnfoldable)
+import Data.Map as Map
+import Data.Maybe (Maybe(..))
 import Data.Newtype (wrap, unwrap)
+import Data.Traversable (traverse)
+import Data.Tuple (Tuple(..), uncurry)
 import Effect (Effect)
+import Effect.Random as Random
+import Erl.Atom (atom)
+import Fprof as Fprof
 import Pinto (ServerName(..), StartLinkResult)
 import Pinto.Gen (CallResult(..), CastResult(..))
 import Pinto.Gen as Gen
 import Pinto.Timer as Timer
 import Pure.Api (RunningGame)
-import Pure.Logging as Log
-import Pure.Game (Game)
-import Pure.Entity (EntityId)
-import Pure.Game as Game
 import Pure.Comms (ClientMsg(..), GameSync, ServerMsg(..))
 import Pure.Comms as Comms
-import Pure.Timing as Timing
+import Pure.Entity (EntityId)
+import Pure.Game (Game)
+import Pure.Game as Game
+import Pure.Logging as Log
 import Pure.Ticks as Ticks
-import Effect.Random as Random
+import Pure.Timing as Timing
 import SimpleBus as Bus
-import Fprof as Fprof
 
 timePerFrame :: Number
 timePerFrame = 1000.0 / 30.0
@@ -59,6 +60,7 @@ serverName id = Local $ atom $ "runninggame-" <> id
 
 sendCommand :: String -> String -> ClientMsg -> Effect (Maybe ServerMsg)
 sendCommand id playerId msg = Gen.call (serverName id) \s@{ game, lastTick, info, players } -> do
+  _ <- Gen.lift $ Log.info Log.RunningGame "Received message" { lastTick, msg }
   case msg of
     ClientCommand entityCommand -> Gen.lift do
       Bus.raise (bus id) $ ServerCommand { cmd: entityCommand, id: wrap (playerId) }
@@ -83,7 +85,7 @@ init :: StartArgs -> Gen.Init State Msg
 init { game } = do
   self <- Gen.self
   Gen.lift do
-    Fprof.start
+    --Fprof.start
     Log.info Log.RunningGame "Started game" game
     void $ Timer.sendAfter 0 Tick self
     void $ Timer.sendAfter 1000 DoSync self
@@ -104,6 +106,12 @@ handleInfo msg state@{ info, game, lastTick } = do
                            now <- Int.toNumber <$> Timing.currentMs
                            let (Tuple framesToExecute newTicks) = Ticks.update now state.ticks
                            newState <- foldM (\acc x -> if x == 0 then pure acc else doTick acc) state $ Array.range 0 framesToExecute
+                           _ <- traverse (\e -> if e.networkSync then
+                                                  Bus.raise  (bus info.id) (PlayerSync $ Comms.entityToSync e)
+                                                else
+                                                  pure unit
+                                                  ) game.entities
+
                            _ <- Timer.sendAfter 30 Tick self
                            pure $ newState { ticks = newTicks } 
                      Maintenance -> Gen.lift do
@@ -126,7 +134,7 @@ addPlayerToGame playerId s@{ info, game, players } = do
   else do
     x <- Random.randomInt 0 1000
     y <- Random.randomInt 0 1000
-    let player = Game.tank (wrap playerId) { x: Int.toNumber $ x - 500, y: Int.toNumber $ y - 500 }
+    let player = Game.tank (wrap playerId) Game.Server { x: Int.toNumber $ x - 500, y: Int.toNumber $ y - 500 }
         newGame = Game.addEntity player game
     Bus.raise  (bus info.id) (NewEntity $ Comms.entityToSync player)
     pure $ s { game = newGame, players = Map.insert (wrap playerId) { id: (wrap playerId), lastTick: s.lastTick, score: 0 } s.players  }

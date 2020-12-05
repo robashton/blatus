@@ -29,5 +29,5 @@ addRandomPlayer game = do
     playerId <- Rgl.generateId
     x <- Random.randomInt 0 10000
     y <- Random.randomInt 0 10000
-    let player = Game.tank (wrap playerId) { x: Int.toNumber $ x - 5000, y: Int.toNumber $ y - 5000 }
+    let player = Game.tank (wrap playerId) Game.Server { x: Int.toNumber $ x - 5000, y: Int.toNumber $ y - 5000 }
     pure $ Game.addEntity player game

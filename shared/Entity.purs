@@ -62,8 +62,10 @@ data EntityCommand = Damage Number
                    | StopTurnLeft
                    | StopTurnRight
                    | StopFiring
-
-
+                   | UpdateServerState { location :: Point
+                                       , velocity :: Point
+                                       , rotation :: Number
+                                       }
 
 derive instance genericEntityCommand :: Generic EntityCommand _
 instance showEntityCommand :: Show EntityCommand where
