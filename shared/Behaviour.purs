@@ -4,8 +4,6 @@ import Prelude
 import Pure.Entity as Entity
 import Data.List ((:))
 import Control.Monad.State (State)
-import Control.Monad.State (lift) as Exports
-import Control.Monad.State (runState, execState, evalState, lift)
 import Control.Monad.State as State
 import Pure.Math as Math
 

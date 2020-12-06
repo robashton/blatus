@@ -3,24 +3,17 @@ module Pure.Comms where
 import Prelude
 import Pure.Game (Game)
 import Pure.Game as Game
-import Pure.Entity (EntityId(..), Entity, EntityClass(..), EntityCommand(..), GameEvent)
+import Pure.Entity (Entity, EntityClass(..), EntityCommand(..), EntityId, GameEvent)
 import Pure.Entities.Tank as Tank
 import Pure.Entities.Bullet as Bullet
 import Data.List (toUnfoldable)
-import Data.Maybe (maybe)
 import Data.Foldable (foldl)
-import Pure.Math (Point(..))
-import Pure.Math as Math
-import Control.Alt ((<|>))
+import Pure.Math (Point, Rect)
 import Data.Generic.Rep (class Generic)
-import Data.Newtype (class Newtype, wrap)
 import Data.Generic.Rep.Show (genericShow)
-import Foreign (Foreign)
-import Foreign as Foreign
 import Data.Map as Map
-import Simple.JSON (class ReadForeign, class WriteForeign, readImpl, writeImpl)
+import Simple.JSON (class ReadForeign, class WriteForeign)
 import GenericJSON (writeTaggedSumRep, taggedSumRep)
-import Pure.Math (Rect)
 
 data ServerMsg = Sync GameSync
                | NewEntity EntitySync

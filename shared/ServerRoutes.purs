@@ -3,7 +3,7 @@ module Shared.ServerRoutes where
 import Prelude hiding ((/))
 
 import Data.Either (Either(..))
-import Data.Generic.Rep (class Generic, NoArguments(..), Product(..))
+import Data.Generic.Rep (class Generic, NoArguments(..))
 import Data.Generic.Rep.Show (genericShow)
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Profunctor (dimap)

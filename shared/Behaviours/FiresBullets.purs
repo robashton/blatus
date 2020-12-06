@@ -5,8 +5,8 @@ import Prelude
 import Data.Exists (Exists, mkExists)
 import Pure.Behaviour as B
 import Pure.Entity (EntityBehaviour(..), EntityCommand(..), GameEvent(..))
-import Pure.Math (Rect, Point, scalePoint, rotationToVector, lerp)
-import Data.Newtype (class Newtype, unwrap, wrap)
+import Pure.Math (rotationToVector, scalePoint)
+import Data.Newtype (unwrap, wrap)
 
 init :: { max :: Int, speed :: Number, rate:: Int } -> Exists EntityBehaviour
 init { max, speed, rate } = mkExists $ EntityBehaviour { state: { current: 0, firingTimer: 0 }

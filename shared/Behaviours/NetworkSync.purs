@@ -5,7 +5,7 @@ import Prelude
 import Data.Exists (Exists, mkExists)
 import Pure.Behaviour as B
 import Pure.Entity (EntityBehaviour(..), EntityCommand(..))
-import Pure.Math (scalePoint,lerp)
+import Pure.Math (lerp)
 
 type ElasticConfig = { force :: Number }
 

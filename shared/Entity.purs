@@ -1,26 +1,16 @@
 module Pure.Entity where
 
 import Prelude
-import Control.Monad.State (State)
-import Control.Monad.State (lift) as Exports
-import Control.Monad.State (runState, execState, evalState, lift)
-import Control.Monad.State as State
+import Control.Monad.State (State, runState)
 import Data.Exists (Exists, mkExists, runExists)
-import Data.Foldable (foldl)
 import Data.List (List(..), concat, foldr, (:))
-import Data.Map (Map)
-import Data.Map (fromFoldable, insert, lookup, mapMaybe, values) as Map
-import Data.Maybe (Maybe(..))
-import Data.Newtype (class Newtype, unwrap, wrap)
-import Data.Traversable (find)
+import Data.Maybe (Maybe)
+import Data.Newtype (class Newtype)
 import Data.Tuple (Tuple(..), fst, snd)
-import Math (cos, pi, pow, sin, sqrt) as Math
 import Pure.Math (Rect, Point, scalePoint)
 import Simple.JSON (class ReadForeign, class WriteForeign)
-import Simple.JSON (class ReadForeign, class WriteForeign, readImpl, writeImpl)
 import GenericJSON (writeTaggedSumRep, taggedSumRep)
 import Data.Generic.Rep (class Generic)
-import Data.Newtype (class Newtype)
 import Data.Generic.Rep.Show (genericShow)
 
 newtype HtmlColor = HtmlColor String

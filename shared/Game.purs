@@ -11,29 +11,21 @@ module Pure.Game where
 import Prelude
 
 import Control.Apply (lift2)
-import Control.Monad.State as State
 import Data.Array as Array
-import Data.Exists (Exists, mkExists, runExists)
 import Data.Foldable (foldl, class Foldable)
 import Data.FoldableWithIndex (foldlWithIndex)
 import Data.List (List(..), concat, foldr, (:))
 import Data.Map (Map)
 import Data.Map as Map
 import Data.Maybe (Maybe(..), maybe, fromMaybe)
-import Data.Newtype (class Newtype, unwrap, wrap)
-import Data.Sequence as Seq
 import Data.Traversable (find)
-import Data.Tuple (Tuple(..), fst, snd)
-import Math (cos, pi, pow, sin, sqrt) as Math
-import Pure.Behaviour as B
-import Pure.Behaviours.BasicBitchPhysics as BasicBitchPhysics
-import Pure.Entity (Entity, EntityId(..), EntityCommand(..), GameEvent(..), HtmlColor(..), EntityBehaviour(..), EntityClass(..))
+import Data.Tuple (Tuple(..))
+import Math (pow, sqrt) as Math
+import Pure.Entity (Entity, EntityCommand(..), EntityId, GameEvent(..))
 import Pure.Entity as Entity
-import Pure.Math (Rect, Point, scalePoint, rotationToVector, lerp)
-import Simple.JSON (class ReadForeign, class WriteForeign)
+import Pure.Math (Point, Rect)
 
 import Pure.Entities.Bullet as Bullet
-import Pure.Entities.Tank as Tank
 
 type EntityMap = Map EntityId Entity
 
@@ -45,7 +37,6 @@ initialModel :: Game
 initialModel = { entities : mempty
                , world:  { x: -1000.0, y: -1000.0, width: 2000.0, height: 2000.0 }
 }
-
 
 sendCommand :: EntityId -> EntityCommand -> Game -> Tuple Game (List GameEvent)
 sendCommand id command game@{ entities } =
