@@ -2,55 +2,55 @@ module Pure.Main where
 
 import Prelude
 
-import Debug.Trace as Trace
 import Assets (AssetPackage)
 import Assets (AssetPackage, load) as Assets
-import Data.Either (either, hush)
+import Control.Monad.Except (runExcept)
 import Data.Array as Array
+import Data.DateTime.Instant as Instant
+import Data.Either (either, hush)
 import Data.Foldable (foldl, for_)
 import Data.Map (lookup) as Map
 import Data.Maybe (fromMaybe, maybe)
 import Data.Newtype (unwrap, wrap)
-import Control.Monad.Except (runExcept)
+import Data.Time.Duration (Milliseconds(..))
 import Data.Traversable (for, traverse)
 import Data.Tuple (Tuple(..))
+import Debug.Trace as Trace
 import Effect (Effect)
 import Effect.Aff (runAff_)
+import Effect.Now as Now
 import Foreign (readString)
 import Graphics.Canvas as Canvas
 import Math (abs)
 import Math (pi) as Math
 import Pure.Background (render) as Background
 import Pure.Camera (Camera, CameraViewport, CameraConfiguration, applyViewport, setupCamera, viewportFromConfig)
-import Pure.Game (Game, entityById, foldEvents, initialModel, tick, addEntity, removeEntity, discardEvents)
-import Pure.Entity (EntityCommand(..))
-import Pure.Game (sendCommand) as Game
+import Pure.Comms (ServerMsg(..), ClientMsg(..))
+import Pure.Comms as Comms
+import Pure.Runtime.Control (Game, entityById, tick, addEntity, removeEntity, discardEvents)
+import Pure.Runtime.Control (sendCommand) as Control
+import Pure.Types (EntityCommand(..), GameEvent)
+import Pure.Game.Main as Main
+import Pure.Ticks as Ticks
 import Signal (Signal, dropRepeats, foldp, runSignal, sampleOn)
 import Signal as Signal
+import Signal.Channel as Channel
 import Signal.DOM (keyPressed, animationFrame)
 import Signal.Time (every, second)
-import Signal.Channel as Channel
-import Web.HTML as HTML
-import Web.HTML.Window  as Window
-import Web.HTML.HTMLDocument  as HTMLDocument
+import Simple.JSON (readJSON, writeJSON)
 import Web.DOM.Document as Document
 import Web.DOM.Element as Element
 import Web.DOM.Node as Node
 import Web.DOM.NodeList as NodeList
 import Web.DOM.ParentNode (QuerySelector(..), querySelector)
-import Simple.JSON (readJSON, writeJSON)
-import Pure.Comms (ServerMsg(..), ClientMsg(..))
-import Pure.Comms as Comms
-import Pure.Ticks as Ticks
-import Effect.Now as Now
-import Data.DateTime.Instant as Instant
-import Data.Time.Duration (Milliseconds(..))
-
 import Web.Event.EventTarget as EET
+import Web.HTML as HTML
+import Web.HTML.HTMLDocument as HTMLDocument
+import Web.HTML.Window as Window
 import Web.Socket.Event.EventTypes as WSET
 import Web.Socket.Event.MessageEvent as ME
-import Web.Socket.WebSocket as WS
 import Web.Socket.ReadyState as RS
+import Web.Socket.WebSocket as WS
 
 
 type LocalContext = { renderContext :: Canvas.Context2D
@@ -60,7 +60,7 @@ type LocalContext = { renderContext :: Canvas.Context2D
                     , assets :: Assets.AssetPackage
                     , camera :: Camera
                     , window :: HTML.Window
-                    , game :: Game
+                    , game :: Game EntityCommand GameEvent
                     , playerName :: String
                     , socketChannel :: Channel.Channel String
                     , socket :: WS.WebSocket
@@ -145,7 +145,7 @@ load cb = do
           Milliseconds now <- Instant.unInstant <$> Now.now
 
           let camera = setupCamera { width: canvasWidth, height: canvasHeight }
-              game = initialModel
+              game = Main.init
           cb $ { offscreenContext
                , offscreenCanvas
                , renderContext
@@ -285,11 +285,11 @@ handleServerMessage lc msg =
     ServerCommand { id, cmd } ->
 
       if (unwrap id) == lc.playerName then lc
-        else lc  { game = discardEvents $ Game.sendCommand id cmd lc.game }
+        else lc  { game = discardEvents $ Control.sendCommand id cmd lc.game }
 
     ServerEvents evs ->
 
-      lc  { game = foldEvents lc.game evs }
+      lc  { game = foldl Main.sendEvent lc.game evs }
 
     NewEntity sync ->
       lc { game  = addEntity (Comms.entityFromSync sync) lc.game }
@@ -302,7 +302,7 @@ handleServerMessage lc msg =
 
 handleClientCommand :: LocalContext-> EntityCommand ->  LocalContext
 handleClientCommand lc@{ playerName, game } msg =
-  lc { game = discardEvents $ Game.sendCommand (wrap playerName) msg game }
+  lc { game = discardEvents $ Control.sendCommand (wrap playerName) msg game }
 
 handleTick :: LocalContext -> Number  -> LocalContext
 handleTick context@{ game, camera: { config }, playerName, socket, clientTick, ticks } now =
@@ -312,7 +312,7 @@ handleTick context@{ game, camera: { config }, playerName, socket, clientTick, t
       updatedContext = context { camera = { config, viewport } } in
     updatedContext { game = newGame, clientTick = clientTick + framesToExecute, ticks = newTicks }
 
-trackPlayer :: String -> Game -> CameraConfiguration -> CameraConfiguration
+trackPlayer :: String -> Game EntityCommand GameEvent -> CameraConfiguration -> CameraConfiguration
 trackPlayer playerName game config = 
   maybe config (\player -> config { lookAt = player.location,
                                     distance = 500.0 + (abs player.velocity.x + abs player.velocity.y) * 10.0
@@ -332,10 +332,10 @@ render context@{ camera: { viewport, config: { target: { width, height }} }, gam
   _ <- Canvas.drawImage renderContext image 0.0 0.0
   pure unit
 
-prepareScene :: CameraViewport -> Game -> Game
+prepareScene :: forall cmd ev. CameraViewport -> Game cmd ev -> Game cmd ev
 prepareScene viewport game = game 
 
-renderScene :: Game -> AssetPackage -> Canvas.Context2D -> Effect Unit
+renderScene :: forall cmd ev. Game cmd ev -> AssetPackage -> Canvas.Context2D -> Effect Unit
 renderScene { entities } assets ctx = do
   _ <- for entities \{ location, renderables, rotation } -> Canvas.withContext ctx $ do
          _ <- Canvas.translate ctx { translateX: location.x, translateY: location.y }

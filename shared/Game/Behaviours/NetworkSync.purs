@@ -4,12 +4,13 @@ import Prelude
 
 import Data.Exists (Exists, mkExists)
 import Pure.Behaviour as B
-import Pure.Entity (EntityBehaviour(..), EntityCommand(..))
+import Pure.Entity (EntityBehaviour(..))
 import Pure.Math (lerp)
+import Pure.Types (EntityCommand(..), GameEvent)
 
 type ElasticConfig = { force :: Number }
 
-init :: ElasticConfig -> Exists EntityBehaviour
+init :: ElasticConfig -> Exists (EntityBehaviour EntityCommand GameEvent)
 init c = mkExists $ EntityBehaviour { state: { force: c.force
                                                     , location: { x: 0.0, y: 0.0 }
                                                     , rotation: 0.0

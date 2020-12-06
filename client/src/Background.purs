@@ -10,7 +10,7 @@ import Effect (Effect)
 import Graphics.Canvas (CanvasGradient, Context2D)
 import Graphics.Canvas as Context2D
 import Pure.Camera (CameraViewport)
-import Pure.Game (Game)
+import Pure.Runtime.Control (Game)
 
 tileWidth :: Number
 tileWidth = 100.0
@@ -22,7 +22,7 @@ foreign import setGradientStrokeStyle :: Context2D -> CanvasGradient -> Effect U
 
 -- we'll need to actually an oversized offscreen context for this
 -- and render only when leftTile,topTile,rightTile,bottomTile changes
-render :: CameraViewport -> Game -> Context2D -> Effect Unit
+render :: forall cmd ev. CameraViewport -> Game cmd ev -> Context2D -> Effect Unit
 render viewport@{  left, right, top, bottom } game@{ world: { x, y , width, height } } ctx = do
   gradient <- Context2D.createRadialGradient ctx { x0: 0.0, y0: 0.0, r0: 200.0, x1: 0.0, y1: 0.0, r1: 2000.0 }
   _ <- Context2D.addColorStop gradient 0.0 "#fff"

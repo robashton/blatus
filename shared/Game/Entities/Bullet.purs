@@ -7,11 +7,11 @@ import Data.Maybe (Maybe(..))
 import Pure.Behaviours.BasicBitchPhysics as BasicBitchPhysics
 import Pure.Entity (Entity, EntityClass(..), EntityId, HtmlColor(..))
 import Pure.Math (Point)
-
+import Pure.Types (EntityCommand, GameEvent)
 
 data EntityMode = Server | Client
 
-init :: EntityId -> Point -> Point -> Entity
+init :: EntityId -> Point -> Point -> Entity EntityCommand GameEvent
 init id location velocity = { id
              , location: location
              , class: Bullet

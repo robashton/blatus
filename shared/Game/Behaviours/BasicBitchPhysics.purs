@@ -4,11 +4,12 @@ import Prelude
 
 import Data.Exists (Exists, mkExists)
 import Pure.Behaviour as B
-import Pure.Entity (EntityBehaviour(..), EntityCommand(..))
+import Pure.Entity (EntityBehaviour(..))
 import Pure.Math (scalePoint)
+import Pure.Types (EntityCommand(..), GameEvent)
 
 
-init :: Exists EntityBehaviour
+init :: Exists (EntityBehaviour EntityCommand GameEvent)
 init = mkExists $ EntityBehaviour { state: unit
                                   , handleCommand:  \command _ -> case command of 
                                                                     Tick -> do

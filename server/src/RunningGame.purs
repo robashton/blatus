@@ -22,20 +22,23 @@ import Pinto.Timer as Timer
 import Pure.Api (RunningGame)
 import Pure.Comms (ClientMsg(..), GameSync, ServerMsg(..))
 import Pure.Comms as Comms
-import Pure.Entity (EntityId)
-import Pure.Game (Game)
-import Pure.Game as Game
 import Pure.Entities.Tank as Tank
+import Pure.Entity (EntityId)
+import Pure.Game.Main as Main
 import Pure.Logging as Log
+import Pure.Runtime.Control (Game)
+import Pure.Runtime.Control as Control
+import Pure.Types (GameEvent(..))
 import Pure.Ticks as Ticks
 import Pure.Timing as Timing
+import Pure.Types (EntityCommand, GameEvent)
 import SimpleBus as Bus
 
 timePerFrame :: Number
 timePerFrame = 1000.0 / 30.0
 
 type State = { info :: RunningGame
-             , game :: Game
+             , game :: Game EntityCommand GameEvent
              , players :: Map.Map EntityId RegisteredPlayer
              , lastTick :: Int
              , ticks :: Ticks.State
@@ -65,9 +68,9 @@ sendCommand id playerId msg = Gen.call (serverName id) \s@{ game, lastTick, info
   case msg of
     ClientCommand entityCommand -> Gen.lift do
       Bus.raise (bus id) $ ServerCommand { cmd: entityCommand, id: wrap (playerId) }
-      let result@(Tuple _ evs) = Game.sendCommand (wrap playerId) entityCommand game
+      let result@(Tuple _ evs) = Control.sendCommand (wrap playerId) entityCommand game
       Bus.raise (bus info.id) $ Comms.ServerEvents $ toUnfoldable evs
-      pure $ CallReply Nothing $ s { game = uncurry Game.foldEvents result }
+      pure $ CallReply Nothing $ s { game = uncurry (foldl Main.sendEvent) result }
     Ping tick  -> do
       pure $ CallReply (Just $ Pong tick) $ s { players = Map.update (\v -> Just $ v { lastTick = tick }) (wrap playerId) players }
 
@@ -125,8 +128,8 @@ handleInfo msg state@{ info, game, lastTick } = do
                            pure state
 
 
-emptyGame :: Game
-emptyGame = Game.initialModel
+emptyGame :: Game EntityCommand GameEvent
+emptyGame = Main.init
 
 addPlayerToGame :: String -> State -> Effect State
 addPlayerToGame playerId s@{ info, game, players } = do
@@ -136,7 +139,7 @@ addPlayerToGame playerId s@{ info, game, players } = do
     x <- Random.randomInt 0 1000
     y <- Random.randomInt 0 1000
     let player = Tank.init (wrap playerId) Tank.Server { x: Int.toNumber $ x - 500, y: Int.toNumber $ y - 500 }
-        newGame = Game.addEntity player game
+        newGame = Control.addEntity player game
     Bus.raise  (bus info.id) (NewEntity $ Comms.entityToSync player)
     pure $ s { game = newGame, players = Map.insert (wrap playerId) { id: (wrap playerId), lastTick: s.lastTick, score: 0 } s.players  }
 
@@ -144,10 +147,11 @@ addPlayerToGame playerId s@{ info, game, players } = do
 doTick :: State -> Effect State
 doTick state@{ game, info, lastTick } = do
   start <- Timing.currentMs
-  let result@(Tuple _ evs) = Game.tick game
+  let result@(Tuple _ evs) = Control.tick game
   _ <- Bus.raise (bus info.id) $ Comms.ServerEvents $ toUnfoldable evs
   end <- Timing.currentMs
-  pure $ state { game = uncurry Game.foldEvents result, lastTick = lastTick + 1 }
+  pure $ state { game = uncurry (foldl Main.sendEvent) result, lastTick = lastTick + 1 }
+
 
 playerTimeout :: Int
 playerTimeout = 300 -- 10 seconds give or take
@@ -158,7 +162,7 @@ doMaintenance state = do
      if state.lastTick - p.lastTick > playerTimeout then do
        Bus.raise (bus state.info.id) $ EntityDeleted p.id
        pure $ acc { players = Map.delete p.id acc.players
-                  , game = Game.removeEntity p.id acc.game
+                  , game = Control.removeEntity p.id acc.game
                   }
      else
        pure acc

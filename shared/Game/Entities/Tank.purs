@@ -13,9 +13,11 @@ import Pure.Behaviours.FiresBullets as FiresBullets
 import Pure.Behaviours.Driven as Driven
 import Pure.Behaviours.NetworkSync as NetworkSync
 
+import Pure.Types (EntityCommand, GameEvent)
+
 data EntityMode = Server | Client
 
-init :: EntityId -> EntityMode -> Point -> Entity
+init :: EntityId -> EntityMode -> Point -> Entity EntityCommand GameEvent
 init id mode location = { id
                         , location
                         , class: Tank

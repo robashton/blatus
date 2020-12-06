@@ -4,14 +4,15 @@ import Prelude
 
 import Data.Exists (Exists, mkExists)
 import Pure.Behaviour as B
-import Pure.Entity (EntityBehaviour(..), EntityCommand(..))
+import Pure.Entity (EntityBehaviour(..))
+import Pure.Types (EntityCommand(..), GameEvent)
 
 type DrivenConfig = { maxSpeed :: Number
                     , acceleration :: Number
                     , turningSpeed :: Number
                     }
                                                                     
-init :: DrivenConfig -> Exists EntityBehaviour
+init :: DrivenConfig -> Exists (EntityBehaviour EntityCommand GameEvent)
 init config = mkExists $ EntityBehaviour {  state: { forward: false, backward: false, left: false, right: false }
                                             , handleCommand:  \command s  ->
                                                 case command of
