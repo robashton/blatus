@@ -4,6 +4,8 @@ import Prelude
 import Pure.Game (Game)
 import Pure.Game as Game
 import Pure.Entity (EntityId(..), Entity, EntityClass(..), EntityCommand(..), GameEvent)
+import Pure.Entities.Tank as Tank
+import Pure.Entities.Bullet as Bullet
 import Data.List (toUnfoldable)
 import Data.Maybe (maybe)
 import Data.Foldable (foldl)
@@ -109,8 +111,8 @@ mergePlayerSync game es =
 entityFromSync :: EntitySync -> Entity
 entityFromSync sync =
   let blank = case sync.class of
-                Tank -> Game.tank sync.id Game.Client sync.location
-                Bullet -> Game.bullet sync.id sync.location sync.velocity
+                Tank -> Tank.init sync.id Tank.Client sync.location
+                Bullet -> Bullet.init sync.id sync.location sync.velocity
    in
    blank { location = sync.location
          , velocity = sync.velocity

@@ -9,6 +9,15 @@
 [x] Ignore our own messages when they come back to us
 [x] Rubberbanding (simple lerp)
 [/] Delay processing commands by [latency]
+[/] Handle disconection as client (either server rejection or socket gone pop) (I think)
+[x] Ticks (especially on server side) need to be adjusted for elapsed time
+
+[ ] Rendering needs to be function rather than straight up scene graph
+  - Issue with this: Game is server/client and 'canvas' doesn't exist on the server
+[ ] Bullets needs to be a single entity rendering all the bullets
+[ ] Bullets can then send commands to entities to let them know they've been damaged..
+
+
 
 [ ] Ship destruction means points
 [ ] Ship destruction means respawn required
@@ -17,11 +26,9 @@
 [ ] suspend+terminate unused games
 [ ] Auth (bare minimum, preferably no data needed)
 [ ] Encrypted cookie for telling who somebody is
-[ ] Ticks (especially on server side) need to be adjusted for elapsed time
 [ ] Player name != Player Id
 [ ] Graceful disconnect
 [ ] Admin UI (view games / players / latency / etc)
-[ ] Handle disconection as client (either server rejection or socket gone pop)
 
 -- Code
 

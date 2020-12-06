@@ -7,8 +7,6 @@ module Pure.Game where
 -- Events for significant decisions should be raised by all models, events sent by client model can be ignored
 -- Events sent from server model to clients (and indeed to itself) are used to enforce the critical decisions
 -- That means things like collisions causing health changes (ButtetHitPlayer), and health getting less than 0 (PlayerDestroyed)
--- The server will also send a specific command to each client, containing the actual location of the entities, and we'll do some rubber banding - #sorrynotsorry
--- For now, we'll allow the events to be client-side, because there is no server, but that'll be the working practise
 
 import Prelude
 
@@ -28,10 +26,14 @@ import Data.Traversable (find)
 import Data.Tuple (Tuple(..), fst, snd)
 import Math (cos, pi, pow, sin, sqrt) as Math
 import Pure.Behaviour as B
+import Pure.Behaviours.BasicBitchPhysics as BasicBitchPhysics
 import Pure.Entity (Entity, EntityId(..), EntityCommand(..), GameEvent(..), HtmlColor(..), EntityBehaviour(..), EntityClass(..))
 import Pure.Entity as Entity
 import Pure.Math (Rect, Point, scalePoint, rotationToVector, lerp)
 import Simple.JSON (class ReadForeign, class WriteForeign)
+
+import Pure.Entities.Bullet as Bullet
+import Pure.Entities.Tank as Tank
 
 type EntityMap = Map EntityId Entity
 
@@ -61,7 +63,8 @@ discardEvents (Tuple game _events) = game
 sendEvent :: GameEvent -> Game -> Game
 sendEvent ev game = 
   case ev of
-       BulletFired deets -> addEntity (bullet deets.id deets.location deets.velocity) game
+       BulletFired deets -> 
+         addEntity (Bullet.init deets.id deets.location deets.velocity) game
        EntityCollided _ -> game
 
 addEntity :: Entity -> Game -> Game
@@ -80,170 +83,8 @@ removeEntity id game =
 entityById :: EntityId -> Game -> Maybe Entity
 entityById id { entities } =
   find (\e -> e.id == id) entities
-  
-data EntityMode = Server | Client
 
-tank :: EntityId -> EntityMode -> Point -> Entity
-tank id mode location = { id
-                        , location
-                        , class: Tank
-                        , width: 25.0
-                        , height: 25.0
-                        , velocity: { x: 0.0, y: 0.0 }
-                        , friction: 0.9
-                        , rotation: (-0.25)
-                        , mass: 1000.0
-                        , networkSync: true
-                        , behaviour:  hasHealth 100.0 
-                                    : firesBullets { max: 100, speed: 15.0, rate: 5 }
-                                    : basicBitchPhysics 
-                                    : driven { maxSpeed: 5.0, acceleration: 1500.0, turningSpeed: 0.03 } 
-                                    : case mode of 
-                                        Server -> Nil
-                                        Client -> (networkSync { force: 0.05 }) : Nil
-                        , renderables : ({transform: { x: (-12.5)
-                                                     , y: (-12.5)
-                                                     , width: 25.0
-                                                     , height: 25.0
-                                                     }
-                                        , rotation: 0.0
-                                        , color: HtmlColor "#f00"
-                                        , image: Just "ship"
-                                        }) : Nil
-                                      }
-
-bullet :: EntityId -> Point -> Point -> Entity
-bullet id location velocity = { id
-             , location: location
-             , class: Bullet
-             , width: 5.0
-             , height: 5.0
-             , velocity: velocity
-             , friction: 1.0
-             , rotation: 0.0
-             , mass: 20.0
-             , networkSync: false
-             , behaviour : basicBitchPhysics : Nil
-             , renderables : ({ transform: { x: -2.5
-                                           , y: -2.5
-                                           , width: 5.0
-                                           , height: 5.0
-                                           }
-                              , rotation: 0.0
-                              , color: HtmlColor "#ff0"
-                              , image: Nothing
-                              }) : Nil
-                            }
-
-type ElasticConfig = { force :: Number }
-
-networkSync :: ElasticConfig -> Exists EntityBehaviour
-networkSync c = mkExists $ EntityBehaviour { state: { force: c.force
-                                                    , location: { x: 0.0, y: 0.0 }
-                                                    , rotation: 0.0
-                                                    , velocity: { x: 0.0, y: 0.0 }
-                                                    , oldLocation: { x: 0.0, y: 0.0 }
-                                                    , oldRotation: 0.0
-                                                    }
-                                           , handleCommand: handleCommand
-                                           }
-                 where handleCommand command s = do
-                         e <- B.entity 
-                         case command of
-                           UpdateServerState ss ->
-                             pure $ s { oldLocation = e.location
-                                      , oldRotation = e.rotation
-                                      , location = ss.location
-                                      , rotation = ss.rotation
-                                      }
-                           Tick -> do 
-                             let targetRotation = s.rotation + (e.rotation - s.oldRotation)
-                                 targetLocation = s.location + (e.location - s.oldLocation)
-                                 newLocation = lerp e.location targetLocation s.force
-                                 newRotation = e.rotation + s.force * (targetRotation - e.rotation) 
-                             _ <- B.updateEntity (\entity -> entity { location = newLocation
-                                                                    , rotation = newRotation
-                                                                    })
-                             pure s { rotation = targetRotation
-                                    , location = targetLocation
-                                    , oldRotation = newRotation
-                                    , oldLocation = newLocation
-                                    }
-                           _ -> pure s
-
-
-
-firesBullets :: { max :: Int, speed :: Number, rate:: Int } -> Exists EntityBehaviour
-firesBullets { max, speed, rate } = mkExists $ EntityBehaviour { state: { current: 0, firingTimer: 0 }
-                                                               , handleCommand: handleCommand
-                                                         }
-             where handleCommand command state@{ current, firingTimer } = do
-                                             entity <- B.entity 
-                                             case command of
-                                               FireBullet -> 
-                                                 if firingTimer <= 0 then do
-                                                   B.raiseEvent $ (BulletFired { id: id entity, location: location entity, velocity: velocity entity }) 
-                                                   pure state { current = current + 1, firingTimer = rate }
-                                                 else
-                                                   pure state
-                                               Tick -> pure $ state { current = if current > max then 0 else current, 
-                                                                firingTimer = if firingTimer > 0 then firingTimer - 1 else firingTimer
-                                                               }
-
-                                               _ -> pure state
-                                          where id entity = wrap $ (unwrap entity.id) <> "-bullet-" <> (show state.current)
-                                                direction entity = rotationToVector entity.rotation
-                                                location entity = entity.location + (scalePoint entity.width $ direction entity)
-                                                velocity entity = (scalePoint speed $ direction entity) + entity.velocity
-
-
-type DrivenConfig = { maxSpeed :: Number
-                    , acceleration :: Number
-                    , turningSpeed :: Number
-                    }
-                                                                    
-driven :: DrivenConfig -> Exists EntityBehaviour
-driven config = mkExists $ EntityBehaviour {  state: { forward: false, backward: false, left: false, right: false }
-                                            , handleCommand:  \command s  ->
-                                                case command of
-                                                  Tick -> do
-                                                    (if s.forward then B.applyThrust config.acceleration config.maxSpeed
-                                                          else if s.backward then B.applyThrust (-config.acceleration) config.maxSpeed
-                                                          else pure unit)
-                                                    (if s.left then B.rotate (-config.turningSpeed)
-                                                          else if s.right then B.rotate config.turningSpeed 
-                                                          else pure unit)
-                                                    pure s
-                                                  PushForward -> pure s { forward = true }
-                                                  PushBackward -> pure s { backward = true }
-                                                  TurnLeft -> pure s { left = true }
-                                                  TurnRight -> pure s { right = true }
-                                                  StopPushForward -> pure s { forward = false }
-                                                  StopPushBackward -> pure s { backward = false }
-                                                  StopTurnLeft -> pure s { left = false }
-                                                  StopTurnRight -> pure s { right = false }
-                                                  _ -> 
-                                                    pure s
-                                                  }
-basicBitchPhysics :: Exists EntityBehaviour 
-basicBitchPhysics = mkExists $ EntityBehaviour { state: unit
-                                               , handleCommand:  \command _ ->
-                                                 case command of 
-                                                      Tick -> do
-                                                        B.updateEntity (\e@{ location, velocity, friction }  -> 
-                                                          e { location = location + velocity, velocity = scalePoint friction velocity })
-                                                      _ -> pure unit
-                                               }
-
-hasHealth :: Number -> Exists EntityBehaviour 
-hasHealth amount = mkExists $ EntityBehaviour { state: amount
-                                               , handleCommand:  \command state ->
-                                                                  case command of 
-                                                                       Damage damage -> pure $ state - damage
-                                                                       _ -> pure state
-                                               }
                                              
-
 type TickState = { entities :: Map.Map Int Entity
                  , events :: List (List GameEvent)
                  }

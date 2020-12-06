@@ -25,6 +25,7 @@ import Pure.Comms as Comms
 import Pure.Entity (EntityId)
 import Pure.Game (Game)
 import Pure.Game as Game
+import Pure.Entities.Tank as Tank
 import Pure.Logging as Log
 import Pure.Ticks as Ticks
 import Pure.Timing as Timing
@@ -134,7 +135,7 @@ addPlayerToGame playerId s@{ info, game, players } = do
   else do
     x <- Random.randomInt 0 1000
     y <- Random.randomInt 0 1000
-    let player = Game.tank (wrap playerId) Game.Server { x: Int.toNumber $ x - 500, y: Int.toNumber $ y - 500 }
+    let player = Tank.init (wrap playerId) Tank.Server { x: Int.toNumber $ x - 500, y: Int.toNumber $ y - 500 }
         newGame = Game.addEntity player game
     Bus.raise  (bus info.id) (NewEntity $ Comms.entityToSync player)
     pure $ s { game = newGame, players = Map.insert (wrap playerId) { id: (wrap playerId), lastTick: s.lastTick, score: 0 } s.players  }

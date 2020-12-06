@@ -12,6 +12,7 @@ import Data.Newtype (wrap, unwrap)
 import Pure.RunningGameList as Rgl
 
 import Pure.Game as Game
+import Pure.Entities.Tank as Tank
 
 go :: Game -> Game
 go game = foldl (\g _ -> do
@@ -29,5 +30,5 @@ addRandomPlayer game = do
     playerId <- Rgl.generateId
     x <- Random.randomInt 0 10000
     y <- Random.randomInt 0 10000
-    let player = Game.tank (wrap playerId) Game.Server { x: Int.toNumber $ x - 5000, y: Int.toNumber $ y - 5000 }
+    let player = Tank.init (wrap playerId) Tank.Server { x: Int.toNumber $ x - 5000, y: Int.toNumber $ y - 5000 }
     pure $ Game.addEntity player game
