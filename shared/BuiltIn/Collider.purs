@@ -14,7 +14,7 @@ import Math as Math
 import Pure.Entity (Entity, EntityBehaviour(..), EntityId(..), EntityCommandHandler, emptyEntity)
 import Pure.Entity as Entity
 import Pure.Math (Point)
-import Pure.Runtime.Control (TickState)
+import Pure.Runtime.Scene (TickState)
 
 type CollisionInfo = { left :: EntityId
                      , right :: EntityId

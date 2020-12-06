@@ -10,7 +10,7 @@ import Effect (Effect)
 import Graphics.Canvas (CanvasGradient, Context2D)
 import Graphics.Canvas as Context2D
 import Pure.Camera (CameraViewport)
-import Pure.Runtime.Control (Game)
+import Pure.Runtime.Scene (Game)
 
 tileWidth :: Number
 tileWidth = 100.0

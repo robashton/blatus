@@ -14,7 +14,7 @@ import Data.Maybe (fromMaybe, maybe)
 import Data.Newtype (unwrap, wrap)
 import Data.Time.Duration (Milliseconds(..))
 import Data.Traversable (for, traverse)
-import Data.Tuple (Tuple(..))
+import Data.Tuple (Tuple(..), fst)
 import Debug.Trace as Trace
 import Effect (Effect)
 import Effect.Aff (runAff_)
@@ -27,11 +27,10 @@ import Pure.Background (render) as Background
 import Pure.Camera (Camera, CameraViewport, CameraConfiguration, applyViewport, setupCamera, viewportFromConfig)
 import Pure.Comms (ServerMsg(..), ClientMsg(..))
 import Pure.Comms as Comms
-import Pure.Runtime.Control (Game, entityById, tick, addEntity, removeEntity, discardEvents)
-import Pure.Runtime.Control (sendCommand) as Control
-import Pure.Types (EntityCommand(..), GameEvent)
 import Pure.Game.Main as Main
+import Pure.Runtime.Scene (Game, entityById)
 import Pure.Ticks as Ticks
+import Pure.Types (EntityCommand(..), GameEvent)
 import Signal (Signal, dropRepeats, foldp, runSignal, sampleOn)
 import Signal as Signal
 import Signal.Channel as Channel
@@ -53,6 +52,7 @@ import Web.Socket.ReadyState as RS
 import Web.Socket.WebSocket as WS
 
 
+-- A pile of this is going to end up in Game.Main..
 type LocalContext = { renderContext :: Canvas.Context2D
                     , canvasElement :: Canvas.CanvasElement
                     , offscreenContext :: Canvas.Context2D
@@ -60,7 +60,7 @@ type LocalContext = { renderContext :: Canvas.Context2D
                     , assets :: Assets.AssetPackage
                     , camera :: Camera
                     , window :: HTML.Window
-                    , game :: Game EntityCommand GameEvent
+                    , game :: Main.State
                     , playerName :: String
                     , socketChannel :: Channel.Channel String
                     , socket :: WS.WebSocket
@@ -264,17 +264,17 @@ handleServerMessage :: LocalContext -> ServerMsg -> LocalContext
 handleServerMessage lc msg =
   case msg of
     Sync gameSync ->
-      if not lc.isStarted then lc { game = Comms.gameFromSync gameSync, clientTick = gameSync.tick, serverTick = gameSync.tick, isStarted = true }
+      if not lc.isStarted then lc { game = Main.fromSync gameSync, clientTick = gameSync.tick, serverTick = gameSync.tick, isStarted = true }
       else 
         let 
             game = Trace.trace { msg: "pre", game: lc.game } \_ -> lc.game
-            updated = Trace.trace {msg: "sync", sync: gameSync } \_ -> Comms.mergeSyncInfo game gameSync
+            updated = Trace.trace {msg: "sync", sync: gameSync } \_ -> Main.mergeSyncInfo game gameSync
             result = Trace.trace {msg: "after", game: updated } \_ -> lc { game = updated, serverTick = gameSync.tick }
          in
            result
 
     PlayerSync sync ->
-      lc { game = Comms.mergePlayerSync lc.game sync }
+      lc { game = Main.mergePlayerSync lc.game sync }
 
     Welcome info ->
       lc { gameUrl = info.gameUrl, playerName = info.playerId }
@@ -285,30 +285,30 @@ handleServerMessage lc msg =
     ServerCommand { id, cmd } ->
 
       if (unwrap id) == lc.playerName then lc
-        else lc  { game = discardEvents $ Control.sendCommand id cmd lc.game }
+        else lc  { game = fst $ Main.sendCommand id cmd lc.game }
 
     ServerEvents evs ->
 
-      lc  { game = foldl Main.sendEvent lc.game evs }
+      lc  { game = foldl Main.handleEvent lc.game evs }
 
     NewEntity sync ->
-      lc { game  = addEntity (Comms.entityFromSync sync) lc.game }
+      lc { game  = Main.addEntity sync lc.game }
 
     EntityDeleted id ->
-      lc { game  = removeEntity id lc.game }
+      lc { game  = Main.removeEntity id lc.game }
 
     Pong tick  ->
       lc { tickLatency = lc.clientTick - tick }
 
 handleClientCommand :: LocalContext-> EntityCommand ->  LocalContext
 handleClientCommand lc@{ playerName, game } msg =
-  lc { game = discardEvents $ Control.sendCommand (wrap playerName) msg game }
+  lc { game = fst $ Main.sendCommand (wrap playerName) msg game }
 
 handleTick :: LocalContext -> Number  -> LocalContext
 handleTick context@{ game, camera: { config }, playerName, socket, clientTick, ticks } now =
   let (Tuple framesToExecute newTicks) = Ticks.update now ticks
-      viewport = viewportFromConfig $ trackPlayer playerName game config 
-      newGame = foldl (\acc x -> if x == 0 then acc else discardEvents $ tick acc) game $ Array.range 0 framesToExecute
+      viewport = viewportFromConfig $ trackPlayer playerName game.scene config 
+      newGame = foldl (\acc x -> if x == 0 then acc else fst $ Main.tick acc) game $ Array.range 0 framesToExecute
       updatedContext = context { camera = { config, viewport } } in
     updatedContext { game = newGame, clientTick = clientTick + framesToExecute, ticks = newTicks }
 
@@ -324,8 +324,8 @@ render context@{ camera: { viewport, config: { target: { width, height }} }, gam
   _ <- Canvas.clearRect offscreenContext { x: 0.0, y: 0.0, width, height }
   _ <- Canvas.save offscreenContext
   _ <- applyViewport viewport offscreenContext
-  _ <- Background.render viewport game offscreenContext 
-  _ <- renderScene game assets offscreenContext
+  _ <- Background.render viewport game.scene offscreenContext 
+  _ <- renderScene game.scene assets offscreenContext
   _ <- Canvas.restore offscreenContext
   let image = Canvas.canvasElementToImageSource offscreenCanvas
   _ <- Canvas.clearRect renderContext { x: 0.0, y: 0.0, width, height }

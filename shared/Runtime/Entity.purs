@@ -25,7 +25,8 @@ derive newtype instance showEntityId :: Show EntityId
 derive newtype instance ordEntityId :: Ord EntityId
 
 -- Need this to disappear at some point
-data EntityClass = Tank | Bullet  | Controller
+-- It can probably just be an arbitrary string as it's just for serialization purposes
+data EntityClass = Tank | Bullet
 
 derive instance genericEntityClass :: Generic EntityClass _
 instance showEntityClass :: Show EntityClass where
@@ -75,7 +76,7 @@ type Entity cmd ev = { id :: EntityId
 
 emptyEntity :: forall cmd ev. EntityId -> Entity cmd ev
 emptyEntity id = { id
-                 , class: Controller
+                 , class: Bullet
                  , location: { x: 0.0, y: 0.0 }
                  , width: 0.0
                  , height: 0.0

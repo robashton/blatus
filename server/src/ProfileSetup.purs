@@ -12,25 +12,25 @@ import Effect.Random as Random
 import Pure.Entities.Tank as Tank
 import Pure.Game.Main as Main
 import Pure.RunningGameList as Rgl
-import Pure.Runtime.Control (Game)
-import Pure.Runtime.Control as Control
+import Pure.Runtime.Scene (Game)
+import Pure.Runtime.Scene as Scene
 import Pure.Types (EntityCommand, GameEvent)
 
-go :: Game EntityCommand GameEvent -> Game EntityCommand GameEvent
+go :: Main.State -> Main.State
 go game = foldl (\g _ -> do
-                    let result@(Tuple _ evs) = Control.tick g
-                    uncurry (foldl Main.sendEvent) result
+                    let result@(Tuple _ evs) = Main.tick g
+                    uncurry (foldl Main.handleEvent) result
                     ) game $ Array.range 0 1000
 
-setup :: Effect (Game EntityCommand GameEvent) 
+setup :: Effect Main.State
 setup = 
     foldM (\g _ -> addRandomPlayer g) Main.init $ Array.range 0 100
 
 
-addRandomPlayer :: Game EntityCommand GameEvent -> Effect (Game EntityCommand GameEvent)
+addRandomPlayer :: Main.State -> Effect Main.State
 addRandomPlayer game = do
     playerId <- Rgl.generateId
     x <- Random.randomInt 0 10000
     y <- Random.randomInt 0 10000
     let player = Tank.init (wrap playerId) Tank.Server { x: Int.toNumber $ x - 5000, y: Int.toNumber $ y - 5000 }
-    pure $ Control.addEntity player game
+    pure $ game { scene = Scene.addEntity player game.scene }

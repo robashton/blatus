@@ -1,12 +1,4 @@
-module Pure.Runtime.Control where
-
--- Rough plan :: this is  the shared model, and an instance of it is executed per 'game'
--- On the server that means a gen-server, on the client it means once per player in that game
--- Commands sent to the player entity, are sent to the server and re-written to be sent to the appropriate entity
--- both on server model and other player's client models
--- Events for significant decisions should be raised by all models, events sent by client model can be ignored
--- Events sent from server model to clients (and indeed to itself) are used to enforce the critical decisions
--- That means things like collisions causing health changes (ButtetHitPlayer), and health getting less than 0 (PlayerDestroyed)
+module Pure.Runtime.Scene where
 
 import Prelude
 
