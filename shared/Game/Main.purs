@@ -7,7 +7,7 @@ import Data.Bifunctor (lmap)
 import Data.List (List(..))
 import Data.List (toUnfoldable)
 import Data.Map as Map
-import Data.Tuple (Tuple(..))
+import Data.Tuple (Tuple(..), fst, snd)
 import Pure.BuiltIn.Collider as Collider
 import Pure.Comms (GameSync, EntitySync)
 import Pure.Entities.Bullet as Bullet
@@ -30,15 +30,18 @@ init = { scene: Scene.initialModel Tick
 
 tick :: State -> Tuple State (List GameEvent)
 tick state = 
-  -- Scene tick, events need returning?
-  -- bullets need testing against the scene, more events
-  Tuple state Nil
+  Tuple (state{ scene = fst sceneTick
+              , bullets = fst bulletTick
+              }) (snd sceneTick <> snd bulletTick)
+  where
+  bulletTick = Bullets.tick state.bullets (fst sceneTick)
+  sceneTick = Scene.tick state.scene
 
 handleEvent :: State -> GameEvent -> State
 handleEvent state@{ scene } ev = 
   case ev of
        BulletFired deets -> 
-         state { scene = Scene.addEntity (Bullet.init deets.id deets.location deets.velocity) scene }
+         state { bullets = Bullets.fireBullet deets.id deets.location deets.velocity state.bullets }
        EntityCollided _ -> 
          state
 

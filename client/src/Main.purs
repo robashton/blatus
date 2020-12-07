@@ -22,11 +22,12 @@ import Effect.Now as Now
 import Foreign (readString)
 import Graphics.Canvas as Canvas
 import Math (abs)
-import Math (pi) as Math
+import Math as Math
 import Pure.Background (render) as Background
 import Pure.Camera (Camera, CameraViewport, CameraConfiguration, applyViewport, setupCamera, viewportFromConfig)
 import Pure.Comms (ServerMsg(..), ClientMsg(..))
 import Pure.Comms as Comms
+import Pure.Game.Bullets as Bullets
 import Pure.Game.Main as Main
 import Pure.Runtime.Scene (Game, entityById)
 import Pure.Ticks as Ticks
@@ -267,9 +268,9 @@ handleServerMessage lc msg =
       if not lc.isStarted then lc { game = Main.fromSync gameSync, clientTick = gameSync.tick, serverTick = gameSync.tick, isStarted = true }
       else 
         let 
-            game = Trace.trace { msg: "pre", game: lc.game } \_ -> lc.game
-            updated = Trace.trace {msg: "sync", sync: gameSync } \_ -> Main.mergeSyncInfo game gameSync
-            result = Trace.trace {msg: "after", game: updated } \_ -> lc { game = updated, serverTick = gameSync.tick }
+            game = lc.game --Trace.trace { msg: "pre", game: lc.game } \_ -> lc.game
+            updated = Main.mergeSyncInfo game gameSync -- Trace.trace {msg: "sync", sync: gameSync } \_ -> Main.mergeSyncInfo game gameSync
+            result = lc { game = updated, serverTick = gameSync.tick } --Trace.trace {msg: "after", game: updated } \_ -> lc { game = updated, serverTick = gameSync.tick }
          in
            result
 
@@ -325,6 +326,7 @@ render context@{ camera: { viewport, config: { target: { width, height }} }, gam
   _ <- Canvas.save offscreenContext
   _ <- applyViewport viewport offscreenContext
   _ <- Background.render viewport game.scene offscreenContext 
+  _ <- renderBullets game.bullets offscreenContext
   _ <- renderScene game.scene assets offscreenContext
   _ <- Canvas.restore offscreenContext
   let image = Canvas.canvasElementToImageSource offscreenCanvas
@@ -334,6 +336,25 @@ render context@{ camera: { viewport, config: { target: { width, height }} }, gam
 
 prepareScene :: forall cmd ev. CameraViewport -> Game cmd ev -> Game cmd ev
 prepareScene viewport game = game 
+
+renderBullets :: Bullets.State -> Canvas.Context2D -> Effect Unit
+renderBullets state ctx = do
+  _ <- Canvas.setFillStyle ctx "#0ff"
+  _ <- Canvas.beginPath ctx
+  _ <- traverse (\b -> do
+        _ <- Canvas.moveTo ctx (b.location.x + 5.0) b.location.y
+        _ <- Canvas.arc ctx { x: b.location.x
+                            , y: b.location.y 
+                            , start: 0.0 
+                            , end : (2.0 * Math.pi)
+                            , radius: 5.0
+                            } 
+        _ <- Canvas.fill ctx
+        pure unit
+     ) state.bullets
+  Canvas.fill ctx
+  
+
 
 renderScene :: forall cmd ev. Game cmd ev -> AssetPackage -> Canvas.Context2D -> Effect Unit
 renderScene { entities } assets ctx = do

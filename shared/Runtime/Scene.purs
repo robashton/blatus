@@ -19,6 +19,13 @@ import Pure.Math (Point, Rect)
 
 type EntityMap cmd ev = Map EntityId (Entity cmd ev)
 
+type TickState cmd ev =  { entities :: Map.Map Int (Entity cmd ev)
+                         , events :: List (List ev)
+                         , entityCount :: Int
+                         , entityRange :: Array Int
+                         }
+
+
 type Game cmd ev =  { entities  :: (EntityMap cmd ev)
                     , world :: Rect
                     , tickMsg :: cmd
@@ -65,12 +72,6 @@ entityById id { entities } =
   find (\e -> e.id == id) entities
 
                                              
-type TickState cmd ev =  { entities :: Map.Map Int (Entity cmd ev)
-                         , events :: List (List ev)
-                         , entityCount :: Int
-                         , entityRange :: Array Int
-                         }
-
 tick :: forall cmd ev. Game cmd ev -> Tuple (Game cmd ev) (List ev)
 tick game =
   Tuple (game { entities = foldl (\m e -> Map.insert e.id e m) mempty (Map.values finalState.entities) }) $ concat finalState.events
