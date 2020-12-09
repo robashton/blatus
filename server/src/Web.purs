@@ -133,6 +133,7 @@ gameCommsHandler =
          else
           pure $ NoReply state
       ProxiedServerMessage m -> do 
+        _ <- Gen.lift $ Log.info Log.Web "Sending message" { m }
         pure $ Reply ((TextFrame $ writeJSON m) : nil) state
 
 

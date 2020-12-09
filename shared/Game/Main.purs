@@ -8,32 +8,37 @@ import Data.List (List(..))
 import Data.List (toUnfoldable)
 import Data.Map as Map
 import Data.Tuple (Tuple(..), fst, snd)
+import Pure.BuiltIn.Bullets as Bullets
 import Pure.BuiltIn.Collider as Collider
+import Pure.BuiltIn.Explosions as Explosions
 import Pure.Comms (GameSync, EntitySync)
 import Pure.Entities.Bullet as Bullet
 import Pure.Entities.Tank as Tank
 import Pure.Entity (Entity, EntityClass(..), EntityId(..))
-import Pure.Game.Bullets as Bullets
 import Pure.Runtime.Scene (Game)
 import Pure.Runtime.Scene as Scene
 import Pure.Types (EntityCommand(..), GameEvent(..))
 
 type State = { scene :: Game EntityCommand GameEvent
-             , bullets :: Bullets.State
+             , bullets :: Bullets.State GameEvent
+             , explosions :: Explosions.State
              }
 
 init :: State 
 init = { scene: Scene.initialModel Tick
              #  Scene.onTick (Collider.onTick EntityCollided)
-       , bullets: Bullets.init
+       , bullets: Bullets.init BulletHit
+       , explosions: Explosions.init
        }
 
 tick :: State -> Tuple State (List GameEvent)
 tick state = 
   Tuple (state{ scene = fst sceneTick
               , bullets = fst bulletTick
+              , explosions = explosionTick
               }) (snd sceneTick <> snd bulletTick)
   where
+  explosionTick = Explosions.tick state.explosions
   bulletTick = Bullets.tick state.bullets (fst sceneTick)
   sceneTick = Scene.tick state.scene
 
@@ -42,6 +47,10 @@ handleEvent state@{ scene } ev =
   case ev of
        BulletFired deets -> 
          state { bullets = Bullets.fireBullet deets.id deets.location deets.velocity state.bullets }
+       BulletHit hit ->
+         -- send command in to damage entity
+         -- add an explosion
+         state { explosions = Explosions.createExplosion hit.entity hit.bullet.location hit.bullet.velocity state.explosions }
        EntityCollided _ -> 
          state
 
@@ -58,7 +67,7 @@ fromSync { entities, world } =
                              }}
 
 toSync :: State -> Int -> GameSync
-toSync state@{ scene: { entities, world }, bullets } tick = { entities: toUnfoldable $ map entityToSync $ Map.values entities
+toSync state@{ scene: { entities, world } } tick = { entities: toUnfoldable $ map entityToSync $ Map.values entities
                                                             , world
                                                             , tick
                                                             -- Bullets go here

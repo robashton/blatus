@@ -9,6 +9,7 @@ import Data.Array as Array
 import Data.DateTime.Instant as Instant
 import Data.Either (either, hush)
 import Data.Foldable (foldl, for_)
+import Data.Int as Int
 import Data.Map (lookup) as Map
 import Data.Maybe (fromMaybe, maybe)
 import Data.Newtype (unwrap, wrap)
@@ -24,10 +25,11 @@ import Graphics.Canvas as Canvas
 import Math (abs)
 import Math as Math
 import Pure.Background (render) as Background
+import Pure.BuiltIn.Bullets as Bullets
+import Pure.BuiltIn.Explosions as Explosions
 import Pure.Camera (Camera, CameraViewport, CameraConfiguration, applyViewport, setupCamera, viewportFromConfig)
 import Pure.Comms (ServerMsg(..), ClientMsg(..))
 import Pure.Comms as Comms
-import Pure.Game.Bullets as Bullets
 import Pure.Game.Main as Main
 import Pure.Runtime.Scene (Game, entityById)
 import Pure.Ticks as Ticks
@@ -326,6 +328,7 @@ render context@{ camera: { viewport, config: { target: { width, height }} }, gam
   _ <- Canvas.save offscreenContext
   _ <- applyViewport viewport offscreenContext
   _ <- Background.render viewport game.scene offscreenContext 
+  _ <- renderExplosions game.explosions offscreenContext
   _ <- renderBullets game.bullets offscreenContext
   _ <- renderScene game.scene assets offscreenContext
   _ <- Canvas.restore offscreenContext
@@ -337,17 +340,35 @@ render context@{ camera: { viewport, config: { target: { width, height }} }, gam
 prepareScene :: forall cmd ev. CameraViewport -> Game cmd ev -> Game cmd ev
 prepareScene viewport game = game 
 
-renderBullets :: Bullets.State -> Canvas.Context2D -> Effect Unit
-renderBullets state ctx = do
+renderExplosions :: Explosions.State -> Canvas.Context2D -> Effect Unit
+renderExplosions state ctx = do
   _ <- Canvas.setFillStyle ctx "#0ff"
   _ <- Canvas.beginPath ctx
   _ <- traverse (\b -> do
-        _ <- Canvas.moveTo ctx (b.location.x + 5.0) b.location.y
+        let radius = (Int.toNumber b.age) + 2.0
+        _ <- Canvas.moveTo ctx (b.location.x + radius) b.location.y
         _ <- Canvas.arc ctx { x: b.location.x
                             , y: b.location.y 
                             , start: 0.0 
                             , end : (2.0 * Math.pi)
-                            , radius: 5.0
+                            , radius: radius
+                            } 
+        _ <- Canvas.fill ctx
+        pure unit
+     ) state.explosions
+  Canvas.fill ctx
+
+renderBullets :: forall ev. Bullets.State ev -> Canvas.Context2D -> Effect Unit
+renderBullets state ctx = do
+  _ <- Canvas.setFillStyle ctx "#0ff"
+  _ <- Canvas.beginPath ctx
+  _ <- traverse (\b -> do
+        _ <- Canvas.moveTo ctx (b.location.x + 2.5) b.location.y
+        _ <- Canvas.arc ctx { x: b.location.x
+                            , y: b.location.y 
+                            , start: 0.0 
+                            , end : (2.0 * Math.pi)
+                            , radius: 2.5
                             } 
         _ <- Canvas.fill ctx
         pure unit

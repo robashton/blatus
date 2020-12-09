@@ -6,6 +6,7 @@ import Data.Array as Array
 import Data.Foldable (foldM, foldl)
 import Data.Int as Int
 import Data.List (toUnfoldable)
+import Data.List as List
 import Data.Map as Map
 import Data.Maybe (Maybe(..))
 import Data.Newtype (wrap, unwrap)
@@ -69,7 +70,8 @@ sendCommand id playerId msg = Gen.call (serverName id) \s@{ game, lastTick, info
     ClientCommand entityCommand -> Gen.lift do
       Bus.raise (bus id) $ ServerCommand { cmd: entityCommand, id: wrap (playerId) }
       let result@(Tuple _ evs) = Main.sendCommand (wrap playerId) entityCommand game
-      Bus.raise (bus info.id) $ Comms.ServerEvents $ toUnfoldable evs
+      if not List.null evs then Bus.raise (bus info.id) $ Comms.ServerEvents $ toUnfoldable evs
+      else pure unit
       pure $ CallReply Nothing $ s { game = uncurry (foldl Main.handleEvent) result }
     Ping tick  -> do
       pure $ CallReply (Just $ Pong tick) $ s { players = Map.update (\v -> Just $ v { lastTick = tick }) (wrap playerId) players }
@@ -148,7 +150,10 @@ doTick :: State -> Effect State
 doTick state@{ game, info, lastTick } = do
   start <- Timing.currentMs
   let result@(Tuple _ evs) = Main.tick game
-  _ <- Bus.raise (bus info.id) $ Comms.ServerEvents $ toUnfoldable evs
+
+  if not List.null evs then Bus.raise (bus info.id) $ Comms.ServerEvents $ toUnfoldable evs
+  else pure unit
+
   end <- Timing.currentMs
   pure $ state { game = uncurry (foldl Main.handleEvent) result, lastTick = lastTick + 1 }
 

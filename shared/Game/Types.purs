@@ -2,13 +2,13 @@ module Pure.Types where
 
 import Prelude
 
-import Pure.Math (Point)
-import Simple.JSON (class ReadForeign, class WriteForeign)
-import GenericJSON (writeTaggedSumRep, taggedSumRep)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
-
+import GenericJSON (writeTaggedSumRep, taggedSumRep)
 import Pure.Entity (EntityId)
+import Pure.BuiltIn.Bullets as Bullets
+import Pure.Math (Point)
+import Simple.JSON (class ReadForeign, class WriteForeign)
 
 data EntityCommand = Damage Number 
                    | Tick 
@@ -39,6 +39,7 @@ derive instance eqEntityCommand :: Eq EntityCommand
 
 data GameEvent = BulletFired { id :: EntityId, location :: Point, velocity :: Point }
                | EntityCollided  { left :: EntityId, right :: EntityId, force :: Number } 
+               | BulletHit Bullets.BulletHit
 
 derive instance genericGameEvent :: Generic GameEvent _
 instance showGameEvent :: Show GameEvent where
