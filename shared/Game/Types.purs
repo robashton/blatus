@@ -37,7 +37,7 @@ instance readForeignEntityCommand :: ReadForeign EntityCommand where
 derive instance eqEntityCommand :: Eq EntityCommand
 
 
-data GameEvent = BulletFired { id :: EntityId, location :: Point, velocity :: Point }
+data GameEvent = BulletFired { id :: EntityId, location :: Point, velocity :: Point, power :: Number }
                | EntityCollided  { left :: EntityId, right :: EntityId, force :: Number } 
                | BulletHit Bullets.BulletHit
 

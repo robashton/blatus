@@ -16,11 +16,12 @@ import Pure.Runtime.Scene (Game)
 import Pure.Runtime.Scene as Scene
 import Pure.Types (EntityCommand, GameEvent)
 
-go :: Main.State -> Main.State
-go game = foldl (\g _ -> do
-                    let result@(Tuple _ evs) = Main.tick g
-                    uncurry (foldl Main.handleEvent) result
-                    ) game $ Array.range 0 1000
+--go :: Main.State -> Main.State
+--go game = foldl (\g _ -> do
+--                    let result@(Tuple _ evs) = Main.tick g
+----                    uncurry (foldl Main.handleEvent) result
+--    
+--                    ) game $ Array.range 0 1000
 
 setup :: Effect Main.State
 setup = 

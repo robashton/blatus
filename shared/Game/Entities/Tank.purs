@@ -29,12 +29,12 @@ init id mode location = { id
                         , mass: 1000.0
                         , networkSync: true
                         , behaviour:  HasHealth.init 100.0 
-                                    : FiresBullets.init { max: 100, speed: 15.0, rate: 5 }
+                                    : FiresBullets.init { max: 100, speed: 15.0, rate: 5, power: 25.0 }
                                     : BasicBitchPhysics.init 
-                                    : Driven.init { maxSpeed: 5.0, acceleration: 1500.0, turningSpeed: 0.03 } 
+                                    : Driven.init { maxSpeed: 5.0, acceleration: 1500.0, turningSpeed: 0.015 } 
                                     : case mode of 
                                         Server -> Nil
-                                        Client -> (NetworkSync.init { force: 0.05 }) : Nil
+                                        Client -> (NetworkSync.init { force: 0.0 }) : Nil
                         , renderables : ({transform: { x: (-12.5)
                                                      , y: (-12.5)
                                                      , width: 25.0

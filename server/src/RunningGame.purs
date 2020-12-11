@@ -5,13 +5,13 @@ import Prelude
 import Data.Array as Array
 import Data.Foldable (foldM, foldl)
 import Data.Int as Int
-import Data.List (toUnfoldable)
+import Data.List (toUnfoldable, List(..))
 import Data.List as List
 import Data.Map as Map
 import Data.Maybe (Maybe(..))
 import Data.Newtype (wrap, unwrap)
 import Data.Traversable (traverse)
-import Data.Tuple (Tuple(..), uncurry)
+import Data.Tuple (Tuple(..), fst, snd, uncurry)
 import Effect (Effect)
 import Effect.Random as Random
 import Erl.Atom (atom)
@@ -29,10 +29,10 @@ import Pure.Game.Main as Main
 import Pure.Logging as Log
 import Pure.Runtime.Scene (Game)
 import Pure.Runtime.Scene as Scene
-import Pure.Types (GameEvent(..))
 import Pure.Ticks as Ticks
 import Pure.Timing as Timing
 import Pure.Types (EntityCommand, GameEvent)
+import Pure.Types (GameEvent(..))
 import SimpleBus as Bus
 
 timePerFrame :: Number
@@ -69,12 +69,16 @@ sendCommand id playerId msg = Gen.call (serverName id) \s@{ game, lastTick, info
   case msg of
     ClientCommand entityCommand -> Gen.lift do
       Bus.raise (bus id) $ ServerCommand { cmd: entityCommand, id: wrap (playerId) }
-      let result@(Tuple _ evs) = Main.sendCommand (wrap playerId) entityCommand game
-      if not List.null evs then Bus.raise (bus info.id) $ Comms.ServerEvents $ toUnfoldable evs
-      else pure unit
-      pure $ CallReply Nothing $ s { game = uncurry (foldl Main.handleEvent) result }
+      ug <- uncurry (handleEvents id) $ Main.sendCommand (wrap playerId) entityCommand game
+      pure $ CallReply Nothing $ s { game = ug }
     Ping tick  -> do
       pure $ CallReply (Just $ Pong tick) $ s { players = Map.update (\v -> Just $ v { lastTick = tick }) (wrap playerId) players }
+
+handleEvents :: String -> Main.State -> List GameEvent -> Effect Main.State
+handleEvents id state Nil = pure state
+handleEvents id state evs = do
+  _ <- Bus.raise (bus id) $ Comms.ServerEvents $ toUnfoldable evs
+  uncurry (handleEvents id) $ foldl (\acc ev -> uncurry (\ng nevs -> Tuple ng $ (snd acc) <> nevs ) $ Main.handleEvent (fst acc) ev) (Tuple state Nil) evs
 
 -- TODO: EntityId pls
 addPlayer :: String -> String -> Effect Unit
@@ -149,13 +153,9 @@ addPlayerToGame playerId s@{ info, game, players } = do
 doTick :: State -> Effect State
 doTick state@{ game, info, lastTick } = do
   start <- Timing.currentMs
-  let result@(Tuple _ evs) = Main.tick game
-
-  if not List.null evs then Bus.raise (bus info.id) $ Comms.ServerEvents $ toUnfoldable evs
-  else pure unit
-
+  ug <- uncurry (handleEvents info.id) $ Main.tick game
   end <- Timing.currentMs
-  pure $ state { game = uncurry (foldl Main.handleEvent) result, lastTick = lastTick + 1 }
+  pure $ state { game = ug, lastTick = lastTick + 1 }
 
 
 playerTimeout :: Int

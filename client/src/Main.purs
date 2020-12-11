@@ -292,7 +292,7 @@ handleServerMessage lc msg =
 
     ServerEvents evs ->
 
-      lc  { game = foldl Main.handleEvent lc.game evs }
+      lc  { game = foldl (\a i -> fst $ Main.handleEvent a i) lc.game evs }
 
     NewEntity sync ->
       lc { game  = Main.addEntity sync lc.game }

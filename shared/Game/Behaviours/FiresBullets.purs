@@ -10,17 +10,17 @@ import Data.Newtype (unwrap, wrap)
 import Pure.Entity (EntityBehaviour(..))
 import Pure.Types (EntityCommand(..), GameEvent(..))
 
-init :: { max :: Int, speed :: Number, rate :: Int } -> Exists (EntityBehaviour EntityCommand GameEvent)
-init { max, speed, rate } = mkExists $ EntityBehaviour { state: { current: 0, firingTimer: 0 }
+init :: { max :: Int, speed :: Number, rate :: Int, power :: Number } -> Exists (EntityBehaviour EntityCommand GameEvent)
+init { max, speed, rate, power } = mkExists $ EntityBehaviour { state: { current: 0, firingTimer: 0, power }
                                                                 , handleCommand: handleCommand
                                                          }
                                                        
-             where handleCommand command state@{ current, firingTimer } = do
+             where handleCommand command state@{ current, firingTimer, power } = do
                                              entity <- B.entity 
                                              case command of
                                                FireBullet -> 
                                                  if firingTimer <= 0 then do
-                                                   B.raiseEvent $ (BulletFired { id: id entity, location: location entity, velocity: velocity entity }) 
+                                                   B.raiseEvent $ (BulletFired { id: id entity, location: location entity, velocity: velocity entity, power }) 
                                                    pure state { current = current + 1, firingTimer = rate }
                                                  else
                                                    pure state

@@ -42,17 +42,19 @@ tick state =
   bulletTick = Bullets.tick state.bullets (fst sceneTick)
   sceneTick = Scene.tick state.scene
 
-handleEvent :: State -> GameEvent -> State
+handleEvent :: State -> GameEvent -> Tuple State (List GameEvent)
 handleEvent state@{ scene } ev = 
   case ev of
        BulletFired deets -> 
-         state { bullets = Bullets.fireBullet deets.id deets.location deets.velocity state.bullets }
+         Tuple (state { bullets = Bullets.fireBullet deets.id deets.location deets.velocity deets.power state.bullets }) Nil
        BulletHit hit ->
-         -- send command in to damage entity
-         -- add an explosion
-         state { explosions = Explosions.createExplosion hit.entity hit.bullet.location hit.bullet.velocity state.explosions }
+         lmap (\s -> state { scene = s
+                           , explosions = explosions
+                           }) $ Scene.sendCommand hit.entity (Damage hit.bullet.power) scene
+         where
+               explosions = Explosions.createExplosion hit.entity hit.bullet.location hit.bullet.velocity state.explosions 
        EntityCollided _ -> 
-         state
+         Tuple state Nil
 
 sendCommand :: EntityId -> EntityCommand -> State -> Tuple State (List GameEvent)
 sendCommand id cmd state = 
