@@ -34,7 +34,7 @@ init id mode location = { id
                                     : Driven.init { maxSpeed: 5.0, acceleration: 1500.0, turningSpeed: 0.015 } 
                                     : case mode of 
                                         Server -> Nil
-                                        Client -> (NetworkSync.init { force: 0.0 }) : Nil
+                                        Client -> (NetworkSync.init { force: 0.05 }) : Nil
                         , renderables : ({transform: { x: (-12.5)
                                                      , y: (-12.5)
                                                      , width: 25.0

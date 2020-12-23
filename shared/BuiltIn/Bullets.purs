@@ -33,10 +33,10 @@ init liftEvent = { bullets : Nil, liftEvent }
 fireBullet :: forall ev. EntityId -> Point -> Point -> Number -> State ev -> State ev
 fireBullet owner location velocity power state = 
   state { bullets = { location
-                         , velocity
-                         , age: 0
-                         , owner
-                         , power } : state.bullets }
+                    , velocity
+                    , age: 0
+                    , owner
+                    , power } : state.bullets }
 
 tick :: forall msg ev. (State ev) -> Game msg ev -> Tuple (State ev) (List ev)
 tick state game = 

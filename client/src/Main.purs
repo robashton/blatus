@@ -2,6 +2,7 @@ module Pure.Main where
 
 import Prelude
 
+import Debug.Trace (spy)
 import Assets (AssetPackage)
 import Assets (AssetPackage, load) as Assets
 import Control.Monad.Except (runExcept)
@@ -214,9 +215,7 @@ main =  do
           runSignal $ (\cmd -> safeSend socket $ writeJSON $ ClientCommand cmd) <$> gameInput
 
           -- Tick as well
-          runSignal $ (\_ -> do
-
-            lc <- Signal.get gameStateSignal
+          runSignal $ (\lc -> do
 
             -- Update the display
             _ <- maybe (pure unit) (\element -> do
@@ -238,19 +237,13 @@ main =  do
 
 
                        pure unit) playerListElement
-            pure unit) <$> uiUpdateSignal 
+            pure unit) <$> sampleOn uiUpdateSignal gameStateSignal
 
           -- Tick
-          runSignal $ (\_ -> do
-            lc <- Signal.get gameStateSignal
-            safeSend socket $ writeJSON $ Ping lc.clientTick ) <$> pingSignal 
+          runSignal $ (\lc -> safeSend socket $ writeJSON $ Ping lc.clientTick ) <$> sampleOn pingSignal gameStateSignal
       
           -- Take whatever the latest state is and render it every time we get a render frame request
-          runSignal $ (\_ -> do
-                          latestState <- Signal.get gameStateSignal
-                          render latestState
-                          pure unit
-                         ) <$> renderSignal
+          runSignal $ render <$> sampleOn renderSignal gameStateSignal
       )
 
 safeSend :: WS.WebSocket -> String -> Effect Unit
@@ -304,14 +297,18 @@ handleServerMessage lc msg =
       lc { tickLatency = lc.clientTick - tick }
 
 handleClientCommand :: LocalContext-> EntityCommand ->  LocalContext
-handleClientCommand lc@{ playerName, game } msg =
+handleClientCommand lc@{ playerName, game, clientTick } msg =
+  let _ = case msg of 
+           Tick -> { msg, clientTick }
+           _ -> spy "tick" { msg, clientTick }
+   in
   lc { game = fst $ Main.sendCommand (wrap playerName) msg game }
 
 handleTick :: LocalContext -> Number  -> LocalContext
 handleTick context@{ game, camera: { config }, playerName, socket, clientTick, ticks } now =
   let (Tuple framesToExecute newTicks) = Ticks.update now ticks
-      viewport = viewportFromConfig $ trackPlayer playerName game.scene config 
-      newGame = foldl (\acc x -> if x == 0 then acc else fst $ Main.tick acc) game $ Array.range 0 framesToExecute
+      newGame = foldl (\acc x -> if x == 0 then acc else fst $ Main.tick acc) game $ Array.range 0 (spy "frames" framesToExecute)
+      viewport = viewportFromConfig $ trackPlayer playerName newGame.scene config 
       updatedContext = context { camera = { config, viewport } } in
     updatedContext { game = newGame, clientTick = clientTick + framesToExecute, ticks = newTicks }
 

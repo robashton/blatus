@@ -7,6 +7,7 @@ import Pure.Behaviour as B
 import Pure.Entity (EntityBehaviour(..))
 import Pure.Math (lerp)
 import Pure.Types (EntityCommand(..), GameEvent)
+import Debug.Trace (spy)
 
 type ElasticConfig = { force :: Number }
 
@@ -34,6 +35,9 @@ init c = mkExists $ EntityBehaviour { state: { force: c.force
                                  targetLocation = s.location + (e.location - s.oldLocation)
                                  newLocation = lerp e.location targetLocation s.force
                                  newRotation = e.rotation + s.force * (targetRotation - e.rotation) 
+                                 _ = if e.location.x - newLocation.x > 0.6 || e.location.x - newLocation.x < -0.6 || e.location.y - newLocation.y > 0.6 || e.location.y - newLocation.y < -0.6
+                                       then spy "Moved by" (e.location - newLocation)
+                                       else (e.location - newLocation)
                              _ <- B.updateEntity (\entity -> entity { location = newLocation
                                                                     , rotation = newRotation
                                                                     })

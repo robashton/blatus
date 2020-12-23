@@ -65,10 +65,10 @@ serverName id = Local $ atom $ "runninggame-" <> id
 
 sendCommand :: String -> String -> ClientMsg -> Effect (Maybe ServerMsg)
 sendCommand id playerId msg = Gen.call (serverName id) \s@{ game, lastTick, info, players } -> do
-  _ <- Gen.lift $ Log.info Log.RunningGame "Received message" { lastTick, msg }
   case msg of
     ClientCommand entityCommand -> Gen.lift do
       Bus.raise (bus id) $ ServerCommand { cmd: entityCommand, id: wrap (playerId) }
+      Log.info Log.RunningGame "Command" { lastTick, msg }
       ug <- uncurry (handleEvents id) $ Main.sendCommand (wrap playerId) entityCommand game
       pure $ CallReply Nothing $ s { game = ug }
     Ping tick  -> do

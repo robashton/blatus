@@ -9,6 +9,7 @@
     , "erl-pinto"
     , "erl-stetson"
     , "erl-logger"
+    , "debug"
     , "psci-support"
     , "simple-json"
     , "erl-simplebus"

@@ -2,6 +2,7 @@
 , name = "arqiva_control"
 , packages = ./packages.dhall
 , dependencies = [
+  "debug",
   "console",
   "js-timers",
   "prelude",
