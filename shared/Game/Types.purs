@@ -40,6 +40,7 @@ derive instance eqEntityCommand :: Eq EntityCommand
 data GameEvent = BulletFired { id :: EntityId, location :: Point, velocity :: Point, power :: Number }
                | EntityCollided  { left :: EntityId, right :: EntityId, force :: Number } 
                | BulletHit Bullets.BulletHit
+               | EntityDestroyed EntityId
 
 derive instance genericGameEvent :: Generic GameEvent _
 instance showGameEvent :: Show GameEvent where

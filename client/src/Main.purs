@@ -307,7 +307,7 @@ handleClientCommand lc@{ playerName, game, clientTick } msg =
 handleTick :: LocalContext -> Number  -> LocalContext
 handleTick context@{ game, camera: { config }, playerName, socket, clientTick, ticks } now =
   let (Tuple framesToExecute newTicks) = Ticks.update now ticks
-      newGame = foldl (\acc x -> if x == 0 then acc else fst $ Main.tick acc) game $ Array.range 0 (spy "frames" framesToExecute)
+      newGame = foldl (\acc x -> if x == 0 then acc else fst $ Main.tick acc) game $ Array.range 0 framesToExecute
       viewport = viewportFromConfig $ trackPlayer playerName newGame.scene config 
       updatedContext = context { camera = { config, viewport } } in
     updatedContext { game = newGame, clientTick = clientTick + framesToExecute, ticks = newTicks }

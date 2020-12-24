@@ -47,6 +47,10 @@ handleEvent state@{ scene } ev =
   case ev of
        BulletFired deets -> 
          Tuple (state { bullets = Bullets.fireBullet deets.id deets.location deets.velocity deets.power state.bullets }) Nil
+
+       EntityDestroyed id -> 
+         Tuple (state { scene = Scene.removeEntity id scene })  Nil
+
        BulletHit hit ->
          lmap (\s -> state { scene = s
                            , explosions = explosions

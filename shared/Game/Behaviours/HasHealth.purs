@@ -4,14 +4,22 @@ import Prelude
 
 import Data.Exists (Exists, mkExists)
 
+import Pure.Behaviour as B
 import Pure.Entity (EntityBehaviour(..))
-import Pure.Types (EntityCommand(..), GameEvent)
+import Pure.Types (EntityCommand(..), GameEvent(..))
 
 init :: Number -> Exists (EntityBehaviour EntityCommand GameEvent)
 init amount = mkExists $ EntityBehaviour { state: amount
                                          , handleCommand:  \command state ->
                                                                   case command of 
-                                                                       Damage damage -> pure $ state - damage
+                                                                       Damage damage -> do
+                                                                          let health = state - damage
+                                                                          entity <- B.entity 
+                                                                          if health <= 0.0 then do
+                                                                            B.raiseEvent $ EntityDestroyed entity.id
+                                                                            pure health
+                                                                          else
+                                                                            pure health
                                                                        _ -> pure state
                                                                    
                                                }

@@ -14,9 +14,8 @@
 
 [ ] Rendering needs to be function rather than straight up scene graph
   - Issue with this: Game is server/client and 'canvas' doesn't exist on the server
-[ ] Bullets needs to be a single entity rendering all the bullets
-[ ] Bullets can then send commands to entities to let them know they've been damaged..
-
+[x] Bullets needs to be a single entity rendering all the bullets
+[x] Bullets can then send commands to entities to let them know they've been damaged..
 
 
 [ ] Ship destruction means points
@@ -29,6 +28,8 @@
 [ ] Player name != Player Id
 [ ] Graceful disconnect
 [ ] Admin UI (view games / players / latency / etc)
+[ ] When a game doesn't exist anymore, player needs booting to the lobby
+[ ] Write some tests for game behaviour when nobody is watching
 
 -- Code
 
