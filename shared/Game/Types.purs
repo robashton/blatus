@@ -10,6 +10,11 @@ import Pure.BuiltIn.Bullets as Bullets
 import Pure.Math (Point)
 import Simple.JSON (class ReadForeign, class WriteForeign)
 
+type RegisteredPlayer = { id :: EntityId
+                        , lastTick :: Int
+                        , score :: Int
+                        }
+
 data EntityCommand = Damage Number 
                    | Tick 
                    | PushForward 

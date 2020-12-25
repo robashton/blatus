@@ -11,16 +11,20 @@
 [/] Delay processing commands by [latency]
 [/] Handle disconection as client (either server rejection or socket gone pop) (I think)
 [x] Ticks (especially on server side) need to be adjusted for elapsed time
+[ ] Use shared clock/ticks to attempt to make commands happen at the same time server/client
 
 [ ] Rendering needs to be function rather than straight up scene graph
   - Issue with this: Game is server/client and 'canvas' doesn't exist on the server
 [x] Bullets needs to be a single entity rendering all the bullets
 [x] Bullets can then send commands to entities to let them know they've been damaged..
 
+[x] Move player mgmt logic into game itself
 
-[ ] Ship destruction means points
 [ ] Ship destruction means respawn required
+[ ] Ship destruction means points
 [ ] Ship has regenerable health (prolonged attack required to destroy)
+
+[ ] Display ship health to player whose ship it is
 [ ] List public games in UI for easy selection
 [ ] suspend+terminate unused games
 [ ] Auth (bare minimum, preferably no data needed)

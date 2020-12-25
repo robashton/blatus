@@ -33,7 +33,6 @@ import Pure.Comms (ServerMsg(..), ClientMsg(..))
 import Pure.Comms as Comms
 import Pure.Game.Main as Main
 import Pure.Runtime.Scene (Game, entityById)
-import Pure.Ticks as Ticks
 import Pure.Types (EntityCommand(..), GameEvent)
 import Signal (Signal, dropRepeats, foldp, runSignal, sampleOn)
 import Signal as Signal
@@ -68,13 +67,11 @@ type LocalContext = { renderContext :: Canvas.Context2D
                     , playerName :: String
                     , socketChannel :: Channel.Channel String
                     , socket :: WS.WebSocket
-                    , clientTick :: Int
                     , serverTick :: Int
                     , tickLatency :: Int
-                    , ticks :: Ticks.State
                     , gameUrl :: String
-                    , playerList :: Array Comms.PlayerListItem
                     , isStarted :: Boolean
+                    , now :: Number
                     }
 
 rotateLeftSignal :: Effect (Signal EntityCommand)
@@ -116,9 +113,6 @@ data GameLoopMsg = Input EntityCommand
                  | GameTick Number
                  | Ws String
 
-timePerFrame :: Number
-timePerFrame = 1000.0 / 30.0
-
 tickSignal :: Signal Unit
 tickSignal = sampleOn (every $ second / 30.0) $ Signal.constant unit
   
@@ -149,7 +143,7 @@ load cb = do
           Milliseconds now <- Instant.unInstant <$> Now.now
 
           let camera = setupCamera { width: canvasWidth, height: canvasHeight }
-              game = Main.init
+              game = Main.init now
           cb $ { offscreenContext
                , offscreenCanvas
                , renderContext
@@ -162,12 +156,10 @@ load cb = do
                gameUrl: ""
                , socket
                , socketChannel
-               , clientTick: 0
                , serverTick: 0
+               , now
                , tickLatency: 0
-               , playerList: []
-               , isStarted: false
-               , ticks: Ticks.init now timePerFrame}
+               , isStarted: false }
   
 gameInfoSelector :: QuerySelector
 gameInfoSelector = QuerySelector ("#game-info")
@@ -231,16 +223,17 @@ main =  do
                        _ <- traverse (\child -> Node.removeChild child node) $ existingChildren
                        _ <- traverse (\player -> do
                            li <- Element.toNode <$> Document.createElement "li" document
-                           Node.setTextContent (player.playerId <> ": " <> (show player.score)) li
-                           Node.appendChild li node) $ lc.playerList
 
+                           Node.setTextContent ((unwrap player.id) <> ": " <> (show player.score)) li
+
+                           Node.appendChild li node) $ lc.game.players
 
 
                        pure unit) playerListElement
             pure unit) <$> sampleOn uiUpdateSignal gameStateSignal
 
           -- Tick
-          runSignal $ (\lc -> safeSend socket $ writeJSON $ Ping lc.clientTick ) <$> sampleOn pingSignal gameStateSignal
+          runSignal $ (\lc -> safeSend socket $ writeJSON $ Ping lc.game.lastTick ) <$> sampleOn pingSignal gameStateSignal
       
           -- Take whatever the latest state is and render it every time we get a render frame request
           runSignal $ render <$> sampleOn renderSignal gameStateSignal
@@ -260,7 +253,7 @@ handleServerMessage :: LocalContext -> ServerMsg -> LocalContext
 handleServerMessage lc msg =
   case msg of
     Sync gameSync ->
-      if not lc.isStarted then lc { game = Main.fromSync gameSync, clientTick = gameSync.tick, serverTick = gameSync.tick, isStarted = true }
+      if not lc.isStarted then lc { game = Main.fromSync lc.now gameSync, serverTick = gameSync.tick, isStarted = true }
       else 
         let 
             game = lc.game --Trace.trace { msg: "pre", game: lc.game } \_ -> lc.game
@@ -275,9 +268,6 @@ handleServerMessage lc msg =
     Welcome info ->
       lc { gameUrl = info.gameUrl, playerName = info.playerId }
 
-    UpdatePlayerList list ->
-      lc { playerList = list }
-
     ServerCommand { id, cmd } ->
 
       if (unwrap id) == lc.playerName then lc
@@ -287,30 +277,25 @@ handleServerMessage lc msg =
 
       lc  { game = foldl (\a i -> fst $ Main.handleEvent a i) lc.game evs }
 
-    NewEntity sync ->
-      lc { game  = Main.addEntity sync lc.game }
+    PlayerAdded sync ->
+      lc { game  = fst $ Main.addPlayer sync.id sync.location.x sync.location.y lc.game }
 
-    EntityDeleted id ->
-      lc { game  = Main.removeEntity id lc.game }
+    PlayerRemoved id ->
+      lc { game  = Main.removePlayer id lc.game }
 
     Pong tick  ->
-      lc { tickLatency = lc.clientTick - tick }
+      lc { tickLatency = lc.game.lastTick - tick }
 
 handleClientCommand :: LocalContext-> EntityCommand ->  LocalContext
-handleClientCommand lc@{ playerName, game, clientTick } msg =
-  let _ = case msg of 
-           Tick -> { msg, clientTick }
-           _ -> spy "tick" { msg, clientTick }
-   in
+handleClientCommand lc@{ playerName, game } msg =
   lc { game = fst $ Main.sendCommand (wrap playerName) msg game }
 
 handleTick :: LocalContext -> Number  -> LocalContext
-handleTick context@{ game, camera: { config }, playerName, socket, clientTick, ticks } now =
-  let (Tuple framesToExecute newTicks) = Ticks.update now ticks
-      newGame = foldl (\acc x -> if x == 0 then acc else fst $ Main.tick acc) game $ Array.range 0 framesToExecute
-      viewport = viewportFromConfig $ trackPlayer playerName newGame.scene config 
+handleTick context@{ game, camera: { config }, playerName, socket } now =
+  let newGame = fst $ Main.tick now game
+      viewport = viewportFromConfig $ trackPlayer playerName (spy "game" newGame.scene) config 
       updatedContext = context { camera = { config, viewport } } in
-    updatedContext { game = newGame, clientTick = clientTick + framesToExecute, ticks = newTicks }
+    updatedContext { game = newGame, now = now }
 
 trackPlayer :: String -> Game EntityCommand GameEvent -> CameraConfiguration -> CameraConfiguration
 trackPlayer playerName game config = 

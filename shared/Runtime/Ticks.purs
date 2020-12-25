@@ -1,4 +1,4 @@
-module Pure.Ticks where
+module Pure.Runtime.Ticks where
 
 import Prelude
 import Data.Int as Int

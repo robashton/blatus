@@ -16,17 +16,16 @@ import Pure.Entity (Entity, EntityClass(..), EntityId)
 import Pure.Runtime.Scene (Game)
 import Pure.Runtime.Scene as Scene
 import Pure.Math (Point, Rect)
-import Pure.Types (EntityCommand(..), GameEvent(..))
+import Pure.Types (EntityCommand(..), GameEvent(..), RegisteredPlayer)
 import Simple.JSON (class ReadForeign, class WriteForeign)
 
 data ServerMsg = Sync GameSync
-               | NewEntity EntitySync
+               | PlayerAdded EntitySync
+               | PlayerRemoved EntityId
                | PlayerSync EntitySync
                | Welcome WelcomeInfo
                | ServerCommand { cmd :: EntityCommand, id  :: EntityId }
                | ServerEvents (Array GameEvent)
-               | UpdatePlayerList (Array PlayerListItem)
-               | EntityDeleted EntityId
                | Pong Int
 
 type PlayerListItem = { playerId :: String
@@ -44,6 +43,7 @@ type WelcomeInfo = { gameUrl :: String
 type GameSync = { world :: Rect
                 , entities :: Array EntitySync
                 , tick :: Int
+                , players :: Array RegisteredPlayer
                 }
 
 type EntitySync = { id :: EntityId
