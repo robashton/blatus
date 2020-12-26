@@ -4,9 +4,10 @@ import Prelude
 
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
+import Data.Maybe (Maybe)
 import GenericJSON (writeTaggedSumRep, taggedSumRep)
-import Pure.Entity (EntityId)
 import Pure.BuiltIn.Bullets as Bullets
+import Pure.Entity (EntityId)
 import Pure.Math (Point)
 import Simple.JSON (class ReadForeign, class WriteForeign)
 
@@ -15,7 +16,7 @@ type RegisteredPlayer = { id :: EntityId
                         , score :: Int
                         }
 
-data EntityCommand = Damage Number 
+data EntityCommand = Damage { amount :: Number, source :: Maybe EntityId }
                    | Tick 
                    | PushForward 
                    | PushBackward 
@@ -42,10 +43,10 @@ instance readForeignEntityCommand :: ReadForeign EntityCommand where
 derive instance eqEntityCommand :: Eq EntityCommand
 
 
-data GameEvent = BulletFired { id :: EntityId, location :: Point, velocity :: Point, power :: Number }
+data GameEvent = BulletFired { owner :: EntityId, location :: Point, velocity :: Point, power :: Number }
                | EntityCollided  { left :: EntityId, right :: EntityId, force :: Number } 
                | BulletHit Bullets.BulletHit
-               | EntityDestroyed EntityId
+               | EntityDestroyed { entity :: EntityId, destroyer :: Maybe EntityId }
 
 derive instance genericGameEvent :: Generic GameEvent _
 instance showGameEvent :: Show GameEvent where

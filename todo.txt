@@ -19,11 +19,11 @@
 [x] Bullets can then send commands to entities to let them know they've been damaged..
 
 [x] Move player mgmt logic into game itself
+[x] Ship destruction means points
 
 [ ] Ship destruction means respawn required
-[ ] Ship destruction means points
-[ ] Ship has regenerable health (prolonged attack required to destroy)
 
+[ ] Ship has regenerable shield (prolonged attack required to destroy)
 [ ] Display ship health to player whose ship it is
 [ ] List public games in UI for easy selection
 [ ] suspend+terminate unused games

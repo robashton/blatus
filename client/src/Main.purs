@@ -293,7 +293,7 @@ handleClientCommand lc@{ playerName, game } msg =
 handleTick :: LocalContext -> Number  -> LocalContext
 handleTick context@{ game, camera: { config }, playerName, socket } now =
   let newGame = fst $ Main.tick now game
-      viewport = viewportFromConfig $ trackPlayer playerName (spy "game" newGame.scene) config 
+      viewport = viewportFromConfig $ trackPlayer playerName newGame.scene config 
       updatedContext = context { camera = { config, viewport } } in
     updatedContext { game = newGame, now = now }
 

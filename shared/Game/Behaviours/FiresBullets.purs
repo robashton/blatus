@@ -20,7 +20,7 @@ init { max, speed, rate, power } = mkExists $ EntityBehaviour { state: { current
                                              case command of
                                                FireBullet -> 
                                                  if firingTimer <= 0 then do
-                                                   B.raiseEvent $ (BulletFired { id: id entity, location: location entity, velocity: velocity entity, power }) 
+                                                   B.raiseEvent $ (BulletFired { owner: entity.id, location: location entity, velocity: velocity entity, power }) 
                                                    pure state { current = current + 1, firingTimer = rate }
                                                  else
                                                    pure state
@@ -29,7 +29,6 @@ init { max, speed, rate, power } = mkExists $ EntityBehaviour { state: { current
                                                                }
 
                                                _ -> pure state
-                                          where id entity = wrap $ (unwrap entity.id) <> "-bullet-" <> (show state.current)
-                                                direction entity = rotationToVector entity.rotation
+                                          where direction entity = rotationToVector entity.rotation
                                                 location entity = entity.location + (scalePoint entity.width $ direction entity)
                                                 velocity entity = (scalePoint speed $ direction entity) + entity.velocity

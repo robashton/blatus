@@ -9,7 +9,7 @@ import Data.Foldable (foldl)
 import Data.List (List(..))
 import Data.List (toUnfoldable)
 import Data.Map as Map
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), maybe)
 import Data.Tuple (Tuple(..), fst, snd, uncurry)
 import Pure.BuiltIn.Bullets as Bullets
 import Pure.BuiltIn.Collider as Collider
@@ -74,20 +74,27 @@ handleEvent :: State -> GameEvent -> Tuple State (List GameEvent)
 handleEvent state@{ scene } ev = 
   case ev of
        BulletFired deets -> 
-         Tuple (state { bullets = Bullets.fireBullet deets.id deets.location deets.velocity deets.power state.bullets }) Nil
+         Tuple (state { bullets = Bullets.fireBullet deets.owner deets.location deets.velocity deets.power state.bullets }) Nil
 
-       EntityDestroyed id -> 
-         Tuple (state { scene = Scene.removeEntity id scene })  Nil
+       EntityDestroyed { entity: id, destroyer } -> 
+         Tuple (handleEntityDestruction state id destroyer) Nil
 
        BulletHit hit ->
          lmap (\s -> state { scene = s
                            , explosions = explosions
-                           }) $ Scene.sendCommand hit.entity (Damage hit.bullet.power) scene
+                           }) $ Scene.sendCommand hit.entity (Damage { amount: hit.bullet.power,  source: Just hit.bullet.owner }) scene
          where
                explosions = Explosions.createExplosion hit.entity hit.bullet.location hit.bullet.velocity state.explosions 
        EntityCollided _ -> 
          Tuple state Nil
 
+handleEntityDestruction :: State -> EntityId -> Maybe EntityId -> State
+handleEntityDestruction state@{ scene, players } id destroyer = 
+  state { scene = Scene.removeEntity id scene 
+        , players=  maybe players (\d -> Map.update (\player -> Just $ player { score = player.score + 1 }) d players) destroyer
+        }
+
+          
 sendCommand :: EntityId -> EntityCommand -> State -> Tuple State (List GameEvent)
 sendCommand id cmd state = 
   lmap (\s -> (state { scene = s })) $ Scene.sendCommand id cmd state.scene

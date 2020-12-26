@@ -13,10 +13,10 @@ init amount = mkExists $ EntityBehaviour { state: amount
                                          , handleCommand:  \command state ->
                                                                   case command of 
                                                                        Damage damage -> do
-                                                                          let health = state - damage
+                                                                          let health = state - damage.amount
                                                                           entity <- B.entity 
                                                                           if health <= 0.0 then do
-                                                                            B.raiseEvent $ EntityDestroyed entity.id
+                                                                            B.raiseEvent $ EntityDestroyed { entity: entity.id, destroyer: damage.source }
                                                                             pure health
                                                                           else
                                                                             pure health
