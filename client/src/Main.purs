@@ -277,8 +277,8 @@ handleServerMessage lc msg =
 
       lc  { game = foldl (\a i -> fst $ Main.handleEvent a i) lc.game evs }
 
-    PlayerAdded sync ->
-      lc { game  = fst $ Main.addPlayer sync.id sync.location.x sync.location.y lc.game }
+    PlayerAdded id ->
+      lc { game  = Main.addPlayer id lc.game }
 
     PlayerRemoved id ->
       lc { game  = Main.removePlayer id lc.game }

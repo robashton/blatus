@@ -71,7 +71,7 @@ handleEvents id state evs = do
 
 addPlayer :: String -> String -> Effect Unit
 addPlayer id playerId = Gen.call (serverName id) \s -> do
-  ns <- Gen.lift $ addPlayerToGame playerId s
+  ns <- Gen.lift $ addPlayerToGame (wrap playerId) s
   pure $ CallReply unit ns
 
 
@@ -118,15 +118,13 @@ handleInfo msg state@{ info, game } = do
                            pure state
 
 
-addPlayerToGame :: String -> State -> Effect State
+addPlayerToGame :: EntityId -> State -> Effect State
 addPlayerToGame playerId s@{ info, game: game@{ players } } = do
   if
-    Map.member (wrap playerId) players then pure s
+    Map.member  playerId players then pure s
   else do
-    x <- Random.randomInt 0 1000
-    y <- Random.randomInt 0 1000
-    let (Tuple newGame playerSync) = Main.addPlayer (wrap playerId) (Int.toNumber $ x - 500) (Int.toNumber $ y - 500) game
-    Bus.raise  (bus info.id) $ PlayerAdded  playerSync
+    let newGame = Main.addPlayer playerId game
+    Bus.raise  (bus info.id) $ PlayerAdded  playerId
     pure $ s { game = newGame }
 
 playerTimeout :: Int

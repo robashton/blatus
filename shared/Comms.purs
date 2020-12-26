@@ -20,7 +20,7 @@ import Pure.Types (EntityCommand(..), GameEvent(..), RegisteredPlayer)
 import Simple.JSON (class ReadForeign, class WriteForeign)
 
 data ServerMsg = Sync GameSync
-               | PlayerAdded EntitySync
+               | PlayerAdded EntityId
                | PlayerRemoved EntityId
                | PlayerSync EntitySync
                | Welcome WelcomeInfo

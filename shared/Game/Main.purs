@@ -6,7 +6,7 @@ import Data.Array (fromFoldable)
 import Data.Array as Array
 import Data.Bifunctor (lmap, rmap)
 import Data.Foldable (foldl)
-import Data.List (List(..))
+import Data.List (List(..), (:))
 import Data.List (toUnfoldable)
 import Data.Map as Map
 import Data.Maybe (Maybe(..), maybe)
@@ -21,15 +21,10 @@ import Pure.Entity (Entity, EntityClass(..), EntityId(..))
 import Pure.Runtime.Scene (Game)
 import Pure.Runtime.Scene as Scene
 import Pure.Runtime.Ticks as Ticks
-import Pure.Types (EntityCommand(..), GameEvent(..))
+import Pure.Types (EntityCommand(..), GameEvent(..), RegisteredPlayer)
 
 timePerFrame :: Number
 timePerFrame = 1000.0 / 30.0
-
-type RegisteredPlayer = { id :: EntityId
-                        , lastTick :: Int
-                        , score :: Int
-                        }
 
 
 type State = { scene :: Game EntityCommand GameEvent
@@ -38,6 +33,7 @@ type State = { scene :: Game EntityCommand GameEvent
              , players :: Map.Map EntityId RegisteredPlayer
              , lastTick :: Int
              , ticks :: Ticks.State
+             , pendingSpawns :: List { ticks :: Int, playerId :: EntityId }
              }
 
 init :: Number -> State 
@@ -48,6 +44,7 @@ init now = { scene: Scene.initialModel Tick
              , lastTick: 0
              , ticks: Ticks.init now timePerFrame
              , players: mempty
+             , pendingSpawns: mempty
              }
 
 tick :: Number -> State -> Tuple State (List GameEvent)
@@ -64,11 +61,15 @@ doTick state@{ lastTick } =
               , bullets = fst bulletTick
               , explosions = explosionTick
               , lastTick = lastTick + 1 
-              }) (snd sceneTick <> snd bulletTick)
+              , pendingSpawns = fst spawnTick
+              }) (snd sceneTick <> snd bulletTick <> snd spawnTick)
   where
     explosionTick = Explosions.tick state.explosions
     bulletTick = Bullets.tick state.bullets (fst sceneTick)
     sceneTick = Scene.tick state.scene
+    spawnTick = foldl (\acc s -> if s.ticks <= 0 then rmap (\evs -> PlayerSpawn { x: 0.0, y: 0.0, id: s.playerId } : evs) acc
+                                 else lmap (\ts -> s { ticks = s.ticks - 1 } : ts) acc)
+                      (Tuple Nil Nil) state.pendingSpawns
 
 handleEvent :: State -> GameEvent -> Tuple State (List GameEvent)
 handleEvent state@{ scene } ev = 
@@ -78,6 +79,9 @@ handleEvent state@{ scene } ev =
 
        EntityDestroyed { entity: id, destroyer } -> 
          Tuple (handleEntityDestruction state id destroyer) Nil
+
+       PlayerSpawn { id, x, y } -> 
+         Tuple (state { scene = Scene.addEntity (Tank.init id { x, y }) scene })  Nil
 
        BulletHit hit ->
          lmap (\s -> state { scene = s
@@ -89,9 +93,10 @@ handleEvent state@{ scene } ev =
          Tuple state Nil
 
 handleEntityDestruction :: State -> EntityId -> Maybe EntityId -> State
-handleEntityDestruction state@{ scene, players } id destroyer = 
+handleEntityDestruction state@{ scene, players, pendingSpawns } id destroyer = 
   state { scene = Scene.removeEntity id scene 
         , players=  maybe players (\d -> Map.update (\player -> Just $ player { score = player.score + 1 }) d players) destroyer
+        , pendingSpawns = { playerId: id, ticks: 300 } : pendingSpawns
         }
 
           
@@ -122,13 +127,13 @@ entityToSync :: forall cmd ev. Entity cmd ev -> EntitySync
 entityToSync { id, class: c, location, velocity, rotation } =
   { id, class: c, location, velocity, rotation }
 
-addPlayer :: EntityId -> Number -> Number -> State -> Tuple State EntitySync
-addPlayer id x y state@{ scene, players, lastTick } = 
-  Tuple (state { scene = Scene.addEntity player scene
-               , players = Map.insert id { id, lastTick, score: 0 } players 
-               }) $ entityToSync player
-  where
-        player = Tank.init id Tank.Server { x, y }
+addPlayer :: EntityId -> State -> State
+addPlayer id state@{ players, lastTick, pendingSpawns } = 
+  state { players = Map.insert id { id, lastTick, score: 0 } players
+        , pendingSpawns = { playerId: id, ticks: 0 } : pendingSpawns
+        }
+
+
 
 updatePlayerTick :: EntityId -> Int -> State -> State
 updatePlayerTick id t state@{ players } = 
@@ -142,7 +147,7 @@ addEntity :: EntitySync -> State -> State
 addEntity sync state =
   state { scene = Scene.addEntity (entityFromSync sync) state.scene }
   where entity = case sync.class of
-                    Tank -> Tank.init sync.id Tank.Client sync.location
+                    Tank -> Tank.init sync.id sync.location
                     Bullet -> Bullet.init sync.id sync.location sync.velocity
 
 removeEntity :: EntityId -> State -> State 
@@ -152,7 +157,7 @@ removeEntity id state =
 entityFromSync :: EntitySync -> Entity EntityCommand GameEvent
 entityFromSync sync =
   let blank = case sync.class of
-                Tank -> Tank.init sync.id Tank.Client sync.location
+                Tank -> Tank.init sync.id sync.location
                 Bullet -> Bullet.init sync.id sync.location sync.velocity
    in
    blank { location = sync.location

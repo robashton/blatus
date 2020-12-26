@@ -15,10 +15,8 @@ import Pure.Behaviours.NetworkSync as NetworkSync
 
 import Pure.Types (EntityCommand, GameEvent)
 
-data EntityMode = Server | Client
-
-init :: EntityId -> EntityMode -> Point -> Entity EntityCommand GameEvent
-init id mode location = { id
+init :: EntityId -> Point -> Entity EntityCommand GameEvent
+init id location = { id
                         , location
                         , class: Tank
                         , width: 25.0
@@ -32,9 +30,8 @@ init id mode location = { id
                                     : FiresBullets.init { max: 100, speed: 15.0, rate: 5, power: 25.0 }
                                     : BasicBitchPhysics.init 
                                     : Driven.init { maxSpeed: 5.0, acceleration: 1500.0, turningSpeed: 0.015 } 
-                                    : case mode of 
-                                        Server -> Nil
-                                        Client -> (NetworkSync.init { force: 0.05 }) : Nil
+                                    : NetworkSync.init { force: 0.05 } 
+                                    : Nil
                         , renderables : ({transform: { x: (-12.5)
                                                      , y: (-12.5)
                                                      , width: 25.0

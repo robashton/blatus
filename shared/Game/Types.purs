@@ -33,6 +33,12 @@ data EntityCommand = Damage { amount :: Number, source :: Maybe EntityId }
                                        , rotation :: Number
                                        }
 
+data GameEvent = BulletFired { owner :: EntityId, location :: Point, velocity :: Point, power :: Number }
+               | EntityCollided  { left :: EntityId, right :: EntityId, force :: Number } 
+               | BulletHit Bullets.BulletHit
+               | EntityDestroyed { entity :: EntityId, destroyer :: Maybe EntityId }
+               | PlayerSpawn { id :: EntityId, x :: Number, y :: Number }
+
 derive instance genericEntityCommand :: Generic EntityCommand _
 instance showEntityCommand :: Show EntityCommand where
   show = genericShow
@@ -43,10 +49,6 @@ instance readForeignEntityCommand :: ReadForeign EntityCommand where
 derive instance eqEntityCommand :: Eq EntityCommand
 
 
-data GameEvent = BulletFired { owner :: EntityId, location :: Point, velocity :: Point, power :: Number }
-               | EntityCollided  { left :: EntityId, right :: EntityId, force :: Number } 
-               | BulletHit Bullets.BulletHit
-               | EntityDestroyed { entity :: EntityId, destroyer :: Maybe EntityId }
 
 derive instance genericGameEvent :: Generic GameEvent _
 instance showGameEvent :: Show GameEvent where

@@ -5,13 +5,12 @@ This is a multiplayer game written almost entirely in Purescript - using JS back
 
 It doesn't have a name yet.
 
-Running the example
+Running it
 ==
 
 ``` bash
 
-rebar3 compile
-rebar3 shell --config release-files/sys.config
+rebar3 shell 
 
 
 ```
