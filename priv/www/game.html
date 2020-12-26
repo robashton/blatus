@@ -7,9 +7,12 @@
   <body>  
     <div>Invite your friends! <a href="" id="game-info"></a></div>
     <div id="game-container">
-      <div>
-        <canvas  id="target" width="800px" height="600px"></canvas>
-        <canvas  id="offscreen" style="display: none;" width="800px" height="600px"></canvas>
+      <div id="canvas-container" >
+        <div id="game-message-container">
+          <div id="game-message"></div>
+        </div>
+        <canvas  id="target" width="800" height="600"></canvas>
+        <canvas  id="offscreen" style="display: none;" width="800" height="600"></canvas>
         <script src="/assets/bundle.js"></script>
       </div>
       <div>

@@ -2,7 +2,6 @@ module Pure.Main where
 
 import Prelude
 
-import Debug.Trace (spy)
 import Assets (AssetPackage)
 import Assets (AssetPackage, load) as Assets
 import Control.Monad.Except (runExcept)
@@ -12,11 +11,12 @@ import Data.Either (either, hush)
 import Data.Foldable (foldl, for_)
 import Data.Int as Int
 import Data.Map (lookup) as Map
-import Data.Maybe (fromMaybe, maybe)
+import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Newtype (unwrap, wrap)
 import Data.Time.Duration (Milliseconds(..))
 import Data.Traversable (for, traverse)
 import Data.Tuple (Tuple(..), fst)
+import Debug.Trace (spy)
 import Debug.Trace as Trace
 import Effect (Effect)
 import Effect.Aff (runAff_)
@@ -120,7 +120,7 @@ pingSignal :: Signal Unit
 pingSignal = sampleOn (every $ second) $ Signal.constant unit
 
 uiUpdateSignal :: Signal Unit
-uiUpdateSignal = sampleOn (every $ second * 2.0) $ Signal.constant unit
+uiUpdateSignal = sampleOn (every $ second * 1.0) $ Signal.constant unit
 
 -- We're going to use Aff to make loading pretty instead of trying
 -- to chain Signals around the place
@@ -170,6 +170,9 @@ playerListSelector = QuerySelector ("#player-list")
 latencyInfoSelector :: QuerySelector
 latencyInfoSelector = QuerySelector ("#latency-info")
 
+gameMessageSelector :: QuerySelector
+gameMessageSelector = QuerySelector ("#game-message")
+
 main :: Effect Unit
 main =  do
   load (\loadedContext@{ socket, window } -> do
@@ -182,6 +185,7 @@ main =  do
           gameInfoElement <- querySelector gameInfoSelector $ Document.toParentNode document
           latencyInfoElement <- querySelector latencyInfoSelector $ Document.toParentNode document
           playerListElement <- querySelector playerListSelector $ Document.toParentNode document
+          gameMessageElement <- querySelector gameMessageSelector $ Document.toParentNode document
 
           -- Just alter context state as messages come in
           let socketSignal = Channel.subscribe loadedContext.socketChannel
@@ -216,6 +220,14 @@ main =  do
 
             _ <- maybe (pure unit) (\element -> do
                       Node.setTextContent ("Ping: " <> (show (lc.tickLatency * 33)) <> "ms") $ Element.toNode element) latencyInfoElement
+
+            _ <- maybe (pure unit) (\element -> 
+                      case Main.pendingSpawn (wrap lc.playerName) lc.game of 
+                           Nothing -> 
+                             Node.setTextContent "" $ Element.toNode element
+                           Just ticks ->
+                             Node.setTextContent ("Waiting " <> (show (ticks `div` 30)) <> " seconds to respawn") $ Element.toNode element
+                             ) gameMessageElement
 
             _ <- maybe (pure unit) (\element -> do
                        let node = Element.toNode element

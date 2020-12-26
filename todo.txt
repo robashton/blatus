@@ -22,10 +22,10 @@
 [x] Ship destruction means points
 [x] Ship destruction means respawn required
 [x] Need to find a psuedo-random generator actually written in Purescript.. (no Effect)
+[x] Player death need to tell the player they died
+[x] Player death need to show a countdown to player
 [ ] Will need to differentiate between player destruction/asteroid/other
 [ ] Player death would be nice to animate the camera zoom/roll 
-[ ] Player death need to tell the player they died
-[ ] Player death need to show a countdown to player
 [ ] Collision + network sync requires some thought as it drifts a lot
 
 [ ] Ship has regenerable shield (prolonged attack required to destroy)
@@ -40,6 +40,28 @@
 [ ] When a game doesn't exist anymore, player needs booting to the lobby
 [ ] Write some tests for game behaviour when nobody is watching
 
+-- Power-ups
+
+[ ] Health gain
+[ ] Shield restore
+[ ] Speed boost
+[ ] Radar
+[ ] Scatter shot
+
+===========================
+
+-- Possible Game Play Idea #1
+
+[ ] Collect resources..
+[ ] Grow in size 
+[ ] Health++ as you grow
+[ ] Speed++ as you grow
+[ ] Power++ as you grow
+
+The idea being that big ships attack other big ships, it'll be hard to aim at small ships if you're a big ship
+
+===========================
+
 -- Code
 
 [ ] Newtypes for Game/Player... 
@@ -48,7 +70,6 @@
 
 -- Entirely unnecessary stuff
 
-[ ] Radar for tracking other players
 [ ] Infinite background (load/render on demand (yawn))
 [ ] Shaders/layers
 [ ] Proper collision 

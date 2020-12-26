@@ -5,8 +5,9 @@ import Prelude
 import Data.Array (fromFoldable)
 import Data.Array as Array
 import Data.Bifunctor (lmap, rmap)
+import Data.Filterable (filter)
 import Data.Foldable (foldl)
-import Data.List (List(..), (:))
+import Data.List (List(..), head, (:))
 import Data.List (toUnfoldable)
 import Data.Map as Map
 import Data.Maybe (Maybe(..), maybe)
@@ -40,6 +41,9 @@ type State = { scene :: Game EntityCommand GameEvent
              , pendingSpawns :: List { ticks :: Int, playerId :: EntityId }
              , seed :: Seed
              }
+pendingSpawn :: EntityId -> State -> Maybe Int
+pendingSpawn id state = 
+  map _.ticks $ head $ filter (\x -> x.playerId == id) state.pendingSpawns
 
 init :: Number -> State 
 init now = { scene: Scene.initialModel Tick

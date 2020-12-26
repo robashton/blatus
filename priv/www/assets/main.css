@@ -8,6 +8,36 @@ body a {
   color: #eee;
 }
 
-#game-container div {
+#game-container {
+  top: 50px;
+}
+
+
+#game-container > div {
   float: left;
+}
+
+#canvas-container {
+  width: 800px;
+  height:  600px;
+}
+
+#canvas-container canvas {
+
+}
+
+#game-message-container {
+  position: absolute;
+  top: 50px;
+  left: 0px;
+  width: 800px;
+  height: 600px;
+}
+
+#game-message {
+  position: absolute;
+  top: 200px;
+  left: 50%;
+  transform: translate(-50%, 0);
+  font-size: 48px;
 }
