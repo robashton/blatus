@@ -20,8 +20,13 @@
 
 [x] Move player mgmt logic into game itself
 [x] Ship destruction means points
-[ ] Ship destruction means respawn required
+[x] Ship destruction means respawn required
+[x] Need to find a psuedo-random generator actually written in Purescript.. (no Effect)
 [ ] Will need to differentiate between player destruction/asteroid/other
+[ ] Player death would be nice to animate the camera zoom/roll 
+[ ] Player death need to tell the player they died
+[ ] Player death need to show a countdown to player
+[ ] Collision + network sync requires some thought as it drifts a lot
 
 [ ] Ship has regenerable shield (prolonged attack required to destroy)
 [ ] Display ship health to player whose ship it is

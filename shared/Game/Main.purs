@@ -26,6 +26,10 @@ import Pure.Types (EntityCommand(..), GameEvent(..), RegisteredPlayer)
 timePerFrame :: Number
 timePerFrame = 1000.0 / 30.0
 
+foreign import data Seed :: Type
+foreign import seed :: Seed
+foreign import random :: (Number -> Seed -> Tuple Number Seed) -> Seed -> Tuple Number Seed
+
 
 type State = { scene :: Game EntityCommand GameEvent
              , bullets :: Bullets.State GameEvent
@@ -34,6 +38,7 @@ type State = { scene :: Game EntityCommand GameEvent
              , lastTick :: Int
              , ticks :: Ticks.State
              , pendingSpawns :: List { ticks :: Int, playerId :: EntityId }
+             , seed :: Seed
              }
 
 init :: Number -> State 
@@ -45,6 +50,7 @@ init now = { scene: Scene.initialModel Tick
              , ticks: Ticks.init now timePerFrame
              , players: mempty
              , pendingSpawns: mempty
+             , seed: seed
              }
 
 tick :: Number -> State -> Tuple State (List GameEvent)
@@ -56,20 +62,28 @@ tick now state =
         innerTick (Tuple is evs) = rmap (\nevs -> (evs <> nevs)) $ doTick is
 
 doTick :: State -> Tuple State (List GameEvent)
-doTick state@{ lastTick } =
+doTick state@{ lastTick, seed } =
   Tuple (state{ scene = fst sceneTick
               , bullets = fst bulletTick
               , explosions = explosionTick
               , lastTick = lastTick + 1 
               , pendingSpawns = fst spawnTick
-              }) (snd sceneTick <> snd bulletTick <> snd spawnTick)
+              , seed = fst processedSpawns
+              }) (snd sceneTick <> snd bulletTick <> snd processedSpawns)
   where
     explosionTick = Explosions.tick state.explosions
     bulletTick = Bullets.tick state.bullets (fst sceneTick)
     sceneTick = Scene.tick state.scene
-    spawnTick = foldl (\acc s -> if s.ticks <= 0 then rmap (\evs -> PlayerSpawn { x: 0.0, y: 0.0, id: s.playerId } : evs) acc
+    spawnTick = foldl (\acc s -> if s.ticks <= 0 then rmap (\evs -> s.playerId : evs) acc
                                  else lmap (\ts -> s { ticks = s.ticks - 1 } : ts) acc)
                       (Tuple Nil Nil) state.pendingSpawns
+    processedSpawns = foldl (\acc id -> 
+                        let a@(Tuple x s1) = random Tuple $ fst acc
+                            b@(Tuple y s2) = random Tuple s1
+                         in
+                           (Tuple s2 $ (PlayerSpawn { x: x * 1000.0 - 500.0, y: y * 1000.0 - 500.0, id }) : (snd acc))
+                      ) (Tuple state.seed Nil) (snd spawnTick)
+
 
 handleEvent :: State -> GameEvent -> Tuple State (List GameEvent)
 handleEvent state@{ scene } ev = 

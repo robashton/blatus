@@ -13,7 +13,6 @@ import Data.Newtype (wrap, unwrap)
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..), fst, snd, uncurry)
 import Effect (Effect)
-import Effect.Random as Random
 import Erl.Atom (atom)
 import Fprof as Fprof
 import Pinto (ServerName(..), StartLinkResult)

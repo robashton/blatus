@@ -8,7 +8,6 @@ import Data.Int as Int
 import Data.Newtype (wrap, unwrap)
 import Data.Tuple (Tuple(..), uncurry)
 import Effect (Effect)
-import Effect.Random as Random
 import Pure.Entities.Tank as Tank
 import Pure.Game.Main as Main
 import Pure.RunningGameList as Rgl

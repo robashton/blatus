@@ -55,14 +55,7 @@ let extras = {
               ]
           , repo = "ssh://git@github.com/hdgarrood/purescript-sequences.git"
           , version = "448919594e979cfd2a45ebcde619c22a9fb984fc"
-          },
-       st =
-          { dependencies =
-              [ "effect"
-              ]
-          , repo = "ssh://git@github.com/robashton/purescript-st.git"
-          , version = "463085478446dacb91ede00ad8bcfbd3f76bfec9"
           }
-  }
+      }
 
 in  upstream ⫽ overrides⫽ extras
