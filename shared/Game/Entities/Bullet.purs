@@ -22,6 +22,7 @@ init id location velocity = { id
              , rotation: 0.0
              , mass: 20.0
              , networkSync: false
+             , health: 1.0
              , behaviour : BasicBitchPhysics.init : Nil
              , renderables : ({ transform: { x: -2.5
                                            , y: -2.5

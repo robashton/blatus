@@ -27,12 +27,14 @@
 [x] Player death would be nice to animate the camera zoom/roll 
 [x] Will need to differentiate between player destruction/asteroid/other
 
-[ ] Display ship health to player whose ship it is
+[x] Display ship health to player whose ship it is
 [ ] Ship has regenerable shield (prolonged attack required to destroy)
 [ ] suspend+terminate unused games
 [ ] Player name != Player Id
 [ ] Graceful disconnect
 [ ] When a game doesn't exist anymore, player needs booting to the lobby
+[ ] Bullets need to not inherit ship speed
+[ ] Ideally bullets are smaller, and double barrelled from the guns on the ship
 
 [ ] List public games in UI for easy selection
 [ ] Auth (bare minimum, preferably no data needed)

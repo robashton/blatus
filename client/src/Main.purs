@@ -31,6 +31,7 @@ import Pure.BuiltIn.Explosions as Explosions
 import Pure.Camera (Camera, CameraViewport, CameraConfiguration, applyViewport, setupCamera, viewportFromConfig)
 import Pure.Comms (ServerMsg(..), ClientMsg(..))
 import Pure.Comms as Comms
+import Pure.Entities.Tank as Tank
 import Pure.Game.Main as Main
 import Pure.Math (lerp)
 import Pure.Runtime.Scene (Game, entityById)
@@ -121,7 +122,7 @@ pingSignal :: Signal Unit
 pingSignal = sampleOn (every $ second) $ Signal.constant unit
 
 uiUpdateSignal :: Signal Unit
-uiUpdateSignal = sampleOn (every $ second * 1.0) $ Signal.constant unit
+uiUpdateSignal = sampleOn (every $ second * 0.3) $ Signal.constant unit
 
 load ::  (LocalContext -> Effect Unit) -> Effect Unit
 load cb = do
@@ -150,8 +151,8 @@ load cb = do
                , camera
                , window
                , game
-               , playerName: "",
-               gameUrl: ""
+               , playerName: ""
+               , gameUrl: ""
                , socket
                , socketChannel
                , serverTick: 0
@@ -171,6 +172,9 @@ latencyInfoSelector = QuerySelector ("#latency-info")
 gameMessageSelector :: QuerySelector
 gameMessageSelector = QuerySelector ("#game-message")
 
+healthSelector :: QuerySelector
+healthSelector = QuerySelector ("#health-bar")
+
 main :: Effect Unit
 main =  do
   load (\loadedContext@{ socket, window } -> do
@@ -184,6 +188,7 @@ main =  do
           latencyInfoElement <- querySelector latencyInfoSelector $ Document.toParentNode document
           playerListElement <- querySelector playerListSelector $ Document.toParentNode document
           gameMessageElement <- querySelector gameMessageSelector $ Document.toParentNode document
+          healthElement <- querySelector healthSelector $ Document.toParentNode document
 
           -- Just alter context state as messages come in
           let socketSignal = Channel.subscribe loadedContext.socketChannel
@@ -217,7 +222,7 @@ main =  do
                       Node.setTextContent lc.gameUrl $ Element.toNode element) gameInfoElement
 
             _ <- maybe (pure unit) (\element -> do
-                      Node.setTextContent ("Connected: " <> (show (lc.tickLatency * 33)) <> "ms") $ Element.toNode element) latencyInfoElement
+                      Node.setTextContent ("Connected (" <> (show (lc.tickLatency * 33)) <> "ms)") $ Element.toNode element) latencyInfoElement
 
             _ <- maybe (pure unit) (\element -> 
                       case Main.pendingSpawn (wrap lc.playerName) lc.game of 
@@ -226,6 +231,14 @@ main =  do
                            Just ticks ->
                              Node.setTextContent ("Waiting " <> (show (ticks `div` 30)) <> " seconds to respawn") $ Element.toNode element
                              ) gameMessageElement
+
+            _ <- maybe (pure unit) (\element ->
+                maybe (Element.setAttribute "style" ("width: 0%") element) 
+                  (\player -> do
+                  let percentage = show $ (player.health / Tank.maxHealth) * 100.0
+                  Element.setAttribute "style" ("width: " <> percentage <> "%") element
+                  ) $ entityById (wrap lc.playerName) lc.game.scene
+              ) healthElement
 
             _ <- maybe (pure unit) (\element -> do
                        let node = Element.toNode element
@@ -237,6 +250,7 @@ main =  do
                            Node.setTextContent ((unwrap player.id) <> ": " <> (show player.score)) li
 
                            Node.appendChild li node) $ lc.game.players
+
 
 
                        pure unit) playerListElement
