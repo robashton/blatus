@@ -27,6 +27,10 @@ import Pure.Types (EntityCommand(..), GameEvent(..), RegisteredPlayer)
 timePerFrame :: Number
 timePerFrame = 1000.0 / 30.0
 
+
+ticksForRespawn :: Int
+ticksForRespawn = 300
+
 foreign import data Seed :: Type
 foreign import seed :: Seed
 foreign import random :: (Number -> Seed -> Tuple Number Seed) -> Seed -> Tuple Number Seed
@@ -66,7 +70,7 @@ tick now state =
         innerTick (Tuple is evs) = rmap (\nevs -> (evs <> nevs)) $ doTick is
 
 doTick :: State -> Tuple State (List GameEvent)
-doTick state@{ lastTick, seed } =
+doTick state@{ lastTick } =
   Tuple (state{ scene = fst sceneTick
               , bullets = fst bulletTick
               , explosions = explosionTick
@@ -90,13 +94,17 @@ doTick state@{ lastTick, seed } =
 
 
 handleEvent :: State -> GameEvent -> Tuple State (List GameEvent)
-handleEvent state@{ scene } ev = 
+handleEvent state@{ scene, players } ev = 
   case ev of
        BulletFired deets -> 
          Tuple (state { bullets = Bullets.fireBullet deets.owner deets.location deets.velocity deets.power state.bullets }) Nil
 
        EntityDestroyed { entity: id, destroyer } -> 
-         Tuple (handleEntityDestruction state id destroyer) Nil
+         case Map.lookup id players of
+           Nothing -> 
+             Tuple (state { scene = Scene.removeEntity id scene  }) Nil
+           Just _player ->
+             Tuple (handleEntityDestruction state id destroyer) Nil
 
        PlayerSpawn { id, x, y } -> 
          Tuple (state { scene = Scene.addEntity (Tank.init id { x, y }) scene })  Nil
@@ -114,7 +122,7 @@ handleEntityDestruction :: State -> EntityId -> Maybe EntityId -> State
 handleEntityDestruction state@{ scene, players, pendingSpawns } id destroyer = 
   state { scene = Scene.removeEntity id scene 
         , players=  maybe players (\d -> Map.update (\player -> Just $ player { score = player.score + 1 }) d players) destroyer
-        , pendingSpawns = { playerId: id, ticks: 300 } : pendingSpawns
+        , pendingSpawns = { playerId: id, ticks: ticksForRespawn } : pendingSpawns
         }
 
           

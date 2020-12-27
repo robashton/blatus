@@ -11,7 +11,7 @@ import Data.Either (either, hush)
 import Data.Foldable (foldl, for_)
 import Data.Int as Int
 import Data.Map (lookup) as Map
-import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.Maybe (Maybe(..), fromMaybe, maybe, maybe')
 import Data.Newtype (unwrap, wrap)
 import Data.Time.Duration (Milliseconds(..))
 import Data.Traversable (for, traverse)
@@ -32,6 +32,7 @@ import Pure.Camera (Camera, CameraViewport, CameraConfiguration, applyViewport, 
 import Pure.Comms (ServerMsg(..), ClientMsg(..))
 import Pure.Comms as Comms
 import Pure.Game.Main as Main
+import Pure.Math (lerp)
 import Pure.Runtime.Scene (Game, entityById)
 import Pure.Types (EntityCommand(..), GameEvent)
 import Signal (Signal, dropRepeats, foldp, runSignal, sampleOn)
@@ -122,9 +123,6 @@ pingSignal = sampleOn (every $ second) $ Signal.constant unit
 uiUpdateSignal :: Signal Unit
 uiUpdateSignal = sampleOn (every $ second * 1.0) $ Signal.constant unit
 
--- We're going to use Aff to make loading pretty instead of trying
--- to chain Signals around the place
--- TODO: Loading screen, convert maybes to eithers instead of vice versa, display errors
 load ::  (LocalContext -> Effect Unit) -> Effect Unit
 load cb = do
   runAff_ (\assets -> do
@@ -219,7 +217,7 @@ main =  do
                       Node.setTextContent lc.gameUrl $ Element.toNode element) gameInfoElement
 
             _ <- maybe (pure unit) (\element -> do
-                      Node.setTextContent ("Ping: " <> (show (lc.tickLatency * 33)) <> "ms") $ Element.toNode element) latencyInfoElement
+                      Node.setTextContent ("Connected: " <> (show (lc.tickLatency * 33)) <> "ms") $ Element.toNode element) latencyInfoElement
 
             _ <- maybe (pure unit) (\element -> 
                       case Main.pendingSpawn (wrap lc.playerName) lc.game of 
@@ -305,15 +303,17 @@ handleClientCommand lc@{ playerName, game } msg =
 handleTick :: LocalContext -> Number  -> LocalContext
 handleTick context@{ game, camera: { config }, playerName, socket } now =
   let newGame = fst $ Main.tick now game
-      viewport = viewportFromConfig $ trackPlayer playerName newGame.scene config 
-      updatedContext = context { camera = { config, viewport } } in
+      updatedConfig = trackPlayer playerName newGame.scene config 
+      viewport = viewportFromConfig updatedConfig
+      updatedContext = context { camera = { config: updatedConfig, viewport } } in
     updatedContext { game = newGame, now = now }
 
 trackPlayer :: String -> Game EntityCommand GameEvent -> CameraConfiguration -> CameraConfiguration
 trackPlayer playerName game config = 
-  maybe config (\player -> config { lookAt = player.location,
-                                    distance = 500.0 + (abs player.velocity.x + abs player.velocity.y) * 10.0
-                                    }) $ entityById (wrap playerName) game
+  maybe' (\_ -> config { distance = config.distance + 2.0 }) (\player -> let targetDistance = 500.0 + (abs player.velocity.x + abs player.velocity.y) * 10.0
+                                                                          in config { lookAt = player.location 
+                                                                                    , distance = config.distance + 0.02 * (targetDistance - config.distance)
+                                                                                    }) $ entityById (wrap playerName) game
 
 
 render :: LocalContext -> Effect Unit

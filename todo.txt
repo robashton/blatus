@@ -24,21 +24,23 @@
 [x] Need to find a psuedo-random generator actually written in Purescript.. (no Effect)
 [x] Player death need to tell the player they died
 [x] Player death need to show a countdown to player
-[ ] Will need to differentiate between player destruction/asteroid/other
-[ ] Player death would be nice to animate the camera zoom/roll 
-[ ] Collision + network sync requires some thought as it drifts a lot
+[x] Player death would be nice to animate the camera zoom/roll 
+[x] Will need to differentiate between player destruction/asteroid/other
 
-[ ] Ship has regenerable shield (prolonged attack required to destroy)
 [ ] Display ship health to player whose ship it is
-[ ] List public games in UI for easy selection
+[ ] Ship has regenerable shield (prolonged attack required to destroy)
 [ ] suspend+terminate unused games
-[ ] Auth (bare minimum, preferably no data needed)
-[ ] Encrypted cookie for telling who somebody is
 [ ] Player name != Player Id
 [ ] Graceful disconnect
-[ ] Admin UI (view games / players / latency / etc)
 [ ] When a game doesn't exist anymore, player needs booting to the lobby
+
+[ ] List public games in UI for easy selection
+[ ] Auth (bare minimum, preferably no data needed)
+[ ] Encrypted cookie for telling who somebody is
+[ ] Admin UI (view games / players / latency / etc)
 [ ] Write some tests for game behaviour when nobody is watching
+
+[ ] Collision + network sync requires some thought as it drifts a lot
 
 -- Power-ups
 
@@ -67,6 +69,8 @@ The idea being that big ships attack other big ships, it'll be hard to aim at sm
 [ ] Newtypes for Game/Player... 
 [ ] Break up LocalContext
 [ ] Probably need to spin up the game itself in a spawnProcess on the server to avoid blocking
+[ ] Consider pre-loading assets if we end up with too many of them
+[ ] Need to profile the hot loop, probably benefits to be had by unpacking the records
 
 -- Entirely unnecessary stuff
 
