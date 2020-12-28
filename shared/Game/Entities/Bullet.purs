@@ -5,7 +5,7 @@ import Prelude
 import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
 import Pure.Behaviours.BasicBitchPhysics as BasicBitchPhysics
-import Pure.Entity (Entity, EntityClass(..), EntityId, HtmlColor(..))
+import Pure.Entity (Entity, EntityClass(..), EntityId, HtmlColor(..), sprite)
 import Pure.Math (Point)
 import Pure.Types (EntityCommand, GameEvent)
 
@@ -25,13 +25,11 @@ init id location velocity = { id
              , health: 1.0
              , shield: 0.0
              , behaviour : BasicBitchPhysics.init : Nil
-             , renderables : ({ transform: { x: -2.5
-                                           , y: -2.5
-                                           , width: 5.0
-                                           , height: 5.0
-                                           }
-                              , rotation: 0.0
-                              , color: HtmlColor "#ff0"
-                              , image: Nothing
-                              }) : Nil
-                            }
+             , renderables : (sprite { transform = { x: -2.5
+                                                  , y: -2.5
+                                                  , width: 5.0
+                                                  , height: 5.0
+                                                  }
+                                     , color = HtmlColor "#ff0"
+                                     }) : Nil
+                         }

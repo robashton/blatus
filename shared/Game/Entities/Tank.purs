@@ -5,7 +5,7 @@ import Prelude
 import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
 import Pure.Behaviours.BasicBitchPhysics as BasicBitchPhysics
-import Pure.Entity (Entity, EntityClass(..), EntityId, HtmlColor(..))
+import Pure.Entity (Entity, EntityClass(..), EntityId, HtmlColor(..), sprite)
 import Pure.Math (Point)
 
 import Pure.Behaviours.Damageable as Damageable
@@ -43,13 +43,21 @@ init id location = { id
                                : NetworkSync.init { force: 0.05 } 
                                : Regenerates.init { maxHealth, maxShield, healthDelay: 0, healthRegen: 0.0, shieldDelay: 180, shieldRegen: 0.2 }
                                : Nil
-                   , renderables : ({transform: { x: (-12.5)
+                   , renderables : (sprite {transform = { x: (-15.0)
+                                                , y: (-15.0)
+                                                , width: 30.0
+                                                , height: 30.0
+                                                }
+                                     , image = Just "shield"
+                                     , id = "shield"
+                                     }) 
+                                  : (sprite {transform = { x: (-12.5)
                                                 , y: (-12.5)
                                                 , width: 25.0
                                                 , height: 25.0
                                                 }
-                                   , rotation: 0.0
-                                   , color: HtmlColor "#f00"
-                                   , image: Just "ship"
-                                   }) : Nil
+                                     , image = Just "ship"
+                                     , id = "ship"
+                                     }) 
+                                 : Nil
                                  }

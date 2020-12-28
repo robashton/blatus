@@ -25,5 +25,6 @@ loadImage path = makeAff wrapped
 load :: Aff AssetPackage
 load = do
   ship <- loadImage "/art/ship.png"
-  pure $ Map.fromFoldable $ (Tuple "ship" ship) : Nil
+  shield <- loadImage "/art/shield.png"
+  pure $ Map.fromFoldable $ (Tuple "ship" ship) : (Tuple "shield" shield) : Nil
     

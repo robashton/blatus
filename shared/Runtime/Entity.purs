@@ -1,17 +1,18 @@
 module Pure.Entity where
 
 import Prelude
+
 import Control.Monad.State (State, runState)
 import Data.Exists (Exists, mkExists, runExists)
-import Data.List (List(..), concat, foldr, (:))
-import Data.Maybe (Maybe)
-import Data.Newtype (class Newtype)
-import Data.Tuple (Tuple(..), fst, snd)
-import Pure.Math (Rect, Point, scalePoint)
-import Simple.JSON (class ReadForeign, class WriteForeign)
-import GenericJSON (writeTaggedSumRep, taggedSumRep)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
+import Data.List (List(..), concat, foldr, (:))
+import Data.Maybe (Maybe(..))
+import Data.Newtype (class Newtype)
+import Data.Tuple (Tuple(..), fst, snd)
+import GenericJSON (writeTaggedSumRep, taggedSumRep)
+import Pure.Math (Rect, Point, scalePoint)
+import Simple.JSON (class ReadForeign, class WriteForeign)
 
 newtype HtmlColor = HtmlColor String
 derive instance ntHtmlColor :: Newtype HtmlColor _
@@ -40,7 +41,18 @@ type Renderable = { transform :: Rect
                   , color :: HtmlColor
                   , image :: Maybe String
                   , rotation :: Number
+                  , visible :: Boolean
+                  , id :: String
                   }
+
+sprite :: Renderable
+sprite = { transform: { x: 0.0, y: 0.0, width: 0.0, height: 0.0 }
+         , color: HtmlColor "#fff"
+         , image: Nothing
+         , rotation: 0.0
+         , visible: true
+         , id: "anon" 
+  }
 
 data EntityBehaviourResult cmd ev state  = StateUpdated state 
                                          | StateAndEntityUpdated state (Entity cmd ev)

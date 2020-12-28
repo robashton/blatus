@@ -28,8 +28,8 @@
 [x] Will need to differentiate between player destruction/asteroid/other
 
 [x] Display ship health to player whose ship it is
-[ ] Ship has regenerable shield (prolonged attack required to destroy)
-[ ] Display the shield (low opacity circle will do...)
+[x] Ship has regenerable shield (prolonged attack required to destroy)
+[x] Display the shield 
 [ ] suspend+terminate unused games
 [ ] Player name != Player Id
 [ ] Show player names next to ships
@@ -78,7 +78,7 @@ The idea being that big ships attack other big ships, it'll be hard to aim at sm
 [ ] Newtypes for Game/Player... 
 [ ] Break up LocalContext
 [ ] Probably need to spin up the game itself in a spawnProcess on the server to avoid blocking
-[ ] Consider pre-loading assets if we end up with too many of them
+[ ] Show loading screen whilst pre-loading assets on client
 [ ] Need to profile the hot loop, probably benefits to be had by unpacking the records
 
 -- Entirely unnecessary stuff
