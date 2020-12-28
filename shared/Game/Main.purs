@@ -150,8 +150,8 @@ toSync state@{ players, scene: { entities, world }, lastTick } = { entities: toU
                                                             }
 
 entityToSync :: forall cmd ev. Entity cmd ev -> EntitySync
-entityToSync { id, class: c, location, velocity, rotation } =
-  { id, class: c, location, velocity, rotation }
+entityToSync { id, class: c, location, velocity, rotation, health, shield } =
+  { id, class: c, location, velocity, rotation, health, shield }
 
 addPlayer :: EntityId -> State -> State
 addPlayer id state@{ players, lastTick, pendingSpawns } = 
@@ -188,7 +188,10 @@ entityFromSync sync =
    in
    blank { location = sync.location
          , velocity = sync.velocity
-         , rotation = sync.rotation }
+         , rotation = sync.rotation
+         , shield = sync.shield
+         , health = sync.health 
+         }
 
 mergeSyncInfo :: State -> GameSync -> State
 mergeSyncInfo state@{ scene } sync =

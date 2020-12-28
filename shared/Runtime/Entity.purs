@@ -72,6 +72,7 @@ type Entity cmd ev = { id :: EntityId
                      , renderables :: List Renderable
                      , networkSync :: Boolean
                      , health :: Number
+                     , shield :: Number
                      , behaviour :: List (Exists (EntityBehaviour cmd ev))
                      }
 
@@ -86,6 +87,7 @@ emptyEntity id = { id
                  , friction: 0.0
                  , rotation: 0.0
                  , health: 1.0
+                 , shield: 0.0
                  , renderables: Nil
                  , networkSync: false
                  , behaviour: Nil

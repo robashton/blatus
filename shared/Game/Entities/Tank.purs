@@ -12,12 +12,16 @@ import Pure.Behaviours.Damageable as Damageable
 import Pure.Behaviours.FiresBullets as FiresBullets
 import Pure.Behaviours.Driven as Driven
 import Pure.Behaviours.NetworkSync as NetworkSync
+import Pure.Behaviours.Regenerates as Regenerates
 
 import Pure.Types (EntityCommand, GameEvent)
 
 
 maxHealth :: Number
 maxHealth = 100.0
+
+maxShield :: Number
+maxShield = 50.0
 
 init :: EntityId -> Point -> Entity EntityCommand GameEvent
 init id location = { id
@@ -30,12 +34,14 @@ init id location = { id
                    , rotation: (-0.25)
                    , mass: 1000.0
                    , health: maxHealth
+                   , shield: maxShield
                    , networkSync: true
                    , behaviour:  Damageable.init 
                                : FiresBullets.init { max: 100, speed: 15.0, rate: 5, power: 25.0 }
                                : BasicBitchPhysics.init 
                                : Driven.init { maxSpeed: 5.0, acceleration: 1500.0, turningSpeed: 0.015 } 
                                : NetworkSync.init { force: 0.05 } 
+                               : Regenerates.init { maxHealth, maxShield, healthDelay: 0, healthRegen: 0.0, shieldDelay: 180, shieldRegen: 0.2 }
                                : Nil
                    , renderables : ({transform: { x: (-12.5)
                                                 , y: (-12.5)

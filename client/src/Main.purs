@@ -175,6 +175,9 @@ gameMessageSelector = QuerySelector ("#game-message")
 healthSelector :: QuerySelector
 healthSelector = QuerySelector ("#health-bar")
 
+shieldSelector :: QuerySelector
+shieldSelector = QuerySelector ("#shield-bar")
+
 main :: Effect Unit
 main =  do
   load (\loadedContext@{ socket, window } -> do
@@ -189,6 +192,7 @@ main =  do
           playerListElement <- querySelector playerListSelector $ Document.toParentNode document
           gameMessageElement <- querySelector gameMessageSelector $ Document.toParentNode document
           healthElement <- querySelector healthSelector $ Document.toParentNode document
+          shieldElement <- querySelector shieldSelector $ Document.toParentNode document
 
           -- Just alter context state as messages come in
           let socketSignal = Channel.subscribe loadedContext.socketChannel
@@ -239,6 +243,14 @@ main =  do
                   Element.setAttribute "style" ("width: " <> percentage <> "%") element
                   ) $ entityById (wrap lc.playerName) lc.game.scene
               ) healthElement
+
+            _ <- maybe (pure unit) (\element ->
+                maybe (Element.setAttribute "style" ("width: 0%") element) 
+                  (\player -> do
+                  let percentage = show $ (player.shield / Tank.maxShield) * 100.0
+                  Element.setAttribute "style" ("width: " <> percentage <> "%") element
+                  ) $ entityById (wrap lc.playerName) lc.game.scene
+              ) shieldElement
 
             _ <- maybe (pure unit) (\element -> do
                        let node = Element.toNode element

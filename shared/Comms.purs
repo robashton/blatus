@@ -51,6 +51,8 @@ type EntitySync = { id :: EntityId
                   , location :: Point
                   , velocity :: Point
                   , rotation :: Number
+                  , health :: Number
+                  , shield :: Number
                   }
 
 
