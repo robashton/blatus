@@ -402,7 +402,8 @@ renderScene { entities } assets ctx = do
   _ <- for entities \{ location, renderables, rotation } -> Canvas.withContext ctx $ do
          _ <- Canvas.translate ctx { translateX: location.x, translateY: location.y }
          _ <- Canvas.rotate ctx (rotation * 2.0 * Math.pi)
-         _ <- for renderables \{ transform, color, image, rotation: rr } -> Canvas.withContext ctx $ do
+         _ <- for renderables \{ transform, color, image, rotation: rr, visible } -> Canvas.withContext ctx $ do
+            if visible then do
                 _ <- Canvas.translate ctx { translateX: transform.x, translateY:  transform.y }
                 _ <- Canvas.rotate ctx (rr * 2.0 * Math.pi)
                 _ <- Canvas.translate ctx { translateX: (-transform.x), translateY: (-transform.y) }
@@ -411,6 +412,7 @@ renderScene { entities } assets ctx = do
                         $ map (\img -> Canvas.drawImageScale ctx img transform.x transform.y transform.width transform.height) 
                         $ (flip Map.lookup assets) =<< image 
                 pure unit
+            else pure unit
          Canvas.translate ctx { translateX: (-location.x), translateY: (-location.y) }
   pure unit
 
