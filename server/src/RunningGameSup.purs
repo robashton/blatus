@@ -30,6 +30,8 @@ init = do
     case msg of
          RunningGameList.GameCreated game ->
            void $ startGame { game }
+         _ ->
+           pure unit
 
     )
   pure $ buildSupervisor

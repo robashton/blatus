@@ -29,12 +29,17 @@
 
 [x] Display ship health to player whose ship it is
 [x] Ship has regenerable shield (prolonged attack required to destroy)
+
 [x] Display the shield 
-[ ] suspend+terminate unused games
+
+[x] suspend+terminate unused games
+[ ] When a game doesn't exist anymore, player needs booting to the lobby
+[ ] Graceful disconnect
+
+
 [ ] Player name != Player Id
 [ ] Show player names next to ships
-[ ] Graceful disconnect
-[ ] When a game doesn't exist anymore, player needs booting to the lobby
+
 [ ] Bullets need to not inherit ship speed
 [ ] Ideally bullets are smaller, and double barrelled from the guns on the ship
 [ ] Afterburner trail/animation :)
@@ -47,6 +52,8 @@
 [ ] Write some tests for game behaviour when nobody is watching
 [ ] Shitty chat window so we can hurl abuse when dead (RTC chat should really be done but meh)
 [ ] Probably need different types for the initial sync (shield/health/etc) vs incremental (shouldn't need those things)
+[ ] Distributed setup (worker nodes, erlang comms - unnecessary, but example of how to do this in Purerl..)
+[ ] Opentelemetry integration 
 
 
 [ ] Collision + network sync requires some thought as it drifts a lot
@@ -76,6 +83,7 @@ The idea being that big ships attack other big ships, it'll be hard to aim at sm
 -- Code
 
 [ ] Newtypes for Game/Player... 
+[ ] Ticks should really be a type
 [ ] Break up LocalContext
 [ ] Probably need to spin up the game itself in a spawnProcess on the server to avoid blocking
 [ ] Show loading screen whilst pre-loading assets on client

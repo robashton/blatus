@@ -15,6 +15,7 @@ import Pure.Api (RunningGame(..))
 import SimpleBus as Bus
 
 data RunningGameBusMessage = GameCreated RunningGame
+                           | GameEnded String
 
 foreign import generateId :: Effect String
 
@@ -34,6 +35,12 @@ create playerName gameName public =
      let newGame = { id, startedBy: playerName, name: gameName, public }
      Gen.lift $ Bus.raise bus $ GameCreated newGame
      pure $ CallReply id $ s { knownGames = newGame : existingGames  }
+
+remove :: String -> Effect Unit
+remove gameName = 
+  Gen.call serverName \s@{ knownGames: existingGames } -> do
+     Gen.lift $ Bus.raise bus $ GameEnded gameName
+     pure $ CallReply unit $ s { knownGames = filter (\g -> g.id /= gameName) s.knownGames }
 
 findAll :: Effect (List RunningGame)
 findAll =
