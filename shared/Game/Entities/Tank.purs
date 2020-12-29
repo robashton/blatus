@@ -37,7 +37,7 @@ init id location = { id
                    , shield: maxShield
                    , networkSync: true
                    , behaviour:  Damageable.init 
-                               : FiresBullets.init { max: 100, speed: 15.0, rate: 5, power: 25.0 }
+                               : FiresBullets.init { max: 100, speed: 25.0, rate: 5, power: 25.0 }
                                : BasicBitchPhysics.init 
                                : Driven.init { maxSpeed: 5.0, acceleration: 1500.0, turningSpeed: 0.015 } 
                                : NetworkSync.init { force: 0.05 } 

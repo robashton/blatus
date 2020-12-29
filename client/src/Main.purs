@@ -48,8 +48,11 @@ import Web.DOM.Node as Node
 import Web.DOM.NodeList as NodeList
 import Web.DOM.ParentNode (QuerySelector(..), querySelector)
 import Web.Event.EventTarget as EET
+import Web.Event.EventTarget as ET
 import Web.HTML as HTML
+import Web.HTML.Event.EventTypes as ETS
 import Web.HTML.HTMLDocument as HTMLDocument
+import Web.HTML.Location as Location
 import Web.HTML.Window as Window
 import Web.Socket.Event.EventTypes as WSET
 import Web.Socket.Event.MessageEvent as ME
@@ -73,6 +76,7 @@ type LocalContext = { renderContext :: Canvas.Context2D
                     , tickLatency :: Int
                     , gameUrl :: String
                     , isStarted :: Boolean
+                    , hasError :: Boolean
                     , now :: Number
                     }
 
@@ -112,8 +116,10 @@ inputSignal = do
 
 
 data GameLoopMsg = Input EntityCommand
-                 | GameTick Number
+                 | GameTick { time :: Number, hasError :: Boolean }
                  | Ws String
+
+                
 
 tickSignal :: Signal Unit
 tickSignal = sampleOn (every $ second / 30.0) $ Signal.constant unit
@@ -158,7 +164,8 @@ load cb = do
                , serverTick: 0
                , now
                , tickLatency: 0
-               , isStarted: false }
+               , isStarted: false
+               , hasError: false}
   
 gameInfoSelector :: QuerySelector
 gameInfoSelector = QuerySelector ("#game-info")
@@ -178,14 +185,20 @@ healthSelector = QuerySelector ("#health-bar")
 shieldSelector :: QuerySelector
 shieldSelector = QuerySelector ("#shield-bar")
 
+quitSelector :: QuerySelector
+quitSelector = QuerySelector ("#quit")
+
 main :: Effect Unit
 main =  do
   load (\loadedContext@{ socket, window } -> do
           gameInput <- inputSignal
           renderSignal <- animationFrame
           document <- HTMLDocument.toDocument <$> Window.document window
+          location <- Window.location window
           Milliseconds start <- Instant.unInstant <$> Now.now
-          ticksChannel <- Channel.channel start
+          ticksChannel <- Channel.channel { time: start, hasError: false }
+          quitChannel <- Channel.channel false
+          quitListener <- ET.eventListener (\_ -> Channel.send quitChannel true)
 
           gameInfoElement <- querySelector gameInfoSelector $ Document.toParentNode document
           latencyInfoElement <- querySelector latencyInfoSelector $ Document.toParentNode document
@@ -193,16 +206,19 @@ main =  do
           gameMessageElement <- querySelector gameMessageSelector $ Document.toParentNode document
           healthElement <- querySelector healthSelector $ Document.toParentNode document
           shieldElement <- querySelector shieldSelector $ Document.toParentNode document
+          quitElement <- querySelector quitSelector $ Document.toParentNode document
 
           -- Just alter context state as messages come in
           let socketSignal = Channel.subscribe loadedContext.socketChannel
               gameTickSignal = GameTick <$> Channel.subscribe ticksChannel
+              quitSignal = Channel.subscribe quitChannel
+
 
           let gameStateSignal = foldp (\msg lc -> 
                                          case msg of
                                            Input i -> handleClientCommand lc i
-                                           GameTick now -> handleTick lc now
-                                           Ws str -> either (\err -> lc) (handleServerMessage lc) $ readJSON str
+                                           GameTick tick -> handleTick (lc { hasError = tick.hasError }) tick.time
+                                           Ws str -> either (handleServerError lc) (handleServerMessage lc) $ readJSON str
                                       ) loadedContext $ gameTickSignal <> (Input <$> gameInput) <> (Ws <$> socketSignal)
 
           -- Feed the current time into the game state in a regulated manner
@@ -211,11 +227,27 @@ main =  do
           -- Once I refactor that massive LocalContext object I probably can as I won't need to init up front
           runSignal $ (\_ -> do
             Milliseconds now <- Instant.unInstant <$> Now.now
-            Channel.send ticksChannel now
+            socketState <- WS.readyState socket
+            Channel.send ticksChannel { time: now, hasError: socketState == RS.Closing || socketState == RS.Closed }
             ) <$> tickSignal
 
           -- Send player input up to the server
           runSignal $ (\cmd -> safeSend socket $ writeJSON $ ClientCommand cmd) <$> gameInput
+
+          -- Handle quitting manually
+          runSignal $ (\quit -> 
+
+                      if quit then do
+                        _ <- safeSend socket $ writeJSON Quit
+                        _ <- Location.setHref "/" location
+                        pure unit
+                      else 
+                        pure unit
+
+                      ) <$> quitSignal
+
+
+          maybe (pure unit) (\element -> ET.addEventListener ETS.click quitListener true $ Element.toEventTarget element) quitElement
 
           -- Tick as well
           runSignal $ (\lc -> do
@@ -226,15 +258,21 @@ main =  do
                       Node.setTextContent lc.gameUrl $ Element.toNode element) gameInfoElement
 
             _ <- maybe (pure unit) (\element -> do
-                      Node.setTextContent ("Connected (" <> (show (lc.tickLatency * 33)) <> "ms)") $ Element.toNode element) latencyInfoElement
+                      if lc.hasError then
+                        Node.setTextContent "Error: Not connected" $ Element.toNode element
+                      else
+                        Node.setTextContent ("Connected (" <> (show (lc.tickLatency * 33)) <> "ms)") $ Element.toNode element) latencyInfoElement
 
             _ <- maybe (pure unit) (\element -> 
-                      case Main.pendingSpawn (wrap lc.playerName) lc.game of 
-                           Nothing -> 
-                             Node.setTextContent "" $ Element.toNode element
-                           Just ticks ->
-                             Node.setTextContent ("Waiting " <> (show (ticks `div` 30)) <> " seconds to respawn") $ Element.toNode element
-                             ) gameMessageElement
+                      if lc.hasError then
+                        Node.setTextContent "Server disconnected, try refreshing or switch games" $ Element.toNode element
+                      else
+                        case Main.pendingSpawn (wrap lc.playerName) lc.game of 
+                             Nothing -> 
+                               Node.setTextContent "" $ Element.toNode element
+                             Just ticks ->
+                               Node.setTextContent ("Waiting " <> (show (ticks `div` 30)) <> " seconds to respawn") $ Element.toNode element
+                               ) gameMessageElement
 
             _ <- maybe (pure unit) (\element ->
                 maybe (Element.setAttribute "style" ("width: 0%") element) 
@@ -284,6 +322,8 @@ safeSend ws str = do
     _ ->
       pure unit
      
+handleServerError :: forall a. LocalContext -> a -> LocalContext
+handleServerError lc _ = lc { hasError = true }
 
 handleServerMessage :: LocalContext -> ServerMsg -> LocalContext
 handleServerMessage lc msg =

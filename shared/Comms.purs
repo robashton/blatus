@@ -34,6 +34,7 @@ type PlayerListItem = { playerId :: String
                       }
 
 data ClientMsg = ClientCommand EntityCommand
+               | Quit
                | Ping Int
 
 type WelcomeInfo = { gameUrl :: String

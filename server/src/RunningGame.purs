@@ -65,6 +65,9 @@ sendCommand id playerId msg = Gen.call (serverName id) \s@{ game, info } -> do
       pure $ CallReply Nothing $ s { game = ug }
     Ping tick  -> do
       pure $ CallReply (Just $ Pong tick) $ s { game = Main.updatePlayerTick (wrap playerId) tick game  }
+    Quit -> Gen.lift do
+      Bus.raise (bus info.id) $ PlayerRemoved $ wrap playerId
+      pure $ CallReply Nothing $ s { game = Main.removePlayer (wrap playerId) game }
 
 handleEvents :: String -> Main.State -> List GameEvent -> Effect Main.State
 handleEvents id state Nil = pure state

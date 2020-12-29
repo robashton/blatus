@@ -31,4 +31,4 @@ init { max, speed, rate, power } = mkExists $ EntityBehaviour { state: { current
                                                _ -> pure state
                                           where direction entity = rotationToVector entity.rotation
                                                 location entity = entity.location + (scalePoint entity.width $ direction entity)
-                                                velocity entity = (scalePoint speed $ direction entity) + entity.velocity
+                                                velocity entity = (scalePoint speed $ direction entity) -- + entity.velocity
