@@ -103,7 +103,7 @@ brakeSignal = do
 fireSignal :: Effect (Signal EntityCommand)
 fireSignal = do
   key <- keyPressed 32
-  pure $ dropRepeats $ (\x -> if x then FireBullet else StopFiring) <$> key
+  pure $ dropRepeats $ (\x -> if x then StartFireBullet else StopFireBullet) <$> key
 
 inputSignal :: Effect (Signal EntityCommand)
 inputSignal = do
@@ -378,7 +378,7 @@ handleTick context@{ game, camera: { config }, playerName, socket } now =
 
 trackPlayer :: String -> Game EntityCommand GameEvent -> CameraConfiguration -> CameraConfiguration
 trackPlayer playerName game config = 
-  maybe' (\_ -> config { distance = config.distance + 2.0 }) (\player -> let targetDistance = 500.0 + (abs player.velocity.x + abs player.velocity.y) * 10.0
+  maybe' (\_ -> config { distance = config.distance + 2.0 }) (\player -> let targetDistance = 750.0 + (abs player.velocity.x + abs player.velocity.y) * 20.0
                                                                           in config { lookAt = player.location 
                                                                                     , distance = config.distance + 0.02 * (targetDistance - config.distance)
                                                                                     }) $ entityById (wrap playerName) game

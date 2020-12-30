@@ -35,16 +35,21 @@
 [x] suspend+terminate unused games
 [x] When a game doesn't exist anymore, player needs booting to the lobby
 [x] Graceful disconnect
-[ ] Need to discover the base url to connect to..
-
+[x] Need to discover the base url to connect to..
 
 [ ] Player name != Player Id
 [ ] Show player names next to ships
 
 [x] Bullets need to not inherit ship speed
+[ ] Bullets should come in bursts, more likely to hit other players that way
 [ ] Ideally bullets are smaller, and double barrelled from the guns on the ship
 [ ] Afterburner trail/animation :)
 [ ] Sounds (just buy an effects lib)
+
+[ ] Fullscreen canvas, UI overlayed on top
+[ ] Mobile input/controls
+[ ] Test on iphone
+[ ] Release process (systemd package, etc)
 
 [ ] List public games in UI for easy selection
 [ ] Auth (bare minimum, preferably no data needed)
@@ -76,6 +81,15 @@
 [ ] Health++ as you grow
 [ ] Speed++ as you grow
 [ ] Power++ as you grow
+
+The idea being that big ships attack other big ships, it'll be hard to aim at small ships if you're a big ship
+
+-- Possible Game Play Idea #2
+
+- Capture the flag/area
+- Points awarded for staying alive in a specific region of space
+
+
 
 The idea being that big ships attack other big ships, it'll be hard to aim at small ships if you're a big ship
 

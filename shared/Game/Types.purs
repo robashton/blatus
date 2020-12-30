@@ -22,12 +22,12 @@ data EntityCommand = Damage { amount :: Number, source :: Maybe EntityId }
                    | PushBackward 
                    | TurnLeft 
                    | TurnRight
-                   | FireBullet
+                   | StartFireBullet
+                   | StopFireBullet
                    | StopPushForward
                    | StopPushBackward
                    | StopTurnLeft
                    | StopTurnRight
-                   | StopFiring
                    | UpdateServerState { location :: Point
                                        , velocity :: Point
                                        , rotation :: Number

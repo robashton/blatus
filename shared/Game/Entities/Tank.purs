@@ -37,10 +37,10 @@ init id location = { id
                    , shield: maxShield
                    , networkSync: true
                    , behaviour:  Damageable.init 
-                               : FiresBullets.init { max: 100, speed: 25.0, rate: 5, power: 25.0 }
+                               : FiresBullets.init { max: 10, speed: 25.0, rate: 2, power: 25.0, coolOffPeriod: 30 }
                                : BasicBitchPhysics.init 
-                               : Driven.init { maxSpeed: 5.0, acceleration: 1500.0, turningSpeed: 0.015 } 
-                               : NetworkSync.init { force: 0.05 } 
+                               : Driven.init { maxSpeed: 5.0, acceleration: 1500.0, turningSpeed: 0.030 } 
+                               : NetworkSync.init { force: 0.08 } 
                                : Regenerates.init { maxHealth, maxShield, healthDelay: 0, healthRegen: 0.0, shieldDelay: 180, shieldRegen: 0.2 }
                                : Nil
                    , renderables : (sprite {transform = { x: (-15.0)
