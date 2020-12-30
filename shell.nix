@@ -27,6 +27,13 @@ let
       rev = "47a8bd6ff017dad2208f10dddf91f6f3258a09be";
     };
 
+  etwasPackages =
+    builtins.fetchGit {
+      name = "id3as-etwas-packages";
+      url = "https://github.com/id3as/etwas";
+      rev = "289d841fa2fffccca266407764dc619cfae6a2fb";
+    };
+
 
   nixpkgs =
     import pinnedNix {
@@ -34,6 +41,7 @@ let
         (import erlangReleases)
         (import purerlReleases)
         (import purerlSupport)
+        (import "${etwasPackages}/overlay.nix")
       ];
     };
     
@@ -45,15 +53,17 @@ with nixpkgs;
 mkShell {
   buildInputs = with pkgs; [
 
-    (nixerl.erlang-23-0-4.erlang.override { wxSupport = false; })
-    (nixerl.erlang-23-0-4.rebar3.override { erlang = (nixpkgs.nixerl.erlang-23-0-4.erlang.override { wxSupport = false; }); })
+    (nixerl.erlang-22-3.erlang.override { wxSupport = false; })
+    (nixerl.erlang-22-3.rebar3.override { erlang = (nixpkgs.nixerl.erlang-22-3.erlang.override { wxSupport = false; }); })
 
-    (purerl-support.erlang_ls-0-5-1.override { erlang = (nixpkgs.nixerl.erlang-23-0-4.erlang.override { wxSupport = false; }); })
+    (purerl-support.erlang_ls-0-5-1.override { erlang = (nixpkgs.nixerl.erlang-22-3.erlang.override { wxSupport = false; }); })
 
     purerl-support.purescript-0-13-8
     purerl-support.spago-0-16-0
     purerl-support.dhall-json-1-5-0
 
     purerl.purerl-0-0-7
+
+    etwas
    ];
 }

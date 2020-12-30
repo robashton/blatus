@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -e
+
+rebar3 release
+
+rm -rf _etwas
+mkdir -p _etwas
+
+nix-build release.nix -o _etwas/result
+
+cd _etwas
+
+etwas result "pure_unit-release"
+
+tar -cavf "pure_unit-release.tgz" "pure_unit-release"

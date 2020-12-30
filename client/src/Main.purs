@@ -139,11 +139,13 @@ load cb = do
               ) $ Assets.load
   where prepareContexts canvasElement offscreenCanvas assets = do
           window <- HTML.window
+          location <- Window.location window
           renderContext <- Canvas.getContext2D canvasElement
           offscreenContext <- Canvas.getContext2D offscreenCanvas
           canvasWidth <- Canvas.getCanvasWidth canvasElement
           socketChannel <- Channel.channel $ ""
-          socket <- createSocket "ws://localhost:3000/messaging" $ Channel.send socketChannel
+          host <- Location.host location
+          socket <- createSocket ("ws://" <> host <> "/messaging") $ Channel.send socketChannel
           canvasHeight <- Canvas.getCanvasHeight canvasElement
           Milliseconds now <- Instant.unInstant <$> Now.now
 
