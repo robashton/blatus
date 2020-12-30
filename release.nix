@@ -34,7 +34,6 @@ stdenv.mkDerivation rec {
   buildInputs = [
     # Erlang deps, apparently
     ncurses   
-    glibc
     openssl 
   ];
 }

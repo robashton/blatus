@@ -1,0 +1,10 @@
+- Run base amazon AMI
+- curl -L https://nixos.org/nix/install | sh
+- mkdir ~/bin
+- curl -sfL https://direnv.net/install.sh | bash
+- eval "$(direnv hook bash)" to bashrc or whatever
+- yum install git
+- git clone pure_unit
+- cd pure_unit, direnv allow..
+- github keys
+

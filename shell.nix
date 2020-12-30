@@ -53,10 +53,10 @@ with nixpkgs;
 mkShell {
   buildInputs = with pkgs; [
 
-    (nixerl.erlang-22-3.erlang.override { wxSupport = false; })
-    (nixerl.erlang-22-3.rebar3.override { erlang = (nixpkgs.nixerl.erlang-22-3.erlang.override { wxSupport = false; }); })
+    (nixerl.erlang-23-0-4.erlang.override { wxSupport = false; })
+    (nixerl.erlang-23-0-4.rebar3.override { erlang = (nixpkgs.nixerl.erlang-23-0-4.erlang.override { wxSupport = false; }); })
 
-    (purerl-support.erlang_ls-0-5-1.override { erlang = (nixpkgs.nixerl.erlang-22-3.erlang.override { wxSupport = false; }); })
+    (purerl-support.erlang_ls-0-5-1.override { erlang = (nixpkgs.nixerl.erlang-23-0-4.erlang.override { wxSupport = false; }); })
 
     purerl-support.purescript-0-13-8
     purerl-support.spago-0-16-0
