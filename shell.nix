@@ -1,10 +1,6 @@
 
 let
-  erlangReleases = builtins.fetchGit {
-    name = "nixpkgs-nixerl";
-    url = "https://github.com/nixerl/nixpkgs-nixerl";
-    rev = "6321e5b8b6cfe4c13307a2d2093c4b6243e6ad53";
-  }; #builtins.fetchTarball https://github.com/nixerl/nixpkgs-nixerl/archive/v1.0.15-devel.tar.gz;
+  erlangReleases = builtins.fetchTarball https://github.com/nixerl/nixpkgs-nixerl/archive/v1.0.18-devel.tar.gz;
 
   pinnedNix =
     builtins.fetchGit {
@@ -17,14 +13,14 @@ let
     builtins.fetchGit {
       url = "https://github.com/purerl/nixpkgs-purerl.git";
       ref = "master";
-      rev = "b3f10cd33107f220e4328f0222d3d026bf4f5f99";
+      rev = "01820500971cf0772a505ca055a9fd58c8729320";
     };
 
   purerlSupport =
     builtins.fetchGit {
       name = "purerl-support-packages";
       url = "git@github.com:id3as/nixpkgs-purerl-support.git";
-      rev = "47a8bd6ff017dad2208f10dddf91f6f3258a09be";
+      rev = "1bb777de71b0532c961de68a8ccd24709b93318d";
     };
 
   etwasPackages =
@@ -44,6 +40,19 @@ let
         (import "${etwasPackages}/overlay.nix")
       ];
     };
+
+  erlangChannel = nixpkgs.nixerl.erlang-23-2-1.overrideScope' (self: super: {
+    erlang = super.erlang.override {
+      wxSupport = false;
+    };
+  });
+
+  pls = nixpkgs.nodePackages.purescript-language-server.override {
+    version = "0.15.0";
+    src = builtins.fetchurl {
+      url = "https://registry.npmjs.org/purescript-language-server/-/purescript-language-server-0.15.0.tgz";
+    };
+  };
     
 
 in
@@ -53,16 +62,18 @@ with nixpkgs;
 mkShell {
   buildInputs = with pkgs; [
 
-    (nixerl.erlang-23-0-4.erlang.override { wxSupport = false; })
-    (nixerl.erlang-23-0-4.rebar3.override { erlang = (nixpkgs.nixerl.erlang-23-0-4.erlang.override { wxSupport = false; }); })
+    erlangChannel.erlang
+    erlangChannel.rebar3
+    erlangChannel.erlang-ls
 
-    (purerl-support.erlang_ls-0-5-1.override { erlang = (nixpkgs.nixerl.erlang-23-0-4.erlang.override { wxSupport = false; }); })
-
-    purerl-support.purescript-0-13-8
+    purerl-support.purescript-0-14-0
     purerl-support.spago-0-16-0
     purerl-support.dhall-json-1-5-0
+    purerl-support.purty-7-0-0
+    purerl-support.psa-0-8-2
 
-    purerl.purerl-0-0-7
+    purerl.purerl-0-0-8
+    pls
 
     etwas
    ];

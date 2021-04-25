@@ -1,7 +1,6 @@
 module ProfileSetup where
-  
-import Prelude
 
+import Prelude
 import Data.Array as Array
 import Data.Foldable (foldM, foldl)
 import Data.Int as Int
@@ -21,7 +20,6 @@ import Pure.Types (EntityCommand, GameEvent)
 ----                    uncurry (foldl Main.handleEvent) result
 --    
 --                    ) game $ Array.range 0 1000
-
 --setup :: Effect Main.State
 --setup = 
 --    foldM (\g _ -> addRandomPlayer g) Main.init $ Array.range 0 100

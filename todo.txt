@@ -1,3 +1,26 @@
+How about
+----
+
+[ ] Slow down the space ship, there is no need for such speed
+[ ] Destroyable asteroids floating around
+[ ] Inventory (Can just do this in HTML..)
+[ ] Persistence
+    [ ] Ship / Inventory / Player
+    [ ] World 
+
+[ ] Start off with no shield, small health
+[ ] Planets / Suns / Etc (Representative, gravity wells?)
+[ ] Resources to collect
+    [ ] Metal(s)
+    [ ] Rock
+    [ ] Bio matter
+    [ ] Gases
+[ ] Structures to create
+    [ ] Space port
+
+[ ] Automatable shit, no farming.
+
+
 -- Features
 
 [x] Pings need sending from client/server every second

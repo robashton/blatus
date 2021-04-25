@@ -16,8 +16,7 @@ import Data.Newtype (unwrap, wrap)
 import Data.Time.Duration (Milliseconds(..))
 import Data.Traversable (for, traverse)
 import Data.Tuple (Tuple(..), fst)
-import Debug.Trace (spy)
-import Debug.Trace as Trace
+import Debug (spy)
 import Effect (Effect)
 import Effect.Aff (runAff_)
 import Effect.Now as Now

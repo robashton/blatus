@@ -1,9 +1,10 @@
+
 let upstream =
-      https://github.com/purescript/package-sets/releases/download/psc-0.13.4-20191110/packages.dhall sha256:563a7f694e18e6399f7f6d01f5b7e3c3345781655d99945768f48e458feb93a4
+      https://github.com/purescript/package-sets/releases/download/psc-0.14.0-20210329/packages.dhall sha256:32c90bbcd8c1018126be586097f05266b391f6aea9125cf10fba2292cb2b8c73
 
 let overrides = {=}
 
-let additions =
+let additions = 
       { sequences =
           { dependencies =
               [ "prelude"
@@ -16,8 +17,8 @@ let additions =
               , "tuples"
               , "newtype"
               ]
-          , repo = "ssh://git@github.com/hdgarrood/purescript-sequences.git"
-          , version = "448919594e979cfd2a45ebcde619c22a9fb984fc"
+          , repo = "ssh://git@github.com/id3as/purescript-sequences.git"
+          , version = "73fdb04afa32be8a3e3d1d37203592118d4307bc"
           }
       }
 

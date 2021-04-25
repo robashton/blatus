@@ -1,29 +1,14 @@
 let upstream =
-      https://github.com/purerl/package-sets/releases/download/erl-0.13.8-20201120/packages.dhall sha256:fae9f78aca10f80d46819a1e836cb817f2b57542d583ec891ffafd670cff9b4c
+      https://github.com/purerl/package-sets/releases/download/erl-0.14.0-20210319/packages.dhall sha256:aa6d4bcef87080a6684464cfba5fb611b03c4a4372b1e08c77186de4a1f5b66f
 
 let overrides =
       { erl-cowboy =
-          { dependencies = [ "erl-modules" ]
-          , repo = "https://github.com/robashton/purescript-erl-cowboy.git"
-          , version = "52ba8267dc4498f8d0d73df6eeec1a7aa4dfa812"
-          },
-
-      erl-lists =
-              upstream.erl-lists
-          //  { version = "1d059f0df04f1c83f35a6eae706bd86cda8b015e" },
-
-      erl-pinto =
-          { dependencies = [ "erl-process" ]
-          , repo = "ssh://git@github.com/id3as/purescript-erl-pinto.git"
-          , version = "d94d1220fe0fd6bc6840e62bd14920e9ab30c234"
-          },
-
-      erl-stetson =
-          { dependencies = ["erl-atom" , "erl-binary" , "erl-lists" , "erl-maps" , "erl-tuples" , "erl-modules" , "foreign" , "maybe" , "prelude" , "transformers" , "routing-duplex"]
-          , repo = "ssh://git@github.com/id3as/purescript-erl-stetson.git"
-          , version = "27aa696d9eac708119e1bf6110dd2a1088b9b7ed"
-          }
+        { repo = "https://github.com/purerl/purescript-erl-cowboy.git"
+        , version = "3efdf080b8f1eece411411068b93951b851284cc"
+        , dependencies = [ "lists", "prelude" ]
+        }
       }
+
 
 let extras = {
        erl-simplebus =
@@ -32,30 +17,59 @@ let extras = {
               , "effect"
               ]
           , repo = "ssh://git@github.com/id3as/purescript-erl-simplebus.git"
-          , version = "499883e219c9d828ad67cb68726c8e8c4335ff7b"
-          },
-       erl-logger =
-          { dependencies =
-              [ "record"
-              ]
-          , repo = "ssh://git@github.com/id3as/purescript-erl-logger.git"
-          , version = "4966aba0f7a3579c1ff8646f0fb6747d49c241a7"
-          },
-       sequences =
-          { dependencies =
-              [ "prelude"
-              , "unsafe-coerce"
-              , "unfoldable"
-              , "lazy"
-              , "arrays"
-              , "profunctor"
-              , "maybe"
-              , "tuples"
-              , "newtype"
-              ]
-          , repo = "ssh://git@github.com/hdgarrood/purescript-sequences.git"
-          , version = "448919594e979cfd2a45ebcde619c22a9fb984fc"
+          , version = "9e95648be2d75bc30268a3e214e1950c86680982"
           }
+      , erl-logger =
+        { dependencies = [ "prelude", "erl-atom", "erl-lists", "record" ]
+        , repo = "https://github.com/id3as/purescript-erl-logger.git"
+        , version = "200b15d498ce3b4d533cf5566edeaf7516730498"
+        }
+      , sequences =
+        { dependencies =
+          [ "prelude"
+          , "unsafe-coerce"
+          , "partial"
+          , "unfoldable"
+          , "lazy"
+          , "arrays"
+          , "profunctor"
+          , "maybe"
+          , "tuples"
+          , "newtype"
+          ]
+        , repo = "https://github.com/id3as/purescript-sequences.git"
+        , version = "73fdb04afa32be8a3e3d1d37203592118d4307bc"
+        }
+      , erl-stetson =
+        { repo = "https://github.com/id3as/purescript-erl-stetson.git"
+        , dependencies =
+          [ "erl-atom"
+          , "erl-binary"
+          , "erl-lists"
+          , "erl-maps"
+          , "erl-tuples"
+          , "erl-modules"
+          , "erl-cowboy"
+          , "foreign"
+          , "maybe"
+          , "prelude"
+          , "transformers"
+          , "routing-duplex"
+          ]
+        , version = "a1cf52e4141b1d01de131860f63a2bbbf4b0f86e"
+        }
+      , erl-pinto =
+        { repo = "https://github.com/id3as/purescript-erl-pinto.git"
+        , dependencies =
+          [ "erl-process"
+          , "erl-lists"
+          , "erl-atom"
+          , "erl-tuples"
+          , "erl-modules"
+          , "foreign"
+          ]
+        , version = "5a43ccd12e5ec60d3e1d68df6a981d31ed730f64"
+        }
       }
 
 in  upstream ⫽ overrides⫽ extras

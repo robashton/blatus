@@ -1,5 +1,5 @@
 module Pure.RunningGameList where
- 
+
 import Prelude
 import Effect (Effect)
 import Erl.Atom (atom)
@@ -8,54 +8,57 @@ import Data.Maybe (Maybe(..))
 import Data.Newtype (wrap, unwrap)
 import Effect (Effect)
 import Erl.Data.List (List, (:), nil, head, filter)
-import Pinto (ServerName(..), StartLinkResult)
-import Pinto.Gen (CallResult(..))
-import Pinto.Gen as Gen
+import Pinto (RegistryName(..), StartLinkResult)
+import Pinto.GenServer (ServerPid, ServerRef(..), InitResult(..), ServerType)
+import Pinto (RegistryName(..), StartLinkResult)
+import Pinto.GenServer as Gen
 import Pure.Api (RunningGame(..))
 import SimpleBus as Bus
 
-data RunningGameBusMessage = GameCreated RunningGame
-                           | GameEnded String
+data RunningGameBusMessage
+  = GameCreated RunningGame
+  | GameEnded String
 
 foreign import generateId :: Effect String
 
-type StartArgs = {}
-type State = { knownGames :: List RunningGame }
+type StartArgs
+  = {}
+
+type State
+  = { knownGames :: List RunningGame }
 
 bus :: Bus.Bus String RunningGameBusMessage
 bus = Bus.bus $ "running_games_bus"
 
-serverName :: ServerName State Unit
+serverName :: RegistryName (ServerType Unit Unit Unit State)
 serverName = Local $ atom "running_game_list"
 
 create :: String -> String -> Boolean -> Effect String
-create playerName gameName public = 
-  Gen.call serverName \s@{ knownGames: existingGames } -> do
-     id <- Gen.lift generateId
-     let newGame = { id, startedBy: playerName, name: gameName, public }
-     Gen.lift $ Bus.raise bus $ GameCreated newGame
-     pure $ CallReply id $ s { knownGames = newGame : existingGames  }
+create playerName gameName public =
+  Gen.call (ByName serverName) \_from s@{ knownGames: existingGames } -> do
+    id <- Gen.lift generateId
+    let
+      newGame = { id, startedBy: playerName, name: gameName, public }
+    Gen.lift $ Bus.raise bus $ GameCreated newGame
+    pure $ Gen.reply id $ s { knownGames = newGame : existingGames }
 
 remove :: String -> Effect Unit
-remove gameName = 
-  Gen.call serverName \s@{ knownGames: existingGames } -> do
-     Gen.lift $ Bus.raise bus $ GameEnded gameName
-     pure $ CallReply unit $ s { knownGames = filter (\g -> g.id /= gameName) s.knownGames }
+remove gameName =
+  Gen.call (ByName serverName) \_from s@{ knownGames: existingGames } -> do
+    Gen.lift $ Bus.raise bus $ GameEnded gameName
+    pure $ Gen.reply unit $ s { knownGames = filter (\g -> g.id /= gameName) s.knownGames }
 
 findAll :: Effect (List RunningGame)
 findAll =
-  Gen.call serverName \s@{ knownGames } -> do
-     pure $ CallReply knownGames s
+  Gen.call (ByName serverName) \_from s@{ knownGames } -> do
+    pure $ Gen.reply knownGames s
 
 findById :: String -> Effect (Maybe RunningGame)
 findById id =
-  Gen.call serverName \s@{ knownGames } -> do
-     pure $ CallReply (head $ filter (\g -> g.id == id) knownGames) s
+  Gen.call (ByName serverName) \_from s@{ knownGames } -> do
+    pure $ Gen.reply (head $ filter (\g -> g.id == id) knownGames) s
 
-startLink :: StartArgs -> Effect StartLinkResult
-startLink args =
-   Gen.startLink serverName (init args)
-
-init :: StartArgs -> Gen.Init State  Unit
-init args = do
-  pure $ { knownGames : nil }
+startLink :: StartArgs -> Effect (StartLinkResult (ServerPid Unit Unit Unit State))
+startLink args = Gen.startLink $ (Gen.mkSpec init) { name = Just serverName }
+  where
+  init = pure $ InitOk { knownGames: nil }
