@@ -1,10 +1,10 @@
 module Pure.PrimarySup where
 
 import Prelude
-import Effect (Effect)
-import Erl.Data.List (nil, (:))
 import Data.Maybe (Maybe(..))
+import Effect (Effect)
 import Erl.Atom (atom)
+import Erl.Data.List (nil, (:))
 import Erl.Process.Raw (class HasPid)
 import Pinto (RegistryName(..), StartLinkResult)
 import Pinto.Sup (ChildShutdownTimeoutStrategy(..), ChildType(..), ErlChildSpec, RestartStrategy(..), Strategy(..), SupervisorPid, SupervisorRef(..), SupervisorSpec, mkErlChildSpec)

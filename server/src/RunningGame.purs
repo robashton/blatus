@@ -11,6 +11,7 @@ import Data.Maybe (Maybe(..))
 import Data.Newtype (wrap, unwrap)
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..), fst, snd, uncurry)
+import Debug.Trace (spy)
 import Effect (Effect)
 import Erl.Atom (atom)
 import Erl.Process (Process(..))
@@ -94,9 +95,9 @@ startLink :: StartArgs -> Effect (StartLinkResult RunningGamePid)
 startLink args@{ game } = Gen.startLink $ (Gen.mkSpec init) { name = Just $ serverName args.game.id, handleInfo = Just handleInfo }
   where
   init = do
+    Gen.lift $ Log.info Log.RunningGame "In the game init bit" game
     self <- Gen.self
     Gen.lift do
-      --Fprof.start
       Log.info Log.RunningGame "Started game" game
       void $ Timer.sendAfter 0 Tick self
       void $ Timer.sendAfter 1000 DoSync self

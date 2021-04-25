@@ -2,9 +2,9 @@ module Pure.Logging where
 
 import Prelude
 import Effect (Effect)
+import Erl.Atom (Atom, atom)
 import Erl.Data.List (List, nil, (:))
 import Logger as Logger
-import Erl.Atom (Atom, atom)
 
 data LogDomain
   = Web
@@ -21,4 +21,4 @@ logDomain domain =
     : nil
 
 info :: forall r. LogDomain -> String -> { | r } -> Effect Unit
-info domain text r = Logger.debug { domain: logDomain domain, text, type: Logger.Trace } r
+info domain = Logger.info <<< Logger.traceMetadata (logDomain domain)

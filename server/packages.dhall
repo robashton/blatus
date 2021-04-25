@@ -68,7 +68,7 @@ let extras = {
           , "erl-modules"
           , "foreign"
           ]
-        , version = "5a43ccd12e5ec60d3e1d68df6a981d31ed730f64"
+        , version = "8b9baeb93f7c1e55db5be1a41dd06251d18d49f8"
         }
       }
 
