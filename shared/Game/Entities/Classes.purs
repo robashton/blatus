@@ -6,16 +6,19 @@ import GenericJSON (writeTaggedSumRep, taggedSumRep)
 import Data.Show.Generic (genericShow)
 import Simple.JSON (class ReadForeign, class WriteForeign)
 
+-- A lot of this can probably now go in shared behaviours
+-- as we can have typeclasses around 'syncState' that tell us how to convert
+-- an entity to and from network protocol
 data EntityClass
   = Tank
   | Bullet
 
+-- It is envisaged that some of these find there way into common components
 type GameEntity
-  = ( | NetworkSync )
-
-type NetworkSync
   = ( networkSync :: Boolean
     , class :: EntityClass
+    , health :: Number
+    , shield :: Number
     )
 
 derive instance genericEntityClass :: Generic EntityClass _

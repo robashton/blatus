@@ -20,13 +20,6 @@ updateEntity f = State.modify_ (\s -> s { entity = f s.entity })
 raiseEvent :: forall cmd ev entity. ev -> State (Entity.BehaviourExecutionContext cmd ev entity) Unit
 raiseEvent ev = State.modify_ (\s@{ events } -> s { events = ev : events })
 
-applyThrust :: forall cmd ev entity. Number -> Number -> State (Entity.BehaviourExecutionContext cmd ev entity) Unit
-applyThrust accel maxSpeed = do
-  e <- State.gets _.entity
-  let
-    updated = Entity.applyForce { direction: Math.rotationToVector e.rotation, force: accel } e
-  State.modify_ (\s -> s { entity = updated })
-
 rotate :: forall cmd ev entity. Number -> State (Entity.BehaviourExecutionContext cmd ev entity) Unit
 rotate amount = do
   State.modify_ (\s -> s { entity { rotation = s.entity.rotation + amount } })

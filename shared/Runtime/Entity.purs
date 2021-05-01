@@ -34,8 +34,6 @@ derive newtype instance showEntityId :: Show EntityId
 
 derive newtype instance ordEntityId :: Ord EntityId
 
-
-
 type Renderable
   = { transform :: Rect
     , color :: HtmlColor
@@ -80,21 +78,18 @@ data EntityBehaviour cmd ev entity state
     }
 
 type Entity cmd ev entity
-  = Record
-      ( id :: EntityId
-      , location :: Point
-      , width :: Number
-      , height :: Number
-      , mass :: Number
-      , velocity :: Point
-      , friction :: Number
-      , rotation :: Number
-      , renderables :: List Renderable
-      , behaviour :: List (Exists (EntityBehaviour cmd ev entity))
-      , health :: Number
-      , shield :: Number
-      | entity
-      )
+  = Record (EntityRow cmd ev entity)
+
+type EntityRow cmd ev entity
+  = ( id :: EntityId
+    , location :: Point
+    , width :: Number
+    , height :: Number
+    , rotation :: Number
+    , renderables :: List Renderable
+    , behaviour :: List (Exists (EntityBehaviour cmd ev entity))
+    | entity
+    )
 
 emptyEntity :: forall cmd ev entity. EntityId -> Record entity -> Entity cmd ev entity
 emptyEntity id entity =
@@ -103,12 +98,7 @@ emptyEntity id entity =
     , location: { x: 0.0, y: 0.0 }
     , width: 0.0
     , height: 0.0
-    , mass: 0.0
-    , velocity: { x: 0.0, y: 0.0 }
-    , friction: 0.0
     , rotation: 0.0
-    , health: 1.0
-    , shield: 0.0
     , renderables: Nil
     , behaviour: Nil
     }
@@ -131,11 +121,10 @@ processCommand e command = foldr executeCommand (Tuple (e { behaviour = Nil }) N
     let
       Tuple newState result = runState (handler command behaviour.state) { entity, events: Nil }
 
+      newEntity :: Entity cmd ev entity
       newEntity = result.entity
 
+      newEvents :: List ev
       newEvents = result.events
     in
       Tuple (newEntity { behaviour = (mkExists $ EntityBehaviour behaviour { state = newState }) : behaviourList }) newEvents
-
-applyForce :: forall cmd ev entity. { direction :: Point, force :: Number } -> Entity cmd ev entity -> Entity cmd ev entity
-applyForce { direction, force } entity@{ velocity, mass } = entity { velocity = velocity + (scalePoint (force / mass) direction) }

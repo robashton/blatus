@@ -39,9 +39,9 @@ collidePair fn li state ri =
 
                 rf = (magnitude right.velocity) * right.mass
 
-                ur = Entity.applyForce { direction: (vectorBetween left.location right.location), force: lf } right -- force from left to right, applied to right
+                ur = BasicBitchPhysics.applyForce { direction: (vectorBetween left.location right.location), force: lf } right -- force from left to right, applied to right
 
-                ul = Entity.applyForce { direction: (vectorBetween right.location left.location), force: rf } left -- force from right to left, applied to left
+                ul = BasicBitchPhysics.applyForce { direction: (vectorBetween right.location left.location), force: rf } left -- force from right to left, applied to left
               in
                 state
                   { entities = Map.insert ri ur $ Map.insert li ul state.entities

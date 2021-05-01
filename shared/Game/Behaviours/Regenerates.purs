@@ -3,6 +3,7 @@ module Pure.Behaviours.Regenerates where
 import Prelude
 import Data.Exists (Exists, mkExists)
 import Math as Math
+import Prim.Row as Row
 import Pure.Behaviour as B
 import Pure.Entity (EntityBehaviour(..))
 import Pure.Types (EntityCommand(..), GameEvent(..))
@@ -16,7 +17,9 @@ type Config
     , maxShield :: Number
     }
 
-init :: forall entity. Config -> Exists (EntityBehaviour EntityCommand GameEvent entity)
+init ::
+  forall entity.
+  Config -> Exists (EntityBehaviour EntityCommand GameEvent (Required entity))
 init cfg =
   mkExists
     $ EntityBehaviour
@@ -40,3 +43,9 @@ init cfg =
                 pure $ s { shieldRegenCountdown = s.shieldRegenCountdown - 1, healthRegenCountdown = s.healthRegenCountdown - 1 }
               _ -> pure s
         }
+
+type Required r
+  = ( health :: Number
+    , shield :: Number
+    | r
+    )

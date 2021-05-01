@@ -55,8 +55,6 @@ emptyEntity =
   , friction: 1.0
   , rotation: 0.0
   , mass: 20.0
-  , health: 1.0
-  , shield: 0.0
   , behaviour: Nil
   , renderables: Nil
   }

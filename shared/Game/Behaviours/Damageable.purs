@@ -2,11 +2,14 @@ module Pure.Behaviours.Damageable where
 
 import Prelude
 import Data.Exists (Exists, mkExists)
+import Prim.Row as Row
 import Pure.Behaviour as B
 import Pure.Entity (EntityBehaviour(..))
 import Pure.Types (EntityCommand(..), GameEvent(..))
 
-init :: forall entity. Exists (EntityBehaviour EntityCommand GameEvent entity)
+init ::
+  forall entity.
+  Exists (EntityBehaviour EntityCommand GameEvent (Required entity))
 init =
   mkExists
     $ EntityBehaviour
@@ -37,3 +40,9 @@ init =
                   pure s
               _ -> pure s
         }
+
+type Required r
+  = ( health :: Number
+    , shield :: Number
+    | r
+    )
