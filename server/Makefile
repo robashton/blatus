@@ -2,10 +2,11 @@
 
 default: all
 
-PS_SRC = ./
+PS_SRC = src
+PS_TEST = test
 OUTPUT = output
-PS_SOURCEFILES = $(shell find -L  ${PS_SRC} -type f -name \*.purs)
-PS_ERL_FFI = $(shell find -L ${PS_SRC} -type f -name \*.erl)
+PS_SOURCEFILES = $(shell find -L  ${PS_SRC} ${PS_TEST} -type f -name \*.purs)
+PS_ERL_FFI = $(shell find -L ${PS_SRC} ${PS_TEST} -type f -name \*.erl)
 COMPILED_PS = ../src/compiled_ps
 
 all: $(COMPILED_PS)

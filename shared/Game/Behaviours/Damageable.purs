@@ -6,7 +6,7 @@ import Pure.Behaviour as B
 import Pure.Entity (EntityBehaviour(..))
 import Pure.Types (EntityCommand(..), GameEvent(..))
 
-init :: Exists (EntityBehaviour EntityCommand GameEvent)
+init :: forall entity. Exists (EntityBehaviour EntityCommand GameEvent entity)
 init =
   mkExists
     $ EntityBehaviour

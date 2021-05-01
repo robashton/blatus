@@ -17,10 +17,7 @@ tests = do
   suite "Basic engine stuff" do
     test "Entities tick when scene ticks" do
       let
-        initialScene :: Game TestCommand TestEvent
-        initialScene =
-          addEntity ((emptyEntity (EntityId "foo")) { behaviour = tickEcho : Nil })
-            $ Scene.initialModel Tick
+        initialScene = addEntity ((emptyEntity (EntityId "foo") {}) { behaviour = tickEcho : Nil }) emptyScene
 
         Tuple newScene evs = Scene.tick initialScene
       assertEqual
@@ -29,11 +26,10 @@ tests = do
         }
     test "Sending a command directly to a single entity" do
       let
-        initialScene :: Game TestCommand TestEvent
+        initialScene :: Game TestCommand TestEvent ()
         initialScene =
-          addEntity ((emptyEntity (EntityId "foo")) { behaviour = tickEcho : Nil })
-            $ addEntity ((emptyEntity (EntityId "bar")) { behaviour = tickEcho : Nil })
-            $ Scene.initialModel Tick
+          addEntity ((emptyEntity (EntityId "foo") {}) { behaviour = tickEcho : Nil })
+            $ addEntity ((emptyEntity (EntityId "bar") {}) { behaviour = tickEcho : Nil }) emptyScene
 
         Tuple newScene evs = Scene.sendCommand (EntityId "foo") Tick initialScene
       assertEqual
@@ -42,11 +38,9 @@ tests = do
         }
     test "Fetching an entity by Id" do
       let
-        initialScene :: Game TestCommand TestEvent
         initialScene =
-          addEntity ((emptyEntity (EntityId "foo")) { behaviour = tickEcho : Nil })
-            $ addEntity ((emptyEntity (EntityId "bar")) { behaviour = tickEcho : Nil })
-            $ Scene.initialModel Tick
+          addEntity ((emptyEntity (EntityId "foo") {}) { behaviour = tickEcho : Nil })
+            $ addEntity ((emptyEntity (EntityId "bar") {}) { behaviour = tickEcho : Nil }) emptyScene
 
         entityId = _.id <$> Scene.entityById (EntityId "foo") initialScene
       assertEqual
@@ -55,11 +49,9 @@ tests = do
         }
     test "Removing an entity" do
       let
-        initialScene :: Game TestCommand TestEvent
         initialScene =
-          addEntity ((emptyEntity (EntityId "foo")) { behaviour = tickEcho : Nil })
-            $ addEntity ((emptyEntity (EntityId "bar")) { behaviour = tickEcho : Nil })
-            $ Scene.initialModel Tick
+          addEntity ((emptyEntity (EntityId "foo") {}) { behaviour = tickEcho : Nil })
+            $ addEntity ((emptyEntity (EntityId "bar") {}) { behaviour = tickEcho : Nil }) emptyScene
 
         newScene = Scene.removeEntity (EntityId "foo") initialScene
 
@@ -68,3 +60,6 @@ tests = do
         { expected: Nothing
         , actual: entity
         }
+
+emptyScene :: Game TestCommand TestEvent ()
+emptyScene = Scene.initialModel Tick

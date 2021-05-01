@@ -11,13 +11,15 @@ import Data.List (toUnfoldable)
 import Data.Map as Map
 import Data.Maybe (Maybe(..), maybe)
 import Data.Tuple (Tuple(..), fst, snd, uncurry)
+import Pure.Behaviours.NetworkSync as NetworkSync
 import Pure.BuiltIn.Bullets as Bullets
 import Pure.BuiltIn.Collider as Collider
 import Pure.BuiltIn.Explosions as Explosions
 import Pure.Comms (GameSync, EntitySync)
 import Pure.Entities.Bullet as Bullet
 import Pure.Entities.Tank as Tank
-import Pure.Entity (Entity, EntityClass(..), EntityId(..))
+import Pure.Entity (Entity, EntityId(..))
+import Pure.Game.Entities.Classes (EntityClass(..), GameEntity)
 import Pure.Runtime.Scene (Game)
 import Pure.Runtime.Scene as Scene
 import Pure.Runtime.Ticks as Ticks
@@ -36,7 +38,7 @@ foreign import seed :: Seed
 foreign import random :: (Number -> Seed -> Tuple Number Seed) -> Seed -> Tuple Number Seed
 
 type State
-  = { scene :: Game EntityCommand GameEvent
+  = { scene :: Game EntityCommand GameEvent GameEntity
     , bullets :: Bullets.State GameEvent
     , explosions :: Explosions.State
     , players :: Map.Map EntityId RegisteredPlayer
@@ -171,7 +173,7 @@ toSync state@{ players, scene: { entities, world }, lastTick } =
   -- Bullets go here
   }
 
-entityToSync :: forall cmd ev. Entity cmd ev -> EntitySync
+entityToSync :: forall cmd ev. Entity cmd ev GameEntity -> EntitySync
 entityToSync { id, class: c, location, velocity, rotation, health, shield } = { id, class: c, location, velocity, rotation, health, shield }
 
 addPlayer :: EntityId -> State -> State
@@ -197,7 +199,7 @@ addEntity sync state = state { scene = Scene.addEntity (entityFromSync sync) sta
 removeEntity :: EntityId -> State -> State
 removeEntity id state = state { scene = Scene.removeEntity id state.scene }
 
-entityFromSync :: EntitySync -> Entity EntityCommand GameEvent
+entityFromSync :: EntitySync -> Entity EntityCommand GameEvent GameEntity
 entityFromSync sync =
   let
     blank = case sync.class of

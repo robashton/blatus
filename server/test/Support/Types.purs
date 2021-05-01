@@ -9,7 +9,7 @@ import Debug.Trace (spy)
 import GenericJSON (writeTaggedSumRep, taggedSumRep)
 import Pure.Behaviour (raiseEvent)
 import Pure.Behaviour as B
-import Pure.Entity (Entity, EntityBehaviour(..), EntityClass(..), EntityId(..))
+import Pure.Entity (Entity, EntityBehaviour(..),  EntityId(..))
 import Pure.Math (point)
 import Simple.JSON (class ReadForeign, class WriteForeign)
 
@@ -45,25 +45,23 @@ instance readForeignTestEvent :: ReadForeign TestEvent where
 
 derive instance eqTestEvent :: Eq TestEvent
 
-emptyEntity :: EntityId -> Entity TestCommand TestEvent
+emptyEntity :: EntityId -> Entity TestCommand TestEvent ()
 emptyEntity =
   { id: _
   , location: point 0.0 0.0
-  , class: Bullet
   , width: 5.0
   , height: 5.0
   , velocity: point 0.0 0.0
   , friction: 1.0
   , rotation: 0.0
   , mass: 20.0
-  , networkSync: false
   , health: 1.0
   , shield: 0.0
   , behaviour: Nil
   , renderables: Nil
   }
 
-tickEcho :: Exists (EntityBehaviour TestCommand TestEvent)
+tickEcho :: forall entity. Exists (EntityBehaviour TestCommand TestEvent entity)
 tickEcho =
   mkExists
     $ EntityBehaviour

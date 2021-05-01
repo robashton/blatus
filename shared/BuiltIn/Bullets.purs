@@ -44,7 +44,7 @@ fireBullet owner location velocity power state =
         : state.bullets
     }
 
-tick :: forall msg ev. (State ev) -> Game msg ev -> Tuple (State ev) (List ev)
+tick :: forall cmd ev entity. (State ev) -> Game cmd ev entity -> Tuple (State ev) (List ev)
 tick state game =
   lmap (\b -> state { bullets = b })
     $ foldl
@@ -57,7 +57,7 @@ tick state game =
         (Tuple Nil Nil)
         state.bullets
 
-updateBullet :: forall msg ev. State ev -> ActiveBullet -> Game msg ev -> Tuple (Maybe ActiveBullet) (Maybe ev)
+updateBullet :: forall cmd ev entity. State ev -> ActiveBullet -> Game cmd ev entity -> Tuple (Maybe ActiveBullet) (Maybe ev)
 updateBullet state b g =
   if b.age > 150 then
     Tuple Nothing Nothing
@@ -75,7 +75,7 @@ updateBullet state b g =
 
 -- We'll just go with a sloppy circle test
 -- for now, but in reality we will *need* a sweep test for line / aabb, just too lazy to do that now
-testBulletWithEntity :: forall msg ev. ActiveBullet -> Entity msg ev -> Boolean
+testBulletWithEntity :: forall cmd ev entity. ActiveBullet -> Entity cmd ev entity -> Boolean
 testBulletWithEntity bullet entity
   | bullet.owner == entity.id = false
   | otherwise =

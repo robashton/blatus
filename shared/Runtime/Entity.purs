@@ -4,13 +4,14 @@ import Prelude
 import Control.Monad.State (State, runState)
 import Data.Exists (Exists, mkExists, runExists)
 import Data.Generic.Rep (class Generic)
-import Data.Show.Generic (genericShow)
 import Data.List (List(..), concat, foldr, (:))
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
+import Data.Show.Generic (genericShow)
 import Data.Tuple (Tuple(..), fst, snd)
 import GenericJSON (writeTaggedSumRep, taggedSumRep)
 import Pure.Math (Rect, Point, scalePoint)
+import Record as Record
 import Simple.JSON (class ReadForeign, class WriteForeign)
 
 newtype HtmlColor
@@ -33,22 +34,7 @@ derive newtype instance showEntityId :: Show EntityId
 
 derive newtype instance ordEntityId :: Ord EntityId
 
--- Need this to disappear at some point
--- It can probably just be an arbitrary string as it's just for serialization purposes
-data EntityClass
-  = Tank
-  | Bullet
 
-derive instance genericEntityClass :: Generic EntityClass _
-
-instance showEntityClass :: Show EntityClass where
-  show = genericShow
-
-instance writeForeignEntityClass :: WriteForeign EntityClass where
-  writeImpl = writeTaggedSumRep
-
-instance readForeignEntityClass :: ReadForeign EntityClass where
-  readImpl = taggedSumRep
 
 type Renderable
   = { transform :: Rect
@@ -69,10 +55,10 @@ sprite =
   , id: "anon"
   }
 
-data EntityBehaviourResult cmd ev state
+data EntityBehaviourResult cmd ev entity state
   = StateUpdated state
-  | StateAndEntityUpdated state (Entity cmd ev)
-  | EntityUpdated (Entity cmd ev)
+  | StateAndEntityUpdated state (Entity cmd ev entity)
+  | EntityUpdated (Entity cmd ev entity)
   | RaiseEvent ev state
   | NoOp
 
@@ -81,16 +67,16 @@ type BehaviourExecutionContext cmd ev entity
     , entity :: (Entity cmd ev entity)
     }
 
-type EntityCommandHandlerResult cmd ev state
-  = State (BehaviourExecutionContext cmd ev) state
+type EntityCommandHandlerResult cmd ev entity state
+  = State (BehaviourExecutionContext cmd ev entity) state
 
-type EntityCommandHandler cmd ev state
-  = cmd -> state -> (EntityCommandHandlerResult cmd ev state)
+type EntityCommandHandler cmd ev entity state
+  = cmd -> state -> (EntityCommandHandlerResult cmd ev entity state)
 
-data EntityBehaviour cmd ev state
+data EntityBehaviour cmd ev entity state
   = EntityBehaviour
     { state :: state
-    , handleCommand :: EntityCommandHandler cmd ev state
+    , handleCommand :: EntityCommandHandler cmd ev entity state
     }
 
 type Entity cmd ev entity
@@ -104,36 +90,34 @@ type Entity cmd ev entity
       , friction :: Number
       , rotation :: Number
       , renderables :: List Renderable
-      , behaviour :: List (Exists (EntityBehaviour cmd ev))
+      , behaviour :: List (Exists (EntityBehaviour cmd ev entity))
+      , health :: Number
+      , shield :: Number
       | entity
       )
 
---    , health :: Number
---    , shield :: Number
---    , class :: EntityClass
---    , networkSync :: Boolean
-emptyEntity :: forall cmd ev. EntityId -> Entity cmd ev
-emptyEntity id =
-  { id
-  , class: Bullet
-  , location: { x: 0.0, y: 0.0 }
-  , width: 0.0
-  , height: 0.0
-  , mass: 0.0
-  , velocity: { x: 0.0, y: 0.0 }
-  , friction: 0.0
-  , rotation: 0.0
-  , health: 1.0
-  , shield: 0.0
-  , renderables: Nil
-  , networkSync: false
-  , behaviour: Nil
-  }
+emptyEntity :: forall cmd ev entity. EntityId -> Record entity -> Entity cmd ev entity
+emptyEntity id entity =
+  Record.union
+    { id
+    , location: { x: 0.0, y: 0.0 }
+    , width: 0.0
+    , height: 0.0
+    , mass: 0.0
+    , velocity: { x: 0.0, y: 0.0 }
+    , friction: 0.0
+    , rotation: 0.0
+    , health: 1.0
+    , shield: 0.0
+    , renderables: Nil
+    , behaviour: Nil
+    }
+    entity
 
-processCommand :: forall cmd ev. (Entity cmd ev) -> cmd -> Tuple (Entity cmd ev) (List ev)
+processCommand :: forall cmd ev entity. (Entity cmd ev entity) -> cmd -> Tuple (Entity cmd ev entity) (List ev)
 processCommand e command = foldr executeCommand (Tuple (e { behaviour = Nil }) Nil) e.behaviour
   where
-  executeCommand :: Exists (EntityBehaviour cmd ev) -> (Tuple (Entity cmd ev) (List ev)) -> (Tuple (Entity cmd ev) (List ev))
+  executeCommand :: Exists (EntityBehaviour cmd ev entity) -> (Tuple (Entity cmd ev entity) (List ev)) -> (Tuple (Entity cmd ev entity) (List ev))
   executeCommand =
     ( \behaviour (Tuple acc evs) ->
         let
@@ -142,7 +126,7 @@ processCommand e command = foldr executeCommand (Tuple (e { behaviour = Nil }) N
           Tuple (fst runResult) (concat $ (snd runResult) : evs : Nil)
     )
 
-  runBehaviour :: forall state. Entity cmd ev -> EntityBehaviour cmd ev state -> Tuple (Entity cmd ev) (List ev)
+  runBehaviour :: forall state. Entity cmd ev entity -> EntityBehaviour cmd ev entity state -> Tuple (Entity cmd ev entity) (List ev)
   runBehaviour entity@{ behaviour: behaviourList } (EntityBehaviour behaviour@{ handleCommand: (handler) }) =
     let
       Tuple newState result = runState (handler command behaviour.state) { entity, events: Nil }
@@ -153,5 +137,5 @@ processCommand e command = foldr executeCommand (Tuple (e { behaviour = Nil }) N
     in
       Tuple (newEntity { behaviour = (mkExists $ EntityBehaviour behaviour { state = newState }) : behaviourList }) newEvents
 
-applyForce :: forall cmd ev. { direction :: Point, force :: Number } -> Entity cmd ev -> Entity cmd ev
+applyForce :: forall cmd ev entity. { direction :: Point, force :: Number } -> Entity cmd ev entity -> Entity cmd ev entity
 applyForce { direction, force } entity@{ velocity, mass } = entity { velocity = velocity + (scalePoint (force / mass) direction) }

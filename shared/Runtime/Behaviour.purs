@@ -8,25 +8,25 @@ import Pure.Entity (EntityId)
 import Pure.Entity as Entity
 import Pure.Math as Math
 
-id :: forall cmd ev. State (Entity.BehaviourExecutionContext cmd ev) EntityId
+id :: forall cmd ev entity. State (Entity.BehaviourExecutionContext cmd ev entity) EntityId
 id = _.id <$> State.gets _.entity
 
-entity :: forall cmd ev. State (Entity.BehaviourExecutionContext cmd ev) (Entity.Entity cmd ev)
+entity :: forall cmd ev entity. State (Entity.BehaviourExecutionContext cmd ev entity) (Entity.Entity cmd ev entity)
 entity = State.gets _.entity
 
-updateEntity :: forall cmd ev. (Entity.Entity cmd ev -> Entity.Entity cmd ev) -> State (Entity.BehaviourExecutionContext cmd ev) Unit
+updateEntity :: forall cmd ev entity. (Entity.Entity cmd ev entity -> Entity.Entity cmd ev entity) -> State (Entity.BehaviourExecutionContext cmd ev entity) Unit
 updateEntity f = State.modify_ (\s -> s { entity = f s.entity })
 
-raiseEvent :: forall cmd ev. ev -> State (Entity.BehaviourExecutionContext cmd ev) Unit
+raiseEvent :: forall cmd ev entity. ev -> State (Entity.BehaviourExecutionContext cmd ev entity) Unit
 raiseEvent ev = State.modify_ (\s@{ events } -> s { events = ev : events })
 
-applyThrust :: forall cmd ev. Number -> Number -> State (Entity.BehaviourExecutionContext cmd ev) Unit
+applyThrust :: forall cmd ev entity. Number -> Number -> State (Entity.BehaviourExecutionContext cmd ev entity) Unit
 applyThrust accel maxSpeed = do
   e <- State.gets _.entity
   let
     updated = Entity.applyForce { direction: Math.rotationToVector e.rotation, force: accel } e
   State.modify_ (\s -> s { entity = updated })
 
-rotate :: forall cmd ev. Number -> State (Entity.BehaviourExecutionContext cmd ev) Unit
+rotate :: forall cmd ev entity. Number -> State (Entity.BehaviourExecutionContext cmd ev entity) Unit
 rotate amount = do
   State.modify_ (\s -> s { entity { rotation = s.entity.rotation + amount } })
