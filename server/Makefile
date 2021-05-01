@@ -2,7 +2,7 @@
 
 default: all
 
-PS_SRC = src
+PS_SRC = ./
 OUTPUT = output
 PS_SOURCEFILES = $(shell find -L  ${PS_SRC} -type f -name \*.purs)
 PS_ERL_FFI = $(shell find -L ${PS_SRC} -type f -name \*.erl)

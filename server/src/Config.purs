@@ -1,7 +1,5 @@
 module Pure.Config where
 
-import Prelude
-import Data.Newtype (wrap)
 import Effect (Effect)
 
 foreign import readString_ :: String -> Effect String

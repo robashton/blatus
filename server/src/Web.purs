@@ -13,7 +13,6 @@ import Data.Map as Map
 import Data.Maybe (Maybe(..), fromMaybe, isJust)
 import Data.Newtype (unwrap)
 import Data.Tuple (Tuple(..))
-import Debug.Trace (spy)
 import Effect (Effect)
 import Erl.Atom (atom)
 import Erl.Cowboy.Handlers.WebSocket (Frame(..))
@@ -48,7 +47,7 @@ serverName :: RegistryName (ServerType Unit Unit Unit State)
 serverName = Local $ atom "pure_web"
 
 startLink :: PureWebStartArgs -> Effect (StartLinkResult (ServerPid Unit Unit Unit State))
-startLink args = Gen.startLink $ (Gen.mkSpec $ init args) { name = Just serverName }
+startLink args = Gen.startLink $ (Gen.defaultSpec $ init args) { name = Just serverName }
 
 init :: PureWebStartArgs -> InitFn Unit Unit Unit State
 init { webPort } =

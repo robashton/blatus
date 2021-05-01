@@ -1,39 +1,31 @@
 module Pure.RunningGame where
 
 import Prelude
-import Data.Array as Array
 import Data.Foldable (foldM, foldl)
 import Data.Int as Int
 import Data.List (toUnfoldable, List(..))
-import Data.List as List
 import Data.Map as Map
 import Data.Maybe (Maybe(..))
-import Data.Newtype (wrap, unwrap)
+import Data.Newtype (wrap)
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..), fst, snd, uncurry)
-import Debug.Trace (spy)
 import Effect (Effect)
 import Erl.Atom (atom)
-import Erl.Process (Process(..))
-import Fprof as Fprof
 import Pinto (RegistryName(..), StartLinkResult)
-import Pinto.GenServer (ServerPid, ServerRef(..), InitResult(..), ServerType, Action(..), InfoFn)
+import Pinto.GenServer (Action(..), InfoFn, InitResult(..), ServerPid, ServerType)
 import Pinto.GenServer as Gen
 import Pinto.Timer as Timer
-import Pinto.Types (TerminateReason(..))
+import Pinto.Types (RegistryReference(..))
 import Pure.Api (RunningGame)
-import Pure.Comms (ClientMsg(..), GameSync, ServerMsg(..))
+import Pure.Comms (ClientMsg(..), ServerMsg(..))
 import Pure.Comms as Comms
-import Pure.Entities.Tank as Tank
 import Pure.Entity (EntityId)
 import Pure.Game.Main as Main
 import Pure.Logging as Log
 import Pure.RunningGameList as RunningGameList
-import Pure.Runtime.Scene (Game)
-import Pure.Runtime.Scene as Scene
 import Pure.Timing as Timing
-import Pure.Types (EntityCommand, GameEvent)
-import Pure.Types (GameEvent(..))
+import Pure.Types (GameEvent)
+import Pure.Types (GameEvent)
 import SimpleBus as Bus
 
 type State
@@ -92,7 +84,7 @@ addPlayer id playerId =
     pure $ Gen.reply unit ns
 
 startLink :: StartArgs -> Effect (StartLinkResult RunningGamePid)
-startLink args@{ game } = Gen.startLink $ (Gen.mkSpec init) { name = Just $ serverName args.game.id, handleInfo = Just handleInfo }
+startLink args@{ game } = Gen.startLink $ (Gen.defaultSpec init) { name = Just $ serverName args.game.id, handleInfo = Just handleInfo }
   where
   init = do
     Gen.lift $ Log.info Log.RunningGame "In the game init bit" game

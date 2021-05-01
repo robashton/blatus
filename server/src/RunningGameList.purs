@@ -1,18 +1,15 @@
 module Pure.RunningGameList where
 
 import Prelude
+import Data.Maybe (Maybe(..))
 import Effect (Effect)
 import Erl.Atom (atom)
-import Data.Either (Either(..))
-import Data.Maybe (Maybe(..))
-import Data.Newtype (wrap, unwrap)
-import Effect (Effect)
 import Erl.Data.List (List, (:), nil, head, filter)
 import Pinto (RegistryName(..), StartLinkResult)
-import Pinto.GenServer (ServerPid, ServerRef(..), InitResult(..), ServerType)
-import Pinto (RegistryName(..), StartLinkResult)
+import Pinto.GenServer (InitResult(..), ServerPid, ServerType)
 import Pinto.GenServer as Gen
-import Pure.Api (RunningGame(..))
+import Pinto.Types (RegistryReference(..))
+import Pure.Api (RunningGame)
 import SimpleBus as Bus
 
 data RunningGameBusMessage
@@ -59,6 +56,6 @@ findById id =
     pure $ Gen.reply (head $ filter (\g -> g.id == id) knownGames) s
 
 startLink :: StartArgs -> Effect (StartLinkResult (ServerPid Unit Unit Unit State))
-startLink args = Gen.startLink $ (Gen.mkSpec init) { name = Just serverName }
+startLink args = Gen.startLink $ (Gen.defaultSpec init) { name = Just serverName }
   where
   init = pure $ InitOk { knownGames: nil }

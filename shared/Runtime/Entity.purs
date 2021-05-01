@@ -76,9 +76,9 @@ data EntityBehaviourResult cmd ev state
   | RaiseEvent ev state
   | NoOp
 
-type BehaviourExecutionContext cmd ev
+type BehaviourExecutionContext cmd ev entity
   = { events :: List ev
-    , entity :: (Entity cmd ev)
+    , entity :: (Entity cmd ev entity)
     }
 
 type EntityCommandHandlerResult cmd ev state
@@ -93,23 +93,25 @@ data EntityBehaviour cmd ev state
     , handleCommand :: EntityCommandHandler cmd ev state
     }
 
-type Entity cmd ev
-  = { id :: EntityId
-    , class :: EntityClass
-    , location :: Point
-    , width :: Number
-    , height :: Number
-    , mass :: Number
-    , velocity :: Point
-    , friction :: Number
-    , rotation :: Number
-    , renderables :: List Renderable
-    , networkSync :: Boolean
-    , health :: Number
-    , shield :: Number
-    , behaviour :: List (Exists (EntityBehaviour cmd ev))
-    }
+type Entity cmd ev entity
+  = Record
+      ( id :: EntityId
+      , location :: Point
+      , width :: Number
+      , height :: Number
+      , mass :: Number
+      , velocity :: Point
+      , friction :: Number
+      , rotation :: Number
+      , renderables :: List Renderable
+      , behaviour :: List (Exists (EntityBehaviour cmd ev))
+      | entity
+      )
 
+--    , health :: Number
+--    , shield :: Number
+--    , class :: EntityClass
+--    , networkSync :: Boolean
 emptyEntity :: forall cmd ev. EntityId -> Entity cmd ev
 emptyEntity id =
   { id

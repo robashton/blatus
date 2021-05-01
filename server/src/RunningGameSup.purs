@@ -1,16 +1,14 @@
 module Pure.RunningGameSup where
 
 import Prelude
-import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
-import Debug.Trace (spy)
 import Effect (Effect)
 import Erl.Atom (atom)
-import Partial.Unsafe (unsafeCrashWith)
 import Pinto (RegistryName(..), StartLinkResult)
-import Pinto.Sup (StartChildResult, ChildShutdownTimeoutStrategy(..), ChildType(..), RestartStrategy(..), crashIfChildNotStarted)
+import Pinto.Sup (ChildShutdownTimeoutStrategy(..), ChildType(..), RestartStrategy(..), crashIfChildNotStarted)
 import Pinto.Sup.Dynamic (DynamicPid, DynamicSpec)
 import Pinto.Sup.Dynamic as Sup
+import Pinto.Types (RegistryReference(..))
 import Pure.RunningGame (StartArgs, RunningGamePid)
 import Pure.RunningGame as RunningGame
 import Pure.RunningGameList as RunningGameList
@@ -35,13 +33,10 @@ init = do
     , period: 5
     , childType: Worker
     , start: RunningGame.startLink
-    , restartStrategy: RestartOnCrash
-    , shutdownStrategy: KillAfter 5000
+    , restartStrategy: RestartTransient
+    , shutdownStrategy: ShutdownTimeout 5000
     }
 
 startGame :: RunningGame.StartArgs -> Effect RunningGamePid
 startGame args = do
-  (result :: StartChildResult RunningGamePid) <- Sup.startChild (spy "Args" args) (spy "ByName" (Sup.ByName serverName))
-  case result of
-    Left reason -> unsafeCrashWith "Fuck" $ spy "What the fuck" reason
-    Right { pid } -> pure $ spy "Got a pid" pid
+  crashIfChildNotStarted <$> Sup.startChild (ByName serverName) args

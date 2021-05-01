@@ -50,6 +50,7 @@ let extras = {
           , "erl-tuples"
           , "erl-modules"
           , "erl-cowboy"
+          , "erl-test-eunit"
           , "foreign"
           , "maybe"
           , "prelude"
@@ -68,7 +69,7 @@ let extras = {
           , "erl-modules"
           , "foreign"
           ]
-        , version = "8b9baeb93f7c1e55db5be1a41dd06251d18d49f8"
+        , version = "41d424c8d39a6613099de86ac7c5b2fdd8df445d"
         }
       }
 
