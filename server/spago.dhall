@@ -15,6 +15,6 @@
     , "erl-simplebus"
     ]
 , packages = ./packages.dhall
-, sources = [ "src/**/*.purs", "test/**/*.purs" ]
+, sources = [ "src/**/*.purs", "test/**/*.purs"   ] 
 , backend = "purerl"
 }

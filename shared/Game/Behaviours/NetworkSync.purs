@@ -2,15 +2,16 @@ module Pure.Behaviours.NetworkSync where
 
 import Prelude
 import Data.Exists (Exists, mkExists)
+import Data.Variant (default, onMatch)
 import Pure.Behaviour as B
 import Pure.Entity (EntityBehaviour(..))
-import Pure.Math (lerp)
+import Pure.Math (Point, lerp)
 import Pure.Types (EntityCommand(..), GameEvent)
 
 type ElasticConfig
   = { force :: Number }
 
-init :: forall entity. ElasticConfig -> Exists (EntityBehaviour EntityCommand GameEvent entity)
+init :: forall entity (cmd :: Row Type). ElasticConfig -> Exists (EntityBehaviour (Command cmd) GameEvent entity)
 init c =
   mkExists
     $ EntityBehaviour
@@ -28,41 +29,54 @@ init c =
   where
   handleCommand command s = do
     e <- B.entity
-    case command of
-      UpdateServerState ss ->
-        pure
-          $ s
-              { oldLocation = e.location
-              , oldRotation = e.rotation
-              , location = ss.location
-              , rotation = ss.rotation
-              , active = true
-              }
-      Tick ->
-        if not s.active then
-          pure s
-        else do
-          let
-            targetRotation = s.rotation + (e.rotation - s.oldRotation)
+    onMatch
+      { updateServerState:
+          \ss ->
+            pure
+              $ s
+                  { oldLocation = e.location
+                  , oldRotation = e.rotation
+                  , location = ss.location
+                  , rotation = ss.rotation
+                  , active = true
+                  }
+      , tick:
+          \_ ->
+            if not s.active then
+              pure s
+            else do
+              let
+                targetRotation = s.rotation + (e.rotation - s.oldRotation)
 
-            targetLocation = s.location + (e.location - s.oldLocation)
+                targetLocation = s.location + (e.location - s.oldLocation)
 
-            newLocation = lerp e.location targetLocation s.force
+                newLocation = lerp e.location targetLocation s.force
 
-            newRotation = e.rotation + s.force * (targetRotation - e.rotation)
-          _ <-
-            B.updateEntity
-              ( \entity ->
-                  entity
-                    { location = newLocation
-                    , rotation = newRotation
-                    }
-              )
-          pure
-            s
-              { rotation = targetRotation
-              , location = targetLocation
-              , oldRotation = newRotation
-              , oldLocation = newLocation
-              }
-      _ -> pure s
+                newRotation = e.rotation + s.force * (targetRotation - e.rotation)
+              _ <-
+                B.updateEntity
+                  ( \entity ->
+                      entity
+                        { location = newLocation
+                        , rotation = newRotation
+                        }
+                  )
+              pure
+                s
+                  { rotation = targetRotation
+                  , location = targetLocation
+                  , oldRotation = newRotation
+                  , oldLocation = newLocation
+                  }
+      }
+      (default (pure s))
+      command
+
+type Command cmd
+  = ( updateServerState ::
+        { location :: Point
+        , velocity :: Point
+        , rotation :: Number
+        }
+    | cmd
+    )

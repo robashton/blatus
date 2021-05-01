@@ -4,6 +4,7 @@ import Prelude
 import Control.Monad.State (State)
 import Control.Monad.State as State
 import Data.Exists (Exists, mkExists)
+import Data.Variant (default, onMatch)
 import Prim.Row as Row
 import Pure.Behaviour as B
 import Pure.Entity (Entity, EntityRow, EntityBehaviour(..), BehaviourExecutionContext)
@@ -12,20 +13,24 @@ import Pure.Math as Math
 import Pure.Types (EntityCommand(..), GameEvent)
 
 init ::
-  forall entity.
-  Exists (EntityBehaviour EntityCommand GameEvent (Required entity))
+  forall entity cmd.
+  Exists (EntityBehaviour (Command cmd) GameEvent (Required entity))
 init =
   mkExists
     $ EntityBehaviour
         { state: unit
         , handleCommand:
-            \command _ -> case command of
-              Tick -> do
-                B.updateEntity
-                  ( \e@{ location, velocity, friction } ->
-                      e { location = location + velocity, velocity = scalePoint friction velocity }
-                  )
-              _ -> pure unit
+            \command _ ->
+              onMatch
+                { tick:
+                    \_ ->
+                      B.updateEntity
+                        ( \e@{ location, velocity, friction } ->
+                            e { location = location + velocity, velocity = scalePoint friction velocity }
+                        )
+                }
+                (default (pure unit))
+                command
         }
 
 applyForce ::
@@ -49,3 +54,5 @@ type Required r
     | r
     )
 
+type Command r
+  = ( | r )

@@ -2,6 +2,7 @@ module Pure.RunningGame where
 
 import Prelude
 import Data.Foldable (foldM, foldl)
+import Data.Variant (expand)
 import Data.Int as Int
 import Data.List (toUnfoldable, List(..))
 import Data.Map as Map
@@ -17,7 +18,7 @@ import Pinto.GenServer as Gen
 import Pinto.Timer as Timer
 import Pinto.Types (RegistryReference(..))
 import Pure.Api (RunningGame)
-import Pure.Comms (ClientMsg(..), ServerMsg(..))
+import Pure.Comms (ClientMsg(..), ServerMsg(..), VariantCommand(..))
 import Pure.Comms as Comms
 import Pure.Entity (EntityId)
 import Pure.Game.Main as Main
@@ -58,10 +59,10 @@ sendCommand :: String -> String -> ClientMsg -> Effect (Maybe ServerMsg)
 sendCommand id playerId msg =
   Gen.call (ByName $ serverName id) \_from s@{ game, info } -> do
     case msg of
-      ClientCommand entityCommand ->
+      ClientCommand c@(VariantCommand entityCommand) ->
         Gen.lift do
-          Bus.raise (bus id) $ ServerCommand { cmd: entityCommand, id: wrap (playerId) }
-          ug <- uncurry (handleEvents id) $ Main.sendCommand (wrap playerId) entityCommand game
+          Bus.raise (bus id) $ ServerCommand { cmd: c, id: wrap (playerId) }
+          ug <- uncurry (handleEvents id) $ Main.sendCommand (wrap playerId) (expand entityCommand) game
           pure $ Gen.reply Nothing $ s { game = ug }
       Ping tick -> do
         pure $ Gen.reply (Just $ Pong tick) $ s { game = Main.updatePlayerTick (wrap playerId) tick game }

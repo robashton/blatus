@@ -7,6 +7,7 @@ import Data.Generic.Rep (class Generic)
 import Data.List (toUnfoldable)
 import Data.Map as Map
 import Data.Show.Generic (genericShow)
+import Data.Variant (Variant)
 import GenericJSON (writeTaggedSumRep, taggedSumRep)
 import Pure.Entities.Bullet as Bullet
 import Pure.Entities.Tank as Tank
@@ -17,6 +18,10 @@ import Pure.Runtime.Scene (Game)
 import Pure.Runtime.Scene as Scene
 import Pure.Types (EntityCommand(..), GameEvent(..), RegisteredPlayer)
 import Simple.JSON (class ReadForeign, class WriteForeign)
+import Unsafe.Coerce (unsafeCoerce)
+
+newtype VariantCommand v
+  = VariantCommand (Variant v)
 
 data ServerMsg
   = Sync GameSync
@@ -24,7 +29,7 @@ data ServerMsg
   | PlayerRemoved EntityId
   | PlayerSync EntitySync
   | Welcome WelcomeInfo
-  | ServerCommand { cmd :: EntityCommand, id :: EntityId }
+  | ServerCommand { cmd :: VariantCommand EntityCommand, id :: EntityId }
   | ServerEvents (Array GameEvent)
   | Pong Int
 
@@ -35,7 +40,7 @@ type PlayerListItem
     }
 
 data ClientMsg
-  = ClientCommand EntityCommand
+  = ClientCommand (VariantCommand EntityCommand)
   | Quit
   | Ping Int
 
@@ -65,6 +70,15 @@ derive instance genericServerMsg :: Generic ServerMsg _
 
 instance showServerMsg :: Show ServerMsg where
   show = genericShow
+
+instance writeForeignVariantCommand :: WriteForeign (VariantCommand v) where
+  writeImpl = unsafeCoerce 1
+
+instance readForeignVariantCommand :: ReadForeign (VariantCommand v) where
+  readImpl = unsafeCoerce 1
+
+instance showVariantCommand :: Show (VariantCommand v) where
+  show = unsafeCoerce 1
 
 instance writeForeignServerMsg :: WriteForeign ServerMsg where
   writeImpl = writeTaggedSumRep

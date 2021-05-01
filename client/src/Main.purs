@@ -1,7 +1,6 @@
 module Pure.Main where
 
 import Prelude
-
 import Assets (AssetPackage)
 import Assets (AssetPackage, load) as Assets
 import Control.Monad.Except (runExcept)
@@ -13,9 +12,11 @@ import Data.Int as Int
 import Data.Map (lookup) as Map
 import Data.Maybe (Maybe(..), fromMaybe, maybe, maybe')
 import Data.Newtype (unwrap, wrap)
+import Data.Symbol (SProxy(..))
 import Data.Time.Duration (Milliseconds(..))
 import Data.Traversable (for, traverse)
 import Data.Tuple (Tuple(..), fst)
+import Data.Variant (Variant, expand, inj)
 import Debug (spy)
 import Effect (Effect)
 import Effect.Aff (runAff_)
@@ -28,7 +29,7 @@ import Pure.Background (render) as Background
 import Pure.BuiltIn.Bullets as Bullets
 import Pure.BuiltIn.Explosions as Explosions
 import Pure.Camera (Camera, CameraViewport, CameraConfiguration, applyViewport, setupCamera, viewportFromConfig)
-import Pure.Comms (ServerMsg(..), ClientMsg(..))
+import Pure.Comms (ClientMsg(..), ServerMsg(..), VariantCommand(..))
 import Pure.Comms as Comms
 import Pure.Entities.Tank as Tank
 import Pure.Game.Entities.Classes (GameEntity)
@@ -80,32 +81,32 @@ type LocalContext
     , now :: Number
     }
 
-rotateLeftSignal :: Effect (Signal EntityCommand)
+rotateLeftSignal :: Effect (Signal (Variant EntityCommand))
 rotateLeftSignal = do
   key <- keyPressed 37
-  pure $ dropRepeats $ (\x -> if x then TurnLeft else StopTurnLeft) <$> key
+  pure $ dropRepeats $ (\x -> if x then (inj (SProxy :: SProxy "turnLeft") unit) else (inj (SProxy :: SProxy "stopTurnLeft") unit)) <$> key
 
-thrustSignal :: Effect (Signal EntityCommand)
+thrustSignal :: Effect (Signal (Variant EntityCommand))
 thrustSignal = do
   key <- keyPressed 38
-  pure $ dropRepeats $ (\x -> if x then PushForward else StopPushForward) <$> key
+  pure $ dropRepeats $ (\x -> if x then (inj (SProxy :: SProxy "pushForward") unit) else (inj (SProxy :: SProxy "stopPushForward") unit)) <$> key
 
-rotateRightSignal :: Effect (Signal EntityCommand)
+rotateRightSignal :: Effect (Signal (Variant EntityCommand))
 rotateRightSignal = do
   key <- keyPressed 39
-  pure $ dropRepeats $ (\x -> if x then TurnRight else StopTurnRight) <$> key
+  pure $ dropRepeats $ (\x -> if x then (inj (SProxy :: SProxy "turnRight") unit) else (inj (SProxy :: SProxy "stopTurnRight") unit)) <$> key
 
-brakeSignal :: Effect (Signal EntityCommand)
+brakeSignal :: Effect (Signal (Variant EntityCommand))
 brakeSignal = do
   key <- keyPressed 40
-  pure $ dropRepeats $ (\x -> if x then PushBackward else StopPushBackward) <$> key
+  pure $ dropRepeats $ (\x -> if x then (inj (SProxy :: SProxy "pushBackward") unit) else (inj (SProxy :: SProxy "stopPushBackward") unit)) <$> key
 
-fireSignal :: Effect (Signal EntityCommand)
+fireSignal :: Effect (Signal (Variant EntityCommand))
 fireSignal = do
   key <- keyPressed 32
-  pure $ dropRepeats $ (\x -> if x then StartFireBullet else StopFireBullet) <$> key
+  pure $ dropRepeats $ (\x -> if x then (inj (SProxy :: SProxy "startFireBullet") unit) else (inj (SProxy :: SProxy "stopFireBullet") unit)) <$> key
 
-inputSignal :: Effect (Signal EntityCommand)
+inputSignal :: Effect (Signal (Variant EntityCommand))
 inputSignal = do
   fs <- fireSignal
   rl <- rotateLeftSignal
@@ -115,7 +116,7 @@ inputSignal = do
   pure $ fs <> rl <> ts <> rr <> bs
 
 data GameLoopMsg
-  = Input EntityCommand
+  = Input (Variant EntityCommand)
   | GameTick { time :: Number, hasError :: Boolean }
   | Ws String
 
@@ -244,7 +245,7 @@ main = do
             )
           <$> tickSignal
         -- Send player input up to the server
-        runSignal $ (\cmd -> safeSend socket $ writeJSON $ ClientCommand cmd) <$> gameInput
+        runSignal $ (\cmd -> safeSend socket $ writeJSON $ ClientCommand $ VariantCommand cmd) <$> gameInput
         -- Handle quitting manually
         runSignal
           $ ( \quit ->
@@ -364,18 +365,18 @@ handleServerMessage lc msg = case msg of
         result
   PlayerSync sync -> lc { game = Main.mergePlayerSync lc.game sync }
   Welcome info -> lc { gameUrl = info.gameUrl, playerName = info.playerId }
-  ServerCommand { id, cmd } ->
+  ServerCommand { id, cmd: (VariantCommand cmd) } ->
     if (unwrap id) == lc.playerName then
       lc
     else
-      lc { game = fst $ Main.sendCommand id cmd lc.game }
+      lc { game = fst $ Main.sendCommand id (expand cmd) lc.game }
   ServerEvents evs -> lc { game = foldl (\a i -> fst $ Main.handleEvent a i) lc.game evs }
   PlayerAdded id -> lc { game = Main.addPlayer id lc.game }
   PlayerRemoved id -> lc { game = Main.removePlayer id lc.game }
   Pong tick -> lc { tickLatency = lc.game.lastTick - tick }
 
-handleClientCommand :: LocalContext -> EntityCommand -> LocalContext
-handleClientCommand lc@{ playerName, game } msg = lc { game = fst $ Main.sendCommand (wrap playerName) msg game }
+handleClientCommand :: LocalContext -> Variant EntityCommand -> LocalContext
+handleClientCommand lc@{ playerName, game } msg = lc { game = fst $ Main.sendCommand (wrap playerName) (expand msg) game }
 
 handleTick :: LocalContext -> Number -> LocalContext
 handleTick context@{ game, camera: { config }, playerName, socket } now =

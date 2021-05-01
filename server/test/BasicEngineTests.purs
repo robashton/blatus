@@ -7,10 +7,10 @@ import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Erl.Test.EUnit (TestF, suite, test)
 import Pure.Entity (EntityId(..), emptyEntity)
-import Pure.Runtime.Scene (Game, addEntity)
+import Pure.Runtime.Scene (Game, addEntity, tickCmd)
 import Pure.Runtime.Scene as Scene
 import Test.Assert (assert, assertEqual)
-import Test.Support.Types (TestCommand(..), TestEvent(..), tickEcho)
+import Test.Support.Types (TestEvent(..), tickEcho)
 
 tests :: Free TestF Unit
 tests = do
@@ -26,12 +26,11 @@ tests = do
         }
     test "Sending a command directly to a single entity" do
       let
-        initialScene :: Game TestCommand TestEvent ()
         initialScene =
           addEntity ((emptyEntity (EntityId "foo") {}) { behaviour = tickEcho : Nil })
             $ addEntity ((emptyEntity (EntityId "bar") {}) { behaviour = tickEcho : Nil }) emptyScene
 
-        Tuple newScene evs = Scene.sendCommand (EntityId "foo") Tick initialScene
+        Tuple newScene evs = Scene.sendCommand (EntityId "foo") tickCmd initialScene
       assertEqual
         { expected: (Ticked (EntityId "foo")) : Nil
         , actual: evs
@@ -61,5 +60,5 @@ tests = do
         , actual: entity
         }
 
-emptyScene :: Game TestCommand TestEvent ()
-emptyScene = Scene.initialModel Tick
+emptyScene :: Game () TestEvent ()
+emptyScene = Scene.initialModel

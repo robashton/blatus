@@ -9,6 +9,7 @@ import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 import Data.Show.Generic (genericShow)
 import Data.Tuple (Tuple(..), fst, snd)
+import Data.Variant (Variant)
 import GenericJSON (writeTaggedSumRep, taggedSumRep)
 import Pure.Math (Rect, Point, scalePoint)
 import Record as Record
@@ -53,34 +54,34 @@ sprite =
   , id: "anon"
   }
 
-data EntityBehaviourResult cmd ev entity state
+data EntityBehaviourResult (cmd :: Row Type) ev entity state
   = StateUpdated state
   | StateAndEntityUpdated state (Entity cmd ev entity)
   | EntityUpdated (Entity cmd ev entity)
   | RaiseEvent ev state
   | NoOp
 
-type BehaviourExecutionContext cmd ev entity
+type BehaviourExecutionContext (cmd :: Row Type) ev entity
   = { events :: List ev
     , entity :: (Entity cmd ev entity)
     }
 
-type EntityCommandHandlerResult cmd ev entity state
+type EntityCommandHandlerResult (cmd :: Row Type) ev entity state
   = State (BehaviourExecutionContext cmd ev entity) state
 
-type EntityCommandHandler cmd ev entity state
-  = cmd -> state -> (EntityCommandHandlerResult cmd ev entity state)
+type EntityCommandHandler (cmd :: Row Type) ev entity state
+  = Variant (Cmd cmd) -> state -> (EntityCommandHandlerResult cmd ev entity state)
 
-data EntityBehaviour cmd ev entity state
+data EntityBehaviour (cmd :: Row Type) ev entity state
   = EntityBehaviour
     { state :: state
     , handleCommand :: EntityCommandHandler cmd ev entity state
     }
 
-type Entity cmd ev entity
+type Entity (cmd :: Row Type) ev entity
   = Record (EntityRow cmd ev entity)
 
-type EntityRow cmd ev entity
+type EntityRow (cmd :: Row Type) ev entity
   = ( id :: EntityId
     , location :: Point
     , width :: Number
@@ -90,6 +91,9 @@ type EntityRow cmd ev entity
     , behaviour :: List (Exists (EntityBehaviour cmd ev entity))
     | entity
     )
+
+type Cmd cmd
+  = ( tick :: Unit | cmd )
 
 emptyEntity :: forall cmd ev entity. EntityId -> Record entity -> Entity cmd ev entity
 emptyEntity id entity =
@@ -104,7 +108,7 @@ emptyEntity id entity =
     }
     entity
 
-processCommand :: forall cmd ev entity. (Entity cmd ev entity) -> cmd -> Tuple (Entity cmd ev entity) (List ev)
+processCommand :: forall cmd ev entity. (Entity cmd ev entity) -> Variant (Cmd cmd) -> Tuple (Entity cmd ev entity) (List ev)
 processCommand e command = foldr executeCommand (Tuple (e { behaviour = Nil }) Nil) e.behaviour
   where
   executeCommand :: Exists (EntityBehaviour cmd ev entity) -> (Tuple (Entity cmd ev entity) (List ev)) -> (Tuple (Entity cmd ev entity) (List ev))

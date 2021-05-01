@@ -10,7 +10,9 @@ import Data.List (List(..), head, (:))
 import Data.List (toUnfoldable)
 import Data.Map as Map
 import Data.Maybe (Maybe(..), maybe)
+import Data.Symbol (SProxy(..))
 import Data.Tuple (Tuple(..), fst, snd, uncurry)
+import Data.Variant (Variant, inj)
 import Pure.Behaviours.NetworkSync as NetworkSync
 import Pure.BuiltIn.Bullets as Bullets
 import Pure.BuiltIn.Collider as Collider
@@ -18,7 +20,7 @@ import Pure.BuiltIn.Explosions as Explosions
 import Pure.Comms (GameSync, EntitySync)
 import Pure.Entities.Bullet as Bullet
 import Pure.Entities.Tank as Tank
-import Pure.Entity (Entity, EntityId(..))
+import Pure.Entity (Entity, EntityId(..), Cmd)
 import Pure.Game.Entities.Classes (EntityClass(..), GameEntity)
 import Pure.Runtime.Scene (Game)
 import Pure.Runtime.Scene as Scene
@@ -54,7 +56,7 @@ pendingSpawn id state = map _.ticks $ head $ filter (\x -> x.playerId == id) sta
 init :: Number -> State
 init now =
   { scene:
-      Scene.initialModel Tick
+      Scene.initialModel
         # Scene.onTick (Collider.onTick EntityCollided)
   , bullets: Bullets.init BulletHit
   , explosions: Explosions.init
@@ -133,7 +135,7 @@ handleEvent state@{ scene, players } ev = case ev of
             , explosions = explosions
             }
       )
-      $ Scene.sendCommand hit.entity (Damage { amount: hit.bullet.power, source: Just hit.bullet.owner }) scene
+      $ Scene.sendCommand hit.entity (inj (SProxy :: SProxy "damage") { amount: hit.bullet.power, source: Just hit.bullet.owner }) scene
     where
     explosions = Explosions.createExplosion hit.entity hit.bullet.location hit.bullet.velocity state.explosions
   EntityCollided _ -> Tuple state Nil
@@ -146,7 +148,7 @@ handleEntityDestruction state@{ scene, players, pendingSpawns } id destroyer =
     , pendingSpawns = { playerId: id, ticks: ticksForRespawn } : pendingSpawns
     }
 
-sendCommand :: EntityId -> EntityCommand -> State -> Tuple State (List GameEvent)
+sendCommand :: EntityId -> Variant (Cmd EntityCommand) -> State -> Tuple State (List GameEvent)
 sendCommand id cmd state = lmap (\s -> (state { scene = s })) $ Scene.sendCommand id cmd state.scene
 
 fromSync :: Number -> GameSync -> State
@@ -222,7 +224,7 @@ mergeSyncInfo state@{ scene } sync =
         ( \acc es ->
             Scene.discardEvents
               $ Scene.sendCommand es.id
-                  ( UpdateServerState
+                  ( inj (SProxy :: SProxy "updateServerState")
                       { location: es.location
                       , velocity: es.velocity
                       , rotation: es.rotation
@@ -240,7 +242,7 @@ mergePlayerSync state es =
     { scene =
       Scene.discardEvents
         $ Scene.sendCommand es.id
-            ( UpdateServerState
+            ( inj (SProxy :: SProxy "updateServerState")
                 { location: es.location
                 , velocity: es.velocity
                 , rotation: es.rotation
