@@ -8,7 +8,9 @@ import Pure.Entity (EntityBehaviour(..))
 import Pure.Math (rotationToVector, scalePoint)
 import Pure.Types (EntityCommand(..), GameEvent(..))
 
-init :: forall entity. { max :: Int, coolOffPeriod :: Int, speed :: Number, rate :: Int, power :: Number } -> Exists (EntityBehaviour EntityCommand GameEvent entity)
+init :: forall entity. 
+  { max :: Int, coolOffPeriod :: Int, speed :: Number, rate :: Int, power :: Number } 
+  -> Exists (EntityBehaviour EntityCommand GameEvent entity)
 init { max, speed, coolOffPeriod, rate, power } =
   mkExists
     $ EntityBehaviour

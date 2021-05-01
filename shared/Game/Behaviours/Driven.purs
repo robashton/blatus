@@ -3,6 +3,7 @@ module Pure.Behaviours.Driven where
 import Prelude
 import Data.Exists (Exists, mkExists)
 import Pure.Behaviour as B
+import Pure.Behaviours.BasicBitchPhysics as BasicBitchPhysics
 import Pure.Entity (EntityBehaviour(..))
 import Pure.Types (EntityCommand(..), GameEvent)
 
@@ -12,7 +13,9 @@ type DrivenConfig
     , turningSpeed :: Number
     }
 
-init :: forall entity. DrivenConfig -> Exists (EntityBehaviour EntityCommand GameEvent entity)
+init ::
+  forall entity.
+  DrivenConfig -> Exists (EntityBehaviour EntityCommand GameEvent (BasicBitchPhysics.Required entity))
 init config =
   mkExists
     $ EntityBehaviour
@@ -21,9 +24,9 @@ init config =
             \command s -> case command of
               Tick -> do
                 ( if s.forward then
-                    B.applyThrust config.acceleration config.maxSpeed
+                    BasicBitchPhysics.applyThrust config.acceleration config.maxSpeed
                   else if s.backward then
-                    B.applyThrust (-config.acceleration) config.maxSpeed
+                    BasicBitchPhysics.applyThrust (-config.acceleration) config.maxSpeed
                   else
                     pure unit
                 )

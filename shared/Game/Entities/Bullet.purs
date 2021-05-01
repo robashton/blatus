@@ -16,10 +16,10 @@ data EntityMode
 init :: EntityId -> Point -> Point -> Entity EntityCommand GameEvent GameEntity
 init id location velocity =
   { id
-  , location: location
+  , location
   , width: 5.0
   , height: 5.0
-  , velocity: velocity
+  , velocity
   , friction: 1.0
   , rotation: 0.0
   , mass: 20.0

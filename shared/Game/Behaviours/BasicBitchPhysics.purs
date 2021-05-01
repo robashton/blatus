@@ -47,4 +47,5 @@ type Required r
     , velocity :: Point
     , friction :: Number
     | r
+    )
 

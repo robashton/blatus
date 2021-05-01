@@ -2,8 +2,9 @@ module Pure.Game.Entities.Classes where
 
 import Prelude
 import Data.Generic.Rep (class Generic)
-import GenericJSON (writeTaggedSumRep, taggedSumRep)
 import Data.Show.Generic (genericShow)
+import GenericJSON (writeTaggedSumRep, taggedSumRep)
+import Pure.Math (Point)
 import Simple.JSON (class ReadForeign, class WriteForeign)
 
 -- A lot of this can probably now go in shared behaviours
@@ -19,6 +20,9 @@ type GameEntity
     , class :: EntityClass
     , health :: Number
     , shield :: Number
+    , velocity :: Point
+    , mass :: Number
+    , friction :: Number
     )
 
 derive instance genericEntityClass :: Generic EntityClass _

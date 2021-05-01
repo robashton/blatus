@@ -1,6 +1,7 @@
 module Pure.Main where
 
 import Prelude
+
 import Assets (AssetPackage)
 import Assets (AssetPackage, load) as Assets
 import Control.Monad.Except (runExcept)
@@ -30,6 +31,7 @@ import Pure.Camera (Camera, CameraViewport, CameraConfiguration, applyViewport, 
 import Pure.Comms (ServerMsg(..), ClientMsg(..))
 import Pure.Comms as Comms
 import Pure.Entities.Tank as Tank
+import Pure.Game.Entities.Classes (GameEntity)
 import Pure.Game.Main as Main
 import Pure.Math (lerp)
 import Pure.Runtime.Scene (Game, entityById)
@@ -388,7 +390,7 @@ handleTick context@{ game, camera: { config }, playerName, socket } now =
   in
     updatedContext { game = newGame, now = now }
 
-trackPlayer :: forall entity. String -> Game EntityCommand GameEvent entity -> CameraConfiguration -> CameraConfiguration
+trackPlayer :: String -> Game EntityCommand GameEvent GameEntity -> CameraConfiguration -> CameraConfiguration
 trackPlayer playerName game config =
   maybe' (\_ -> config { distance = config.distance + 2.0 })
     ( \player ->

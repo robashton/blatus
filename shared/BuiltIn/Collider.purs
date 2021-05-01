@@ -13,6 +13,7 @@ import Pure.Entity (Entity, EntityBehaviour(..), EntityId(..), EntityCommandHand
 import Pure.Entity as Entity
 import Pure.Math (Point)
 import Pure.Runtime.Scene (TickState)
+import Pure.Behaviours.BasicBitchPhysics as BasicBitchPhysics
 
 type CollisionInfo
   = { left :: EntityId
@@ -20,15 +21,20 @@ type CollisionInfo
     , force :: Number
     }
 
-onTick :: forall cmd ev entity. (CollisionInfo -> ev) -> TickState cmd ev entity -> TickState cmd ev entity
+onTick :: forall cmd ev entity. 
+  (CollisionInfo -> ev) -> TickState cmd ev (BasicBitchPhysics.Required entity) -> TickState cmd ev (BasicBitchPhysics.Required entity)
 onTick fn state = foldl (collideEntity fn state.entityCount) state state.entityRange
 
-collideEntity :: forall cmd ev entity. (CollisionInfo -> ev) -> Int -> TickState cmd ev entity -> Int -> TickState cmd ev entity
+collideEntity ::
+  forall cmd ev entity.
+  (CollisionInfo -> ev) -> Int -> TickState cmd ev (BasicBitchPhysics.Required entity) -> Int -> TickState cmd ev (BasicBitchPhysics.Required entity)
 collideEntity fn termination state index
   | index == termination = state
   | otherwise = foldl (collidePair fn index) state $ Array.range (index + 1) termination
 
-collidePair :: forall cmd ev entity. (CollisionInfo -> ev) -> Int -> TickState cmd ev entity -> Int -> TickState cmd ev entity
+collidePair ::
+  forall cmd ev entity.
+  (CollisionInfo -> ev) -> Int -> TickState cmd ev (BasicBitchPhysics.Required entity) -> Int -> TickState cmd ev (BasicBitchPhysics.Required entity)
 collidePair fn li state ri =
   fromMaybe state
     $ lift2
