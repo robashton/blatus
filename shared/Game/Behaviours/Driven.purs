@@ -1,12 +1,13 @@
 module Pure.Behaviours.Driven where
 
 import Prelude
+
 import Data.Exists (Exists, mkExists)
 import Data.Variant (default, onMatch)
 import Pure.Behaviour as B
 import Pure.Behaviours.BasicBitchPhysics as BasicBitchPhysics
 import Pure.Entity (EntityBehaviour(..))
-import Pure.Types (EntityCommand(..), GameEvent)
+import Pure.Types (Empty, EntityCommand(..), GameEvent)
 
 type DrivenConfig
   = { maxSpeed :: Number
@@ -55,13 +56,13 @@ init config =
         }
 
 type Command r
-  = ( pushForward :: Unit
-    , pushBackward :: Unit
-    , turnLeft :: Unit
-    , turnRight :: Unit
-    , stopPushForward :: Unit
-    , stopPushBackward :: Unit
-    , stopTurnLeft :: Unit
-    , stopTurnRight :: Unit
+  = ( pushForward :: Empty
+    , pushBackward :: Empty
+    , turnLeft :: Empty
+    , turnRight :: Empty
+    , stopPushForward :: Empty
+    , stopPushBackward :: Empty
+    , stopTurnLeft :: Empty
+    , stopTurnRight :: Empty
     | r
     )

@@ -29,14 +29,14 @@ import Pure.Background (render) as Background
 import Pure.BuiltIn.Bullets as Bullets
 import Pure.BuiltIn.Explosions as Explosions
 import Pure.Camera (Camera, CameraViewport, CameraConfiguration, applyViewport, setupCamera, viewportFromConfig)
-import Pure.Comms (ClientMsg(..), ServerMsg(..), VariantCommand(..))
+import Pure.Comms (ClientMsg(..), ServerMsg(..))
 import Pure.Comms as Comms
 import Pure.Entities.Tank as Tank
 import Pure.Game.Entities.Classes (GameEntity)
 import Pure.Game.Main as Main
 import Pure.Math (lerp)
 import Pure.Runtime.Scene (Game, entityById)
-import Pure.Types (EntityCommand(..), GameEvent)
+import Pure.Types (EntityCommand(..), GameEvent, empty)
 import Signal (Signal, dropRepeats, foldp, runSignal, sampleOn)
 import Signal as Signal
 import Signal.Channel as Channel
@@ -84,27 +84,27 @@ type LocalContext
 rotateLeftSignal :: Effect (Signal (Variant EntityCommand))
 rotateLeftSignal = do
   key <- keyPressed 37
-  pure $ dropRepeats $ (\x -> if x then (inj (SProxy :: SProxy "turnLeft") unit) else (inj (SProxy :: SProxy "stopTurnLeft") unit)) <$> key
+  pure $ dropRepeats $ (\x -> if x then (inj (SProxy :: SProxy "turnLeft") empty) else (inj (SProxy :: SProxy "stopTurnLeft") empty)) <$> key
 
 thrustSignal :: Effect (Signal (Variant EntityCommand))
 thrustSignal = do
   key <- keyPressed 38
-  pure $ dropRepeats $ (\x -> if x then (inj (SProxy :: SProxy "pushForward") unit) else (inj (SProxy :: SProxy "stopPushForward") unit)) <$> key
+  pure $ dropRepeats $ (\x -> if x then (inj (SProxy :: SProxy "pushForward") empty) else (inj (SProxy :: SProxy "stopPushForward") empty)) <$> key
 
 rotateRightSignal :: Effect (Signal (Variant EntityCommand))
 rotateRightSignal = do
   key <- keyPressed 39
-  pure $ dropRepeats $ (\x -> if x then (inj (SProxy :: SProxy "turnRight") unit) else (inj (SProxy :: SProxy "stopTurnRight") unit)) <$> key
+  pure $ dropRepeats $ (\x -> if x then (inj (SProxy :: SProxy "turnRight") empty) else (inj (SProxy :: SProxy "stopTurnRight") empty)) <$> key
 
 brakeSignal :: Effect (Signal (Variant EntityCommand))
 brakeSignal = do
   key <- keyPressed 40
-  pure $ dropRepeats $ (\x -> if x then (inj (SProxy :: SProxy "pushBackward") unit) else (inj (SProxy :: SProxy "stopPushBackward") unit)) <$> key
+  pure $ dropRepeats $ (\x -> if x then (inj (SProxy :: SProxy "pushBackward") empty) else (inj (SProxy :: SProxy "stopPushBackward") empty)) <$> key
 
 fireSignal :: Effect (Signal (Variant EntityCommand))
 fireSignal = do
   key <- keyPressed 32
-  pure $ dropRepeats $ (\x -> if x then (inj (SProxy :: SProxy "startFireBullet") unit) else (inj (SProxy :: SProxy "stopFireBullet") unit)) <$> key
+  pure $ dropRepeats $ (\x -> if x then (inj (SProxy :: SProxy "startFireBullet") empty) else (inj (SProxy :: SProxy "stopFireBullet") empty)) <$> key
 
 inputSignal :: Effect (Signal (Variant EntityCommand))
 inputSignal = do
@@ -245,7 +245,7 @@ main = do
             )
           <$> tickSignal
         -- Send player input up to the server
-        runSignal $ (\cmd -> safeSend socket $ writeJSON $ ClientCommand $ VariantCommand cmd) <$> gameInput
+        runSignal $ (\cmd -> safeSend socket $ writeJSON $ ClientCommand cmd) <$> gameInput
         -- Handle quitting manually
         runSignal
           $ ( \quit ->
@@ -365,7 +365,7 @@ handleServerMessage lc msg = case msg of
         result
   PlayerSync sync -> lc { game = Main.mergePlayerSync lc.game sync }
   Welcome info -> lc { gameUrl = info.gameUrl, playerName = info.playerId }
-  ServerCommand { id, cmd: (VariantCommand cmd) } ->
+  ServerCommand { id, cmd: cmd } ->
     if (unwrap id) == lc.playerName then
       lc
     else

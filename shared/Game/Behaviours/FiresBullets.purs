@@ -7,7 +7,7 @@ import Data.Variant (default, onMatch)
 import Pure.Behaviour as B
 import Pure.Entity (EntityBehaviour(..))
 import Pure.Math (rotationToVector, scalePoint)
-import Pure.Types (EntityCommand(..), GameEvent(..))
+import Pure.Types (Empty(..), EntityCommand(..), GameEvent(..))
 
 init ::
   forall entity cmd.
@@ -63,7 +63,7 @@ init { max, speed, coolOffPeriod, rate, power } =
     velocity entity = (scalePoint speed $ direction entity) -- + entity.velocity
 
 type Command cmd
-  = ( startFireBullet :: Unit
-    , stopFireBullet :: Unit
+  = ( startFireBullet :: Empty
+    , stopFireBullet :: Empty
     | cmd
     )

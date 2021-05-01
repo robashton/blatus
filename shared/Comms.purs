@@ -20,16 +20,13 @@ import Pure.Types (EntityCommand(..), GameEvent(..), RegisteredPlayer)
 import Simple.JSON (class ReadForeign, class WriteForeign)
 import Unsafe.Coerce (unsafeCoerce)
 
-newtype VariantCommand v
-  = VariantCommand (Variant v)
-
 data ServerMsg
   = Sync GameSync
   | PlayerAdded EntityId
   | PlayerRemoved EntityId
   | PlayerSync EntitySync
   | Welcome WelcomeInfo
-  | ServerCommand { cmd :: VariantCommand EntityCommand, id :: EntityId }
+  | ServerCommand { cmd :: Variant EntityCommand, id :: EntityId }
   | ServerEvents (Array GameEvent)
   | Pong Int
 
@@ -40,7 +37,7 @@ type PlayerListItem
     }
 
 data ClientMsg
-  = ClientCommand (VariantCommand EntityCommand)
+  = ClientCommand (Variant EntityCommand)
   | Quit
   | Ping Int
 
@@ -70,15 +67,6 @@ derive instance genericServerMsg :: Generic ServerMsg _
 
 instance showServerMsg :: Show ServerMsg where
   show = genericShow
-
-instance writeForeignVariantCommand :: WriteForeign (VariantCommand v) where
-  writeImpl = unsafeCoerce 1
-
-instance readForeignVariantCommand :: ReadForeign (VariantCommand v) where
-  readImpl = unsafeCoerce 1
-
-instance showVariantCommand :: Show (VariantCommand v) where
-  show = unsafeCoerce 1
 
 instance writeForeignServerMsg :: WriteForeign ServerMsg where
   writeImpl = writeTaggedSumRep
