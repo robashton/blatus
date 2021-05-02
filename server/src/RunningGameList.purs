@@ -1,4 +1,4 @@
-module Pure.RunningGameList where
+module Blatus.Server.RunningGameList where
 
 import Prelude
 import Data.Maybe (Maybe(..))
@@ -9,7 +9,7 @@ import Pinto (RegistryName(..), StartLinkResult)
 import Pinto.GenServer (InitResult(..), ServerPid, ServerType)
 import Pinto.GenServer as Gen
 import Pinto.Types (RegistryReference(..))
-import Pure.Api (RunningGame)
+import Blatus.Api (RunningGame)
 import SimpleBus as Bus
 
 data RunningGameBusMessage

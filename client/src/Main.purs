@@ -1,8 +1,14 @@
 module Pure.Main where
 
 import Prelude
-import Assets (AssetPackage)
-import Assets (AssetPackage, load) as Assets
+import Blatus.Client.Assets (AssetPackage)
+import Blatus.Client.Assets (AssetPackage, load) as Assets
+import Blatus.Client.Background (render) as Background
+import Blatus.Client.Camera (Camera, CameraViewport, CameraConfiguration, applyViewport, setupCamera, viewportFromConfig)
+import Blatus.Comms (ClientMsg(..), ServerMsg(..))
+import Blatus.Entities.Tank as Tank
+import Blatus.Main as Main
+import Blatus.Types (EntityCommand, GameEvent, GameEntity)
 import Control.Monad.Except (runExcept)
 import Data.DateTime.Instant as Instant
 import Data.Either (either, hush)
@@ -23,23 +29,16 @@ import Foreign (readString)
 import Graphics.Canvas as Canvas
 import Math (abs)
 import Math as Math
-import Pure.Background (render) as Background
-import Pure.BuiltIn.Bullets as Bullets
-import Pure.BuiltIn.Explosions as Explosions
-import Pure.Camera (Camera, CameraViewport, CameraConfiguration, applyViewport, setupCamera, viewportFromConfig)
-import Pure.Comms (ClientMsg(..), ServerMsg(..))
-import Pure.Entities.Tank as Tank
-import Pure.Game.Entities.Classes (GameEntity)
-import Pure.Game.Main as Main
-import Pure.Runtime.Scene (Game, entityById)
-import Pure.Runtime.Types (empty)
-import Pure.Types (EntityCommand, GameEvent)
 import Signal (Signal, dropRepeats, foldp, runSignal, sampleOn)
 import Signal as Signal
 import Signal.Channel as Channel
 import Signal.DOM (keyPressed, animationFrame)
 import Signal.Time (every, second)
 import Simple.JSON (readJSON, writeJSON)
+import Sisy.BuiltIn.Extensions.Bullets as Bullets
+import Sisy.BuiltIn.Extensions.Explosions as Explosions
+import Sisy.Runtime.Scene (Game, entityById)
+import Sisy.Types (empty)
 import Web.DOM.Document as Document
 import Web.DOM.Element as Element
 import Web.DOM.Node as Node

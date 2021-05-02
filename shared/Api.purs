@@ -1,4 +1,4 @@
-module Pure.Api where
+module Blatus.Api where
 
 type RunningGame
   = { id :: String

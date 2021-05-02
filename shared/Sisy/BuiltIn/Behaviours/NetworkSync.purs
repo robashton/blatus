@@ -1,11 +1,11 @@
-module Pure.Behaviours.NetworkSync where
+module Sisy.BuiltIn.Behaviours.NetworkSync where
 
 import Prelude
 import Data.Exists (Exists, mkExists)
 import Data.Variant (default, onMatch)
-import Pure.Behaviour as B
-import Pure.Entity (EntityBehaviour(..))
-import Pure.Math (Point, lerp)
+import Sisy.Runtime.Behaviour as B
+import Sisy.Runtime.Entity (EntityBehaviour(..))
+import Sisy.Math (Point, lerp)
 
 type ElasticConfig
   = { force :: Number }

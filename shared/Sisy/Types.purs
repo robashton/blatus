@@ -1,4 +1,4 @@
-module Pure.Runtime.Types where
+module Sisy.Types where
 
 import Prelude
 import Foreign (readString)

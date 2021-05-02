@@ -1,4 +1,4 @@
-module Pure.RunningGame where
+module Blatus.Server.RunningGame where
 
 import Prelude
 import Data.Foldable (foldM, foldl)
@@ -17,15 +17,15 @@ import Pinto.GenServer (Action(..), InfoFn, InitResult(..), ServerPid, ServerTyp
 import Pinto.GenServer as Gen
 import Pinto.Timer as Timer
 import Pinto.Types (RegistryReference(..))
-import Pure.Api (RunningGame)
-import Pure.Comms (ClientMsg(..), ServerMsg(..))
-import Pure.Comms as Comms
-import Pure.Entity (EntityId)
-import Pure.Game.Main as Main
-import Pure.Logging as Log
-import Pure.RunningGameList as RunningGameList
-import Pure.Timing as Timing
-import Pure.Types (GameEvent)
+import Blatus.Api (RunningGame)
+import Blatus.Comms (ClientMsg(..), ServerMsg(..))
+import Blatus.Comms as Comms
+import Sisy.Runtime.Entity (EntityId)
+import Blatus.Main as Main
+import Blatus.Server.Logging as Log
+import Blatus.Server.RunningGameList as RunningGameList
+import Blatus.Server.Timing as Timing
+import Blatus.Types (GameEvent)
 import SimpleBus as Bus
 
 type State

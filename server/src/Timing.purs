@@ -1,4 +1,4 @@
-module Pure.Timing where
+module Blatus.Server.Timing where
 
 import Effect (Effect)
 

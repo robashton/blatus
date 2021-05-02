@@ -1,4 +1,4 @@
-module Pure.Background where
+module Blatus.Client.Background where
 
 import Prelude
 import Data.Int (ceil, floor, toNumber)
@@ -7,8 +7,8 @@ import Data.Traversable (traverse)
 import Effect (Effect)
 import Graphics.Canvas (CanvasGradient, Context2D)
 import Graphics.Canvas as Context2D
-import Pure.Camera (CameraViewport)
-import Pure.Runtime.Scene (Game)
+import Blatus.Client.Camera (CameraViewport)
+import Sisy.Runtime.Scene (Game)
 
 tileWidth :: Number
 tileWidth = 100.0

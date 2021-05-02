@@ -1,13 +1,12 @@
-module Pure.Behaviours.Regenerates where
+module Sisy.BuiltIn.Behaviours.Regenerates where
 
 import Prelude
 import Data.Exists (Exists, mkExists)
 import Data.Maybe (Maybe)
 import Data.Variant (default, onMatch)
 import Math as Math
-import Pure.Behaviour as B
-import Pure.Entity (EntityBehaviour(..), EntityId)
-import Pure.Types (GameEvent)
+import Sisy.Runtime.Behaviour as B
+import Sisy.Runtime.Entity (EntityBehaviour(..), EntityId)
 
 type Config
   = { healthRegen :: Number
@@ -19,8 +18,8 @@ type Config
     }
 
 init ::
-  forall entity cmd.
-  Config -> Exists (EntityBehaviour (Command cmd) GameEvent (Required entity))
+  forall entity cmd ev.
+  Config -> Exists (EntityBehaviour (Command cmd) ev (Required entity))
 init cfg =
   mkExists
     $ EntityBehaviour

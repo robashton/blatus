@@ -1,12 +1,12 @@
-module Pure.Behaviours.Driven where
+module Sisy.BuiltIn.Behaviours.Driven where
 
 import Prelude
 import Data.Exists (Exists, mkExists)
 import Data.Variant (default, onMatch)
-import Pure.Behaviour as B
-import Pure.Behaviours.BasicBitchPhysics as BasicBitchPhysics
-import Pure.Entity (EntityBehaviour(..))
-import Pure.Runtime.Types (Empty)
+import Sisy.Runtime.Behaviour as B
+import Sisy.BuiltIn.Behaviours.BasicBitchPhysics as BasicBitchPhysics
+import Sisy.Runtime.Entity (EntityBehaviour(..))
+import Sisy.Types (Empty)
 
 type DrivenConfig
   = { maxSpeed :: Number

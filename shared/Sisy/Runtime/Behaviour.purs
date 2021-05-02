@@ -1,12 +1,12 @@
-module Pure.Behaviour where
+module Sisy.Runtime.Behaviour where
 
 import Prelude
 import Control.Monad.State (State)
 import Control.Monad.State as State
 import Data.List ((:))
 import Data.Variant (Variant)
-import Pure.Entity (EntityId)
-import Pure.Entity as Entity
+import Sisy.Runtime.Entity (EntityId)
+import Sisy.Runtime.Entity as Entity
 
 id :: forall cmd ev entity. State (Entity.BehaviourExecutionContext cmd ev entity) EntityId
 id = _.id <$> State.gets _.entity

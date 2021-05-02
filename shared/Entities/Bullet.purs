@@ -1,12 +1,11 @@
-module Pure.Entities.Bullet where
+module Blatus.Entities.Bullet where
 
 import Prelude
 import Data.List (List(..), (:))
-import Pure.Behaviours.BasicBitchPhysics as BasicBitchPhysics
-import Pure.Entity (Entity, EntityId, HtmlColor(..), sprite)
-import Pure.Game.Entities.Classes (EntityClass(..), GameEntity)
-import Pure.Math (Point)
-import Pure.Types (EntityCommand, GameEvent)
+import Sisy.BuiltIn.Behaviours.BasicBitchPhysics as BasicBitchPhysics
+import Sisy.Runtime.Entity (Entity, EntityId, HtmlColor(..), sprite)
+import Sisy.Math (Point)
+import Blatus.Types (EntityCommand, GameEvent, GameEntity, EntityClass(..))
 
 data EntityMode
   = Server

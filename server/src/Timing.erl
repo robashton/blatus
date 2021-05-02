@@ -1,4 +1,4 @@
--module(pure_timing@foreign).
+-module(blatus_server_timing@foreign).
 
 -export([currentMs/0]).
 

@@ -1,4 +1,4 @@
-module Pure.RunningGameSup where
+module Blatus.Server.RunningGameSup where
 
 import Prelude
 import Data.Maybe (Maybe(..))
@@ -9,9 +9,9 @@ import Pinto.Sup (ChildShutdownTimeoutStrategy(..), ChildType(..), RestartStrate
 import Pinto.Sup.Dynamic (DynamicPid, DynamicSpec)
 import Pinto.Sup.Dynamic as Sup
 import Pinto.Types (RegistryReference(..))
-import Pure.RunningGame (StartArgs, RunningGamePid)
-import Pure.RunningGame as RunningGame
-import Pure.RunningGameList as RunningGameList
+import Blatus.Server.RunningGame (StartArgs, RunningGamePid)
+import Blatus.Server.RunningGame as RunningGame
+import Blatus.Server.RunningGameList as RunningGameList
 import SimpleBus as Bus
 
 serverName :: RegistryName (Sup.DynamicType StartArgs RunningGamePid)

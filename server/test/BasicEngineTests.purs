@@ -6,9 +6,9 @@ import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Erl.Test.EUnit (TestF, suite, test)
-import Pure.Entity (EntityId(..), emptyEntity)
-import Pure.Runtime.Scene (Game, addEntity, tickCmd)
-import Pure.Runtime.Scene as Scene
+import Sisy.Runtime.Entity (EntityId(..), emptyEntity)
+import Sisy.Runtime.Scene (Game, addEntity, tickCmd)
+import Sisy.Runtime.Scene as Scene
 import Test.Assert (assertEqual)
 import Test.Support.Types (TestEvent, tickEcho, ticked)
 

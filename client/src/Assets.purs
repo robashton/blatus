@@ -1,4 +1,4 @@
-module Assets where
+module Blatus.Client.Assets where
 
 import Prelude
 import Data.Either (Either(..))

@@ -1,4 +1,4 @@
--module(pure_game_main@foreign).
+-module(blatus_main@foreign).
 
 -export([ seed/0
         , random/2

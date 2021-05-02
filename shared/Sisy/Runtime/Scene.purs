@@ -1,4 +1,4 @@
-module Pure.Runtime.Scene where
+module Sisy.Runtime.Scene where
 
 import Prelude
 import Data.Array as Array
@@ -12,9 +12,9 @@ import Data.Symbol (SProxy(..))
 import Data.Traversable (find)
 import Data.Tuple (Tuple(..))
 import Data.Variant (Variant, inj)
-import Pure.Entity (Entity, EntityId, Cmd)
-import Pure.Entity as Entity
-import Pure.Math (Rect)
+import Sisy.Runtime.Entity (Entity, EntityId, Cmd)
+import Sisy.Runtime.Entity as Entity
+import Sisy.Math (Rect)
 
 type EntityMap cmd ev entity
   = Map EntityId (Entity cmd ev entity)

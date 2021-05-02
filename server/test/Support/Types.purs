@@ -5,10 +5,10 @@ import Data.Exists (Exists, mkExists)
 import Data.List (List(..))
 import Data.Symbol (SProxy(..))
 import Data.Variant (Variant, default, inj, onMatch)
-import Pure.Behaviour (raiseEvent)
-import Pure.Behaviour as B
-import Pure.Entity (Entity, EntityBehaviour(..), EntityId)
-import Pure.Math (point)
+import Sisy.Runtime.Behaviour (raiseEvent)
+import Sisy.Runtime.Behaviour as B
+import Sisy.Runtime.Entity (Entity, EntityBehaviour(..), EntityId)
+import Sisy.Math (point)
 
 type TestEvent
   = ( ticked :: EntityId )

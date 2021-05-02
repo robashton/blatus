@@ -1,15 +1,14 @@
-module Pure.Comms where
+module Blatus.Comms where
 
 -- TODO: Move this into Engine by getting rid of the specifics
 import Prelude
 import Data.Generic.Rep (class Generic)
 import Data.Show.Generic (genericShow)
 import Data.Variant (Variant)
-import GenericJSON (writeTaggedSumRep, taggedSumRep)
-import Pure.Entity (EntityId)
-import Pure.Game.Entities.Classes (EntityClass)
-import Pure.Math (Point, Rect)
-import Pure.Types (EntityCommand, GameEvent, RegisteredPlayer)
+import Sisy.Runtime.Entity (EntityId)
+import Blatus.GenericJSON (writeTaggedSumRep, taggedSumRep)
+import Sisy.Math (Point, Rect)
+import Blatus.Types (EntityClass, EntityCommand, GameEvent, RegisteredPlayer)
 import Simple.JSON (class ReadForeign, class WriteForeign)
 
 data ServerMsg

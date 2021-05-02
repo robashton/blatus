@@ -1,4 +1,4 @@
-module Pure.Game.Main where
+module Blatus.Main where
 
 import Prelude
 import Data.Array (fromFoldable)
@@ -11,19 +11,18 @@ import Data.Map as Map
 import Data.Maybe (Maybe(..), maybe)
 import Data.Symbol (SProxy(..))
 import Data.Tuple (Tuple(..), fst, snd)
-import Data.Variant (Variant, expand, inj, match, onMatch)
-import Pure.BuiltIn.Bullets as Bullets
-import Pure.BuiltIn.Collider as Collider
-import Pure.BuiltIn.Explosions as Explosions
-import Pure.Comms (GameSync, EntitySync)
-import Pure.Entities.Bullet as Bullet
-import Pure.Entities.Tank as Tank
-import Pure.Entity (Cmd, Entity, EntityId)
-import Pure.Game.Entities.Classes (EntityClass(..), GameEntity)
-import Pure.Runtime.Scene (Game)
-import Pure.Runtime.Scene as Scene
-import Pure.Runtime.Ticks as Ticks
-import Pure.Types (EntityCommand, GameEvent(..), RegisteredPlayer, playerSpawn)
+import Data.Variant (Variant, expand, inj, match)
+import Sisy.BuiltIn.Extensions.Bullets as Bullets
+import Sisy.BuiltIn.Extensions.Collider as Collider
+import Sisy.BuiltIn.Extensions.Explosions as Explosions
+import Sisy.Runtime.Entity (Cmd, Entity, EntityId)
+import Sisy.Runtime.Scene (Game)
+import Sisy.Runtime.Scene as Scene
+import Sisy.Runtime.Ticks as Ticks
+import Blatus.Entities.Bullet as Bullet
+import Blatus.Entities.Tank as Tank
+import Blatus.Types (EntityCommand, GameEvent, EntityClass(..), GameEntity, RegisteredPlayer, playerSpawn)
+import Blatus.Comms (GameSync, EntitySync)
 
 timePerFrame :: Number
 timePerFrame = 1000.0 / 30.0

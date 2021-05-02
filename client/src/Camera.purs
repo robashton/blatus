@@ -1,10 +1,10 @@
-module Pure.Camera where
+module Blatus.Client.Camera where
 
 import Prelude
 import Effect (Effect)
 import Graphics.Canvas as Canvas
 import Math (tan) as Math
-import Pure.Math (Point, point)
+import Sisy.Math (Point, point)
 
 type CameraViewport
   = { left :: Number

@@ -1,14 +1,14 @@
-module Pure.Behaviours.BasicBitchPhysics where
+module Sisy.BuiltIn.Behaviours.BasicBitchPhysics where
 
 import Prelude
 import Control.Monad.State (State)
 import Control.Monad.State as State
 import Data.Exists (Exists, mkExists)
 import Data.Variant (default, onMatch)
-import Pure.Behaviour as B
-import Pure.Entity (BehaviourExecutionContext, Entity, EntityBehaviour(..))
-import Pure.Math (Point, scalePoint)
-import Pure.Math as Math
+import Sisy.Runtime.Behaviour as B
+import Sisy.Runtime.Entity (BehaviourExecutionContext, Entity, EntityBehaviour(..))
+import Sisy.Math (Point, scalePoint)
+import Sisy.Math as Math
 
 init ::
   forall entity cmd ev.

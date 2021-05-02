@@ -1,4 +1,4 @@
-module Pure.Config where
+module Blatus.Server.Config where
 
 import Effect (Effect)
 

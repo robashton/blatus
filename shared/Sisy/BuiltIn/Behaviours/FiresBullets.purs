@@ -1,13 +1,13 @@
-module Pure.Behaviours.FiresBullets where
+module Sisy.BuiltIn.Behaviours.FiresBullets where
 
 import Prelude
 import Data.Exists (Exists, mkExists)
 import Data.Symbol (SProxy(..))
 import Data.Variant (Variant, default, inj, onMatch)
-import Pure.Behaviour as B
-import Pure.Entity (EntityBehaviour(..), EntityId)
-import Pure.Math (Point, rotationToVector, scalePoint)
-import Pure.Runtime.Types (Empty)
+import Sisy.Runtime.Behaviour as B
+import Sisy.Runtime.Entity (EntityBehaviour(..), EntityId)
+import Sisy.Math (Point, rotationToVector, scalePoint)
+import Sisy.Types (Empty)
 
 init ::
   forall entity cmd ev.

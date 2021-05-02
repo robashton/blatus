@@ -1,4 +1,4 @@
-module Pure.Entity where
+module Sisy.Runtime.Entity where
 
 import Prelude
 import Control.Monad.State (State, runState)
@@ -8,8 +8,8 @@ import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 import Data.Tuple (Tuple(..), fst, snd)
 import Data.Variant (Variant)
-import Pure.Math (Point, Rect)
 import Record as Record
+import Sisy.Math (Point, Rect)
 import Simple.JSON (class ReadForeign, class WriteForeign)
 
 newtype HtmlColor

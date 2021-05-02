@@ -1,4 +1,4 @@
-module Fprof where
+module Blatus.Server.Fprof where
 
 import Prelude
 import Effect (Effect)

@@ -1,4 +1,4 @@
-module ProfileSetup where
+module Blatus.Server.ProfileSetup where
 
 --go :: Main.State -> Main.State
 --go game = foldl (\g _ -> do

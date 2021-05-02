@@ -1,4 +1,4 @@
-module PureWeb
+module Blatus.Server.Web
   ( startLink
   , init
   , serverName
@@ -24,12 +24,12 @@ import Erl.Process (send)
 import Pinto (RegistryName(..), StartLinkResult)
 import Pinto.GenServer (InitFn, InitResult(..), ServerPid, ServerType)
 import Pinto.GenServer as Gen
-import Pure.Api (RunningGame)
-import Pure.Comms as Comms
-import Pure.Logging as Log
-import Pure.RunningGame as RunningGame
-import Pure.RunningGameList as PureRunningGameList
-import Shared.ServerRoutes as ServerRoutes
+import Blatus.Api (RunningGame)
+import Blatus.Comms as Comms
+import Blatus.Server.Logging as Log
+import Blatus.Server.RunningGame as RunningGame
+import Blatus.Server.RunningGameList as PureRunningGameList
+import Blatus.ServerRoutes as ServerRoutes
 import Simple.JSON (class WriteForeign, readJSON, writeJSON)
 import SimpleBus as Bus
 import Stetson (RestResult, StaticAssetLocation(..), StetsonHandler, SimpleStetsonHandler, WebSocketCallResult(..))

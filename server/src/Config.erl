@@ -1,4 +1,4 @@
--module(pure_config@foreign).
+-module(blatus_server_config@foreign).
 
 -export([
          readInt_/1,

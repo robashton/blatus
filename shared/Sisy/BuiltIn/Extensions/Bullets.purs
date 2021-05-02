@@ -1,4 +1,4 @@
-module Pure.BuiltIn.Bullets where
+module Sisy.BuiltIn.Extensions.Bullets where
 
 import Prelude
 import Data.Bifunctor (lmap, rmap)
@@ -9,9 +9,9 @@ import Data.Symbol (SProxy(..))
 import Data.Tuple (Tuple(..))
 import Data.Variant (Variant, expand, inj)
 import Prim.Row as Row
-import Pure.Entity (Entity, EntityId)
-import Pure.Math (Point)
-import Pure.Runtime.Scene (Game)
+import Sisy.Runtime.Entity (Entity, EntityId)
+import Sisy.Runtime.Scene (Game)
+import Sisy.Math (Point)
 
 type ActiveBullet
   = { location :: Point

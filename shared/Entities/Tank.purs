@@ -1,18 +1,17 @@
-module Pure.Entities.Tank where
+module Blatus.Entities.Tank where
 
 import Prelude
 import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
-import Pure.Behaviours.BasicBitchPhysics as BasicBitchPhysics
-import Pure.Behaviours.Damageable as Damageable
-import Pure.Behaviours.Driven as Driven
-import Pure.Behaviours.FiresBullets as FiresBullets
-import Pure.Behaviours.NetworkSync as NetworkSync
-import Pure.Behaviours.Regenerates as Regenerates
-import Pure.Entity (Entity, EntityId, sprite)
-import Pure.Game.Entities.Classes (EntityClass(..), GameEntity)
-import Pure.Math (Point)
-import Pure.Types (EntityCommand, GameEvent)
+import Sisy.BuiltIn.Behaviours.BasicBitchPhysics as BasicBitchPhysics
+import Sisy.BuiltIn.Behaviours.Damageable as Damageable
+import Sisy.BuiltIn.Behaviours.Driven as Driven
+import Sisy.BuiltIn.Behaviours.FiresBullets as FiresBullets
+import Sisy.BuiltIn.Behaviours.NetworkSync as NetworkSync
+import Sisy.BuiltIn.Behaviours.Regenerates as Regenerates
+import Sisy.Math (Point)
+import Sisy.Runtime.Entity (Entity, EntityId, sprite)
+import Blatus.Types (EntityClass(..), GameEntity, EntityCommand, GameEvent)
 
 maxHealth :: Number
 maxHealth = 100.0

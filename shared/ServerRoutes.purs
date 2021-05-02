@@ -1,4 +1,4 @@
-module Shared.ServerRoutes where
+module Blatus.ServerRoutes where
 
 import Prelude hiding ((/))
 import Data.Either (Either(..))

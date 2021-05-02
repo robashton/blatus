@@ -1,4 +1,4 @@
--module(fprof@foreign).
+-module(blatus_server_fprof@foreign).
 
 -export([ start/0
         , stop/0

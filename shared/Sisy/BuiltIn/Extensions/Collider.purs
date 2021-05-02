@@ -1,4 +1,4 @@
-module Pure.BuiltIn.Collider where
+module Sisy.BuiltIn.Extensions.Collider where
 
 import Prelude
 import Control.Apply (lift2)
@@ -10,10 +10,10 @@ import Data.Maybe (fromMaybe)
 import Data.Symbol (SProxy(..))
 import Data.Variant (Variant, inj)
 import Math as Math
-import Pure.Behaviours.BasicBitchPhysics as BasicBitchPhysics
-import Pure.Entity (Entity, EntityId)
-import Pure.Math (Point)
-import Pure.Runtime.Scene (TickState)
+import Sisy.BuiltIn.Behaviours.BasicBitchPhysics as BasicBitchPhysics
+import Sisy.Runtime.Entity (Entity, EntityId)
+import Sisy.Runtime.Scene (TickState)
+import Sisy.Math (Point)
 
 type CollisionInfo
   = { left :: EntityId

@@ -1,12 +1,12 @@
-module Pure.Behaviours.Damageable where
+module Sisy.BuiltIn.Behaviours.Damageable where
 
 import Prelude
 import Data.Exists (Exists, mkExists)
 import Data.Maybe (Maybe)
 import Data.Symbol (SProxy(..))
 import Data.Variant (Variant, default, inj, onMatch)
-import Pure.Behaviour as B
-import Pure.Entity (EntityBehaviour(..), EntityId)
+import Sisy.Runtime.Behaviour as B
+import Sisy.Runtime.Entity (EntityBehaviour(..), EntityId)
 
 init ::
   forall entity cmd ev.

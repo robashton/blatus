@@ -1,4 +1,4 @@
-module GenericJSON where
+module Blatus.GenericJSON where
 
 import Prelude
 import Control.Alt ((<|>))

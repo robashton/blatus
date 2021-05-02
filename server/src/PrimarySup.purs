@@ -1,4 +1,4 @@
-module Pure.PrimarySup where
+module Blatus.Server.PrimarySup where
 
 import Prelude
 import Data.Maybe (Maybe(..))
@@ -10,10 +10,10 @@ import Pinto (RegistryName(..), StartLinkResult)
 import Pinto.Sup (ChildShutdownTimeoutStrategy(..), ChildType(..), ErlChildSpec, RestartStrategy(..), Strategy(..), SupervisorPid, SupervisorSpec, spec)
 import Pinto.Sup as Sup
 import Pinto.Types (RegistryReference(..))
-import Pure.Config as PureConfig
-import Pure.RunningGameList as RunningGameList
-import Pure.RunningGameSup as RunningGameSup
-import PureWeb as PureWeb
+import Blatus.Server.Config as Config
+import Blatus.Server.RunningGameList as RunningGameList
+import Blatus.Server.RunningGameSup as RunningGameSup
+import Blatus.Server.Web as Web
 
 startLink :: Effect (StartLinkResult SupervisorPid)
 startLink = do
@@ -25,7 +25,7 @@ stop = do
 
 init :: Effect SupervisorSpec
 init = do
-  webPort <- PureConfig.webPort
+  webPort <- Config.webPort
   pure
     { flags:
         { strategy: OneForAll
@@ -33,7 +33,7 @@ init = do
         , period: 5
         }
     , childSpecs:
-        (worker "pure_web" $ PureWeb.startLink { webPort })
+        (worker "pure_web" $ Web.startLink { webPort })
           : (worker "game_list" $ RunningGameList.startLink {})
           : (sup "game_sup" $ RunningGameSup.startLink)
           : nil

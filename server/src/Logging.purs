@@ -1,4 +1,4 @@
-module Pure.Logging where
+module Blatus.Server.Logging where
 
 import Prelude
 import Effect (Effect)

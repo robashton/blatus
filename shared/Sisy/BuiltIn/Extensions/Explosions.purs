@@ -1,14 +1,12 @@
-module Pure.BuiltIn.Explosions where
+module Sisy.BuiltIn.Extensions.Explosions where
 
 import Prelude
 import Data.Filterable (filterMap)
 import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
-import Pure.Entity (EntityId)
-import Pure.Math (Point)
+import Sisy.Runtime.Entity (EntityId)
+import Sisy.Math (Point)
 
--- Might make this a particle system, might stylise it
--- as animations, shrug.
 type ActiveExplosion
   = { location :: Point
     , velocity :: Point

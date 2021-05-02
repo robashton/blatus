@@ -1,4 +1,4 @@
-module Pure.Math where
+module Sisy.Math where
 
 import Prelude
 import Math as Math

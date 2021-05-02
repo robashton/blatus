@@ -1,4 +1,4 @@
--module(pure_runningGameList@foreign).
+-module(blatus_server_runningGameList@foreign).
 
 -export([ generateId/0 ]).
 
