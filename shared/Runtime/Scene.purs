@@ -21,7 +21,7 @@ type EntityMap cmd ev entity
 
 type TickState (cmd :: Row Type) ev entity
   = { entities :: Map.Map Int (Entity cmd ev entity)
-    , events :: List (List ev)
+    , events :: List (List (Variant ev))
     , entityCount :: Int
     , entityRange :: Array Int
     }
@@ -45,7 +45,7 @@ initialModel =
 onTick :: forall cmd ev entity. (TickState cmd ev entity -> TickState cmd ev entity) -> Game cmd ev entity -> Game cmd ev entity
 onTick h game = game { onTicked = h : game.onTicked }
 
-sendCommand :: forall cmd ev entity. EntityId -> Variant (Cmd cmd) -> Game cmd ev entity -> Tuple (Game cmd ev entity) (List ev)
+sendCommand :: forall cmd ev entity. EntityId -> Variant (Cmd cmd) -> Game cmd ev entity -> Tuple (Game cmd ev entity) (List (Variant ev))
 sendCommand id command game@{ entities } = case (Map.lookup id entities) of
   Nothing -> Tuple game Nil
   Just entity ->
@@ -54,7 +54,7 @@ sendCommand id command game@{ entities } = case (Map.lookup id entities) of
     in
       Tuple (game { entities = Map.insert id newEntity entities }) evs
 
-discardEvents :: forall cmd ev entity. Tuple (Game cmd ev entity) (List ev) -> Game cmd ev entity
+discardEvents :: forall cmd ev entity. Tuple (Game cmd ev entity) (List (Variant ev)) -> Game cmd ev entity
 discardEvents (Tuple game _events) = game
 
 addEntity :: forall cmd ev entity. Entity cmd ev entity -> Game cmd ev entity -> Game cmd ev entity
@@ -71,7 +71,7 @@ entityById id { entities } = find (\e -> e.id == id) entities
 
 tick ::
   forall cmd ev entity.
-  Game cmd ev entity -> Tuple (Game cmd ev entity) (List ev)
+  Game cmd ev entity -> Tuple (Game cmd ev entity) (List (Variant ev))
 tick game = Tuple (game { entities = foldl (\m e -> Map.insert e.id e m) Map.empty (Map.values finalState.entities) }) $ concat finalState.events
   where
   finalState = foldl (\is fn -> fn is) tickedState game.onTicked

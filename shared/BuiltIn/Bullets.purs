@@ -1,11 +1,14 @@
 module Pure.BuiltIn.Bullets where
 
 import Prelude
-import Data.Foldable (find, foldl)
 import Data.Bifunctor (lmap, rmap)
+import Data.Foldable (find, foldl)
 import Data.List (List(..), snoc, (:))
 import Data.Maybe (Maybe(..), maybe)
+import Data.Symbol (SProxy(..))
 import Data.Tuple (Tuple(..))
+import Data.Variant (Variant, expand, inj)
+import Prim.Row as Row
 import Pure.Entity (Entity, EntityId)
 import Pure.Math (Point)
 import Pure.Runtime.Scene (Game)
@@ -23,15 +26,20 @@ type BulletHit
     , bullet :: ActiveBullet
     }
 
-type State ev
+type Event
+  = ( bulletHit :: BulletHit )
+
+bulletHit :: BulletHit -> Variant Event
+bulletHit = inj (SProxy :: SProxy "bulletHit")
+
+type State
   = { bullets :: List ActiveBullet
-    , liftEvent :: BulletHit -> ev
     }
 
-init :: forall ev. (BulletHit -> ev) -> State ev
-init liftEvent = { bullets: Nil, liftEvent }
+init :: State
+init = { bullets: Nil }
 
-fireBullet :: forall ev. EntityId -> Point -> Point -> Number -> State ev -> State ev
+fireBullet :: EntityId -> Point -> Point -> Number -> State -> State
 fireBullet owner location velocity power state =
   state
     { bullets =
@@ -44,7 +52,9 @@ fireBullet owner location velocity power state =
         : state.bullets
     }
 
-tick :: forall cmd ev entity. (State ev) -> Game cmd ev entity -> Tuple (State ev) (List ev)
+tick ::
+  forall cmd ev entity.
+  State -> Game cmd ev entity -> Tuple State (List (Variant Event))
 tick state game =
   lmap (\b -> state { bullets = b })
     $ foldl
@@ -57,7 +67,9 @@ tick state game =
         (Tuple Nil Nil)
         state.bullets
 
-updateBullet :: forall cmd ev entity. State ev -> ActiveBullet -> Game cmd ev entity -> Tuple (Maybe ActiveBullet) (Maybe ev)
+updateBullet ::
+  forall cmd ev entity.
+  State -> ActiveBullet -> Game cmd ev entity -> Tuple (Maybe ActiveBullet) (Maybe (Variant Event))
 updateBullet state b g =
   if b.age > 150 then
     Tuple Nothing Nothing
@@ -71,7 +83,7 @@ updateBullet state b g =
                 }
         )
         Nothing
-    Just entity -> Tuple Nothing $ Just $ state.liftEvent { entity: entity.id, bullet: b }
+    Just entity -> Tuple Nothing $ Just $ bulletHit { entity: entity.id, bullet: b }
 
 -- We'll just go with a sloppy circle test
 -- for now, but in reality we will *need* a sweep test for line / aabb, just too lazy to do that now

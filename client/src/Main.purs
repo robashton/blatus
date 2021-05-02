@@ -32,7 +32,8 @@ import Pure.Entities.Tank as Tank
 import Pure.Game.Entities.Classes (GameEntity)
 import Pure.Game.Main as Main
 import Pure.Runtime.Scene (Game, entityById)
-import Pure.Types (EntityCommand, GameEvent, empty)
+import Pure.Runtime.Types (empty)
+import Pure.Types (EntityCommand, GameEvent)
 import Signal (Signal, dropRepeats, foldp, runSignal, sampleOn)
 import Signal as Signal
 import Signal.Channel as Channel
@@ -444,7 +445,7 @@ renderExplosions state ctx = do
       state.explosions
   Canvas.fill ctx
 
-renderBullets :: forall ev. Bullets.State ev -> Canvas.Context2D -> Effect Unit
+renderBullets :: Bullets.State -> Canvas.Context2D -> Effect Unit
 renderBullets state ctx = do
   _ <- Canvas.setFillStyle ctx "#0ff"
   _ <- Canvas.beginPath ctx

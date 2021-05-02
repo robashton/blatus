@@ -19,7 +19,7 @@ data ServerMsg
   | PlayerSync EntitySync
   | Welcome WelcomeInfo
   | ServerCommand { cmd :: Variant EntityCommand, id :: EntityId }
-  | ServerEvents (Array GameEvent)
+  | ServerEvents (Array (Variant GameEvent))
   | Pong Int
 
 type PlayerListItem

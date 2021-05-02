@@ -3,14 +3,14 @@ module Pure.Behaviours.Damageable where
 import Prelude
 import Data.Exists (Exists, mkExists)
 import Data.Maybe (Maybe)
-import Data.Variant (default, onMatch)
+import Data.Symbol (SProxy(..))
+import Data.Variant (Variant, default, inj, onMatch)
 import Pure.Behaviour as B
 import Pure.Entity (EntityBehaviour(..), EntityId)
-import Pure.Types (GameEvent(..))
 
 init ::
-  forall entity cmd.
-  Exists (EntityBehaviour (Command cmd) GameEvent (Required entity))
+  forall entity cmd ev.
+  Exists (EntityBehaviour (Command cmd) (Event ev) (Required entity))
 init =
   mkExists
     $ EntityBehaviour
@@ -27,7 +27,7 @@ init =
                         shield = if entity.shield > 0.0 then entity.shield - damage.amount else 0.0
                       B.updateEntity (\e -> e { health = health, shield = shield })
                       if health <= 0.0 then do
-                        B.raiseEvent $ EntityDestroyed { entity: entity.id, destroyer: damage.source }
+                        B.raiseEvent $ entityDestroyed { entity: entity.id, destroyer: damage.source }
                         pure s
                       else
                         pure s
@@ -57,3 +57,14 @@ type Command r
   = ( damage :: { amount :: Number, source :: Maybe EntityId }
     | r
     )
+
+type Event r
+  = ( entityDestroyed :: EntityDestroyed
+    | r
+    )
+
+type EntityDestroyed
+  = { entity :: EntityId, destroyer :: Maybe EntityId }
+
+entityDestroyed :: forall r. EntityDestroyed -> Variant (Event r)
+entityDestroyed = inj (SProxy :: SProxy "entityDestroyed")

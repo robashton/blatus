@@ -51,34 +51,34 @@ sprite =
   , id: "anon"
   }
 
-data EntityBehaviourResult (cmd :: Row Type) ev entity state
+data EntityBehaviourResult cmd ev entity state
   = StateUpdated state
   | StateAndEntityUpdated state (Entity cmd ev entity)
   | EntityUpdated (Entity cmd ev entity)
-  | RaiseEvent ev state
+  | RaiseEvent (Variant ev) state
   | NoOp
 
-type BehaviourExecutionContext (cmd :: Row Type) ev entity
-  = { events :: List ev
+type BehaviourExecutionContext cmd ev entity
+  = { events :: List (Variant ev)
     , entity :: (Entity cmd ev entity)
     }
 
-type EntityCommandHandlerResult (cmd :: Row Type) ev entity state
+type EntityCommandHandlerResult cmd ev entity state
   = State (BehaviourExecutionContext cmd ev entity) state
 
-type EntityCommandHandler (cmd :: Row Type) ev entity state
+type EntityCommandHandler cmd ev entity state
   = Variant (Cmd cmd) -> state -> (EntityCommandHandlerResult cmd ev entity state)
 
-data EntityBehaviour (cmd :: Row Type) ev entity state
+data EntityBehaviour cmd ev entity state
   = EntityBehaviour
     { state :: state
     , handleCommand :: EntityCommandHandler cmd ev entity state
     }
 
-type Entity (cmd :: Row Type) ev entity
+type Entity cmd ev entity
   = Record (EntityRow cmd ev entity)
 
-type EntityRow (cmd :: Row Type) ev entity
+type EntityRow cmd ev entity
   = ( id :: EntityId
     , location :: Point
     , width :: Number
@@ -105,10 +105,10 @@ emptyEntity id entity =
     }
     entity
 
-processCommand :: forall cmd ev entity. (Entity cmd ev entity) -> Variant (Cmd cmd) -> Tuple (Entity cmd ev entity) (List ev)
+processCommand :: forall cmd ev entity. (Entity cmd ev entity) -> Variant (Cmd cmd) -> Tuple (Entity cmd ev entity) (List (Variant ev))
 processCommand e command = foldr executeCommand (Tuple (e { behaviour = Nil }) Nil) e.behaviour
   where
-  executeCommand :: Exists (EntityBehaviour cmd ev entity) -> (Tuple (Entity cmd ev entity) (List ev)) -> (Tuple (Entity cmd ev entity) (List ev))
+  executeCommand :: Exists (EntityBehaviour cmd ev entity) -> (Tuple (Entity cmd ev entity) (List (Variant ev))) -> (Tuple (Entity cmd ev entity) (List (Variant ev)))
   executeCommand =
     ( \behaviour (Tuple acc evs) ->
         let
@@ -117,7 +117,7 @@ processCommand e command = foldr executeCommand (Tuple (e { behaviour = Nil }) N
           Tuple (fst runResult) (concat $ (snd runResult) : evs : Nil)
     )
 
-  runBehaviour :: forall state. Entity cmd ev entity -> EntityBehaviour cmd ev entity state -> Tuple (Entity cmd ev entity) (List ev)
+  runBehaviour :: forall state. Entity cmd ev entity -> EntityBehaviour cmd ev entity state -> Tuple (Entity cmd ev entity) (List (Variant ev))
   runBehaviour entity@{ behaviour: behaviourList } (EntityBehaviour behaviour@{ handleCommand: (handler) }) =
     let
       Tuple newState result = runState (handler command behaviour.state) { entity, events: Nil }
@@ -125,7 +125,7 @@ processCommand e command = foldr executeCommand (Tuple (e { behaviour = Nil }) N
       newEntity :: Entity cmd ev entity
       newEntity = result.entity
 
-      newEvents :: List ev
+      newEvents :: List (Variant ev)
       newEvents = result.events
     in
       Tuple (newEntity { behaviour = (mkExists $ EntityBehaviour behaviour { state = newState }) : behaviourList }) newEvents

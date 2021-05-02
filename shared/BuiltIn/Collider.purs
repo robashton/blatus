@@ -7,11 +7,13 @@ import Data.Array as Array
 import Data.List (List(..), (:))
 import Data.Map as Map
 import Data.Maybe (fromMaybe)
+import Data.Symbol (SProxy(..))
+import Data.Variant (Variant, inj)
 import Math as Math
+import Pure.Behaviours.BasicBitchPhysics as BasicBitchPhysics
 import Pure.Entity (Entity, EntityId)
 import Pure.Math (Point)
 import Pure.Runtime.Scene (TickState)
-import Pure.Behaviours.BasicBitchPhysics as BasicBitchPhysics
 
 type CollisionInfo
   = { left :: EntityId
@@ -19,22 +21,27 @@ type CollisionInfo
     , force :: Number
     }
 
+type Event r
+  = ( entityCollided :: CollisionInfo
+    | r
+    )
+
+entityCollided :: forall r. CollisionInfo -> Variant (Event r)
+entityCollided = inj (SProxy :: SProxy "entityCollided")
+
 onTick ::
-  forall cmd ev entity.
-  (CollisionInfo -> ev) -> TickState cmd ev (BasicBitchPhysics.Required entity) -> TickState cmd ev (BasicBitchPhysics.Required entity)
-onTick fn state = foldl (collideEntity fn state.entityCount) state state.entityRange
+  forall cmd ev entity. TickState cmd (Event ev) (BasicBitchPhysics.Required entity) -> TickState cmd (Event ev) (BasicBitchPhysics.Required entity)
+onTick state = foldl (collideEntity state.entityCount) state state.entityRange
 
 collideEntity ::
-  forall cmd ev entity.
-  (CollisionInfo -> ev) -> Int -> TickState cmd ev (BasicBitchPhysics.Required entity) -> Int -> TickState cmd ev (BasicBitchPhysics.Required entity)
-collideEntity fn termination state index
+  forall cmd ev entity. Int -> TickState cmd (Event ev) (BasicBitchPhysics.Required entity) -> Int -> TickState cmd (Event ev) (BasicBitchPhysics.Required entity)
+collideEntity termination state index
   | index == termination = state
-  | otherwise = foldl (collidePair fn index) state $ Array.range (index + 1) termination
+  | otherwise = foldl (collidePair index) state $ Array.range (index + 1) termination
 
 collidePair ::
-  forall cmd ev entity.
-  (CollisionInfo -> ev) -> Int -> TickState cmd ev (BasicBitchPhysics.Required entity) -> Int -> TickState cmd ev (BasicBitchPhysics.Required entity)
-collidePair fn li state ri =
+  forall cmd ev entity. Int -> TickState cmd (Event ev) (BasicBitchPhysics.Required entity) -> Int -> TickState cmd (Event ev) (BasicBitchPhysics.Required entity)
+collidePair li state ri =
   fromMaybe state
     $ lift2
         ( \left right ->
@@ -51,8 +58,8 @@ collidePair fn li state ri =
                 state
                   { entities = Map.insert ri ur $ Map.insert li ul state.entities
                   , events =
-                    ( fn { left: left.id, right: right.id, force: lf }
-                        : fn { left: right.id, right: left.id, force: rf }
+                    ( (entityCollided { left: left.id, right: right.id, force: lf })
+                        : (entityCollided { left: right.id, right: left.id, force: rf })
                         : Nil
                     )
                       : state.events

@@ -9,11 +9,10 @@ import Pure.Behaviour as B
 import Pure.Entity (BehaviourExecutionContext, Entity, EntityBehaviour(..))
 import Pure.Math (Point, scalePoint)
 import Pure.Math as Math
-import Pure.Types (GameEvent)
 
 init ::
-  forall entity cmd.
-  Exists (EntityBehaviour (Command cmd) GameEvent (Required entity))
+  forall entity cmd ev.
+  Exists (EntityBehaviour (Command cmd) ev (Required entity))
 init =
   mkExists
     $ EntityBehaviour

@@ -2,32 +2,19 @@ module Test.Support.Types where
 
 import Prelude
 import Data.Exists (Exists, mkExists)
-import Data.Generic.Rep (class Generic)
 import Data.List (List(..))
-import Data.Show.Generic (genericShow)
-import Data.Variant (default, onMatch)
-import GenericJSON (writeTaggedSumRep, taggedSumRep)
+import Data.Symbol (SProxy(..))
+import Data.Variant (Variant, default, inj, onMatch)
 import Pure.Behaviour (raiseEvent)
 import Pure.Behaviour as B
 import Pure.Entity (Entity, EntityBehaviour(..), EntityId)
 import Pure.Math (point)
-import Simple.JSON (class ReadForeign, class WriteForeign)
 
-data TestEvent
-  = Ticked EntityId
+type TestEvent
+  = ( ticked :: EntityId )
 
-derive instance genericTestEvent :: Generic TestEvent _
-
-instance showTestEvent :: Show TestEvent where
-  show = genericShow
-
-instance writeForeignTestEvent :: WriteForeign TestEvent where
-  writeImpl = writeTaggedSumRep
-
-instance readForeignTestEvent :: ReadForeign TestEvent where
-  readImpl = taggedSumRep
-
-derive instance eqTestEvent :: Eq TestEvent
+ticked :: EntityId -> Variant TestEvent
+ticked = inj (SProxy :: SProxy "ticked")
 
 emptyEntity :: EntityId -> Entity () TestEvent ()
 emptyEntity =
@@ -51,7 +38,7 @@ tickEcho =
                   { tick:
                       \_ -> do
                         id <- B.id
-                        raiseEvent $ Ticked id
+                        raiseEvent $ ticked id
                         pure state
                   }
                   (default (pure state))

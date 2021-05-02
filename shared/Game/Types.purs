@@ -1,14 +1,17 @@
 module Pure.Types where
 
 import Prelude
-import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe)
-import Data.Show.Generic (genericShow)
+import Data.Symbol (SProxy(..))
+import Data.Variant (Variant, inj)
 import Foreign (readString)
-import GenericJSON (writeTaggedSumRep, taggedSumRep)
+import Pure.Behaviours.Damageable (EntityDestroyed)
+import Pure.Behaviours.FiresBullets (BulletFired)
 import Pure.BuiltIn.Bullets as Bullets
+import Pure.BuiltIn.Collider (CollisionInfo)
 import Pure.Entity (EntityId)
 import Pure.Math (Point)
+import Pure.Runtime.Types (Empty)
 import Simple.JSON (class ReadForeign, class WriteForeign, write)
 
 type RegisteredPlayer
@@ -16,24 +19,6 @@ type RegisteredPlayer
     , lastTick :: Int
     , score :: Int
     }
-
-newtype Empty
-  = Empty Unit
-
-empty :: Empty
-empty = Empty unit
-
-instance writeEmpty :: WriteForeign Empty where
-  writeImpl _ = write ""
-
-instance readEmpty :: ReadForeign Empty where
-  readImpl f = empty <$ readString f
-
-instance showEmpty :: Show Empty where
-  show _ = "Empty"
-
-instance eqEmpty :: Eq Empty where
-  eq _ _ = true
 
 type EntityCommand
   = ( damage :: { amount :: Number, source :: Maybe EntityId }
@@ -54,33 +39,16 @@ type EntityCommand
         }
     )
 
-data GameEvent
-  = BulletFired { owner :: EntityId, location :: Point, velocity :: Point, power :: Number }
-  | EntityCollided { left :: EntityId, right :: EntityId, force :: Number }
-  | BulletHit Bullets.BulletHit
-  | EntityDestroyed { entity :: EntityId, destroyer :: Maybe EntityId }
-  | PlayerSpawn { id :: EntityId, x :: Number, y :: Number }
+type GameEvent
+  = ( bulletFired :: BulletFired
+    , entityCollided :: CollisionInfo
+    , bulletHit :: Bullets.BulletHit
+    , entityDestroyed :: EntityDestroyed
+    , playerSpawn :: PlayerSpawn
+    )
 
--- Probably Variant (..)
--- derive instance genericEntityCommand :: Generic EntityCommand _
--- 
--- instance showEntityCommand :: Show EntityCommand where
---   show = genericShow
--- 
--- instance writeForeignEntityCommand :: WriteForeign EntityCommand where
---   writeImpl = writeTaggedSumRep
--- 
--- instance readForeignEntityCommand :: ReadForeign EntityCommand where
---   readImpl = taggedSumRep
--- 
--- derive instance eqEntityCommand :: Eq EntityCommand
-derive instance genericGameEvent :: Generic GameEvent _
+type PlayerSpawn
+  = { id :: EntityId, x :: Number, y :: Number }
 
-instance showGameEvent :: Show GameEvent where
-  show = genericShow
-
-instance writeForeignGameEvent :: WriteForeign GameEvent where
-  writeImpl = writeTaggedSumRep
-
-instance readForeignGameEvent :: ReadForeign GameEvent where
-  readImpl = taggedSumRep
+playerSpawn :: PlayerSpawn -> Variant GameEvent
+playerSpawn = inj (SProxy :: SProxy "playerSpawn")

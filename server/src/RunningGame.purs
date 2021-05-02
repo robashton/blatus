@@ -2,7 +2,6 @@ module Pure.RunningGame where
 
 import Prelude
 import Data.Foldable (foldM, foldl)
-import Data.Variant (expand)
 import Data.Int as Int
 import Data.List (toUnfoldable, List(..))
 import Data.Map as Map
@@ -10,6 +9,7 @@ import Data.Maybe (Maybe(..))
 import Data.Newtype (wrap)
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..), fst, snd, uncurry)
+import Data.Variant (Variant, expand)
 import Effect (Effect)
 import Erl.Atom (atom)
 import Pinto (RegistryName(..), StartLinkResult)
@@ -70,7 +70,7 @@ sendCommand id playerId msg =
           Bus.raise (bus info.id) $ PlayerRemoved $ wrap playerId
           pure $ Gen.reply Nothing $ s { game = Main.removePlayer (wrap playerId) game }
 
-handleEvents :: String -> Main.State -> List GameEvent -> Effect Main.State
+handleEvents :: String -> Main.State -> List (Variant GameEvent) -> Effect Main.State
 handleEvents id state Nil = pure state
 
 handleEvents id state evs = do

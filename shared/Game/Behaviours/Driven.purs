@@ -6,7 +6,7 @@ import Data.Variant (default, onMatch)
 import Pure.Behaviour as B
 import Pure.Behaviours.BasicBitchPhysics as BasicBitchPhysics
 import Pure.Entity (EntityBehaviour(..))
-import Pure.Types (Empty, GameEvent)
+import Pure.Runtime.Types (Empty)
 
 type DrivenConfig
   = { maxSpeed :: Number
@@ -15,8 +15,8 @@ type DrivenConfig
     }
 
 init ::
-  forall entity cmd.
-  DrivenConfig -> Exists (EntityBehaviour (Command cmd) GameEvent (BasicBitchPhysics.Required entity))
+  forall entity cmd ev.
+  DrivenConfig -> Exists (EntityBehaviour (Command cmd) ev (BasicBitchPhysics.Required entity))
 init config =
   mkExists
     $ EntityBehaviour

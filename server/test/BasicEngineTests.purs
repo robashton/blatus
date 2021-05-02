@@ -10,7 +10,7 @@ import Pure.Entity (EntityId(..), emptyEntity)
 import Pure.Runtime.Scene (Game, addEntity, tickCmd)
 import Pure.Runtime.Scene as Scene
 import Test.Assert (assertEqual)
-import Test.Support.Types (TestEvent(..), tickEcho)
+import Test.Support.Types (TestEvent, tickEcho, ticked)
 
 tests :: Free TestF Unit
 tests = do
@@ -21,7 +21,7 @@ tests = do
 
         Tuple newScene evs = Scene.tick initialScene
       assertEqual
-        { expected: (Ticked (EntityId "foo")) : Nil
+        { expected: (ticked (EntityId "foo")) : Nil
         , actual: evs
         }
     test "Sending a command directly to a single entity" do
@@ -32,7 +32,7 @@ tests = do
 
         Tuple newScene evs = Scene.sendCommand (EntityId "foo") tickCmd initialScene
       assertEqual
-        { expected: (Ticked (EntityId "foo")) : Nil
+        { expected: (ticked (EntityId "foo")) : Nil
         , actual: evs
         }
     test "Fetching an entity by Id" do

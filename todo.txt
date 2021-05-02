@@ -34,6 +34,7 @@ Could we do hybrid RTS?
 -- Tech
 
 [ ] Move ev into a Variant
+[ ] Sort out the namespaces again
 [ ] Move most components outside of 'game'
 [ ] Generify the networking aspect of this
 [ ] Generify the rendering aspect of this

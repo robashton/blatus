@@ -2,16 +2,17 @@ module Pure.Behaviours.FiresBullets where
 
 import Prelude
 import Data.Exists (Exists, mkExists)
-import Data.Variant (default, onMatch)
+import Data.Symbol (SProxy(..))
+import Data.Variant (Variant, default, inj, onMatch)
 import Pure.Behaviour as B
-import Pure.Entity (EntityBehaviour(..))
-import Pure.Math (rotationToVector, scalePoint)
-import Pure.Types (Empty, GameEvent(..))
+import Pure.Entity (EntityBehaviour(..), EntityId)
+import Pure.Math (Point, rotationToVector, scalePoint)
+import Pure.Runtime.Types (Empty)
 
 init ::
-  forall entity cmd.
+  forall entity cmd ev.
   { max :: Int, coolOffPeriod :: Int, speed :: Number, rate :: Int, power :: Number } ->
-  Exists (EntityBehaviour (Command cmd) GameEvent entity)
+  Exists (EntityBehaviour (Command cmd) (Event ev) entity)
 init { max, speed, coolOffPeriod, rate, power } =
   mkExists
     $ EntityBehaviour
@@ -43,7 +44,7 @@ init { max, speed, coolOffPeriod, rate, power } =
       , tick:
           \_ -> do
             if firingTimer <= 0 && state.firing && state.bulletsFired < max then do
-              B.raiseEvent $ (BulletFired { owner: entity.id, location: location entity, velocity: velocity entity, power })
+              B.raiseEvent $ (bulletFired { owner: entity.id, location: location entity, velocity: velocity entity, power })
               pure $ state { firingTimer = rate, bulletsFired = state.bulletsFired + 1 }
             else if state.firing then
               pure $ state { firingTimer = state.firingTimer - 1 }
@@ -66,3 +67,14 @@ type Command cmd
     , stopFireBullet :: Empty
     | cmd
     )
+
+type Event ev
+  = ( bulletFired :: BulletFired
+    | ev
+    )
+
+type BulletFired
+  = { owner :: EntityId, location :: Point, velocity :: Point, power :: Number }
+
+bulletFired :: forall r. BulletFired -> Variant ( bulletFired :: BulletFired | r )
+bulletFired ev = inj (SProxy :: SProxy "bulletFired") ev

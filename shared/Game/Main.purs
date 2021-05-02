@@ -11,7 +11,7 @@ import Data.Map as Map
 import Data.Maybe (Maybe(..), maybe)
 import Data.Symbol (SProxy(..))
 import Data.Tuple (Tuple(..), fst, snd)
-import Data.Variant (Variant, inj)
+import Data.Variant (Variant, expand, inj, match, onMatch)
 import Pure.BuiltIn.Bullets as Bullets
 import Pure.BuiltIn.Collider as Collider
 import Pure.BuiltIn.Explosions as Explosions
@@ -23,7 +23,7 @@ import Pure.Game.Entities.Classes (EntityClass(..), GameEntity)
 import Pure.Runtime.Scene (Game)
 import Pure.Runtime.Scene as Scene
 import Pure.Runtime.Ticks as Ticks
-import Pure.Types (EntityCommand, GameEvent(..), RegisteredPlayer)
+import Pure.Types (EntityCommand, GameEvent(..), RegisteredPlayer, playerSpawn)
 
 timePerFrame :: Number
 timePerFrame = 1000.0 / 30.0
@@ -39,7 +39,7 @@ foreign import random :: (Number -> Seed -> Tuple Number Seed) -> Seed -> Tuple 
 
 type State
   = { scene :: Game EntityCommand GameEvent GameEntity
-    , bullets :: Bullets.State GameEvent
+    , bullets :: Bullets.State
     , explosions :: Explosions.State
     , players :: Map.Map EntityId RegisteredPlayer
     , lastTick :: Int
@@ -55,8 +55,8 @@ init :: Number -> State
 init now =
   { scene:
       Scene.initialModel
-        # Scene.onTick (Collider.onTick EntityCollided)
-  , bullets: Bullets.init BulletHit
+        # Scene.onTick Collider.onTick
+  , bullets: Bullets.init
   , explosions: Explosions.init
   , lastTick: 0
   , ticks: Ticks.init now timePerFrame
@@ -65,7 +65,7 @@ init now =
   , seed: seed
   }
 
-tick :: Number -> State -> Tuple State (List GameEvent)
+tick :: Number -> State -> Tuple State (List (Variant GameEvent))
 tick now state = lmap (\newState -> newState { ticks = newTicks }) result
   where
   (Tuple framesToExecute newTicks) = Ticks.update now state.ticks
@@ -74,7 +74,7 @@ tick now state = lmap (\newState -> newState { ticks = newTicks }) result
 
   innerTick (Tuple is evs) = rmap (\nevs -> (evs <> nevs)) $ doTick is
 
-doTick :: State -> Tuple State (List GameEvent)
+doTick :: State -> Tuple State (List (Variant GameEvent))
 doTick state@{ lastTick } =
   Tuple
     ( state
@@ -86,9 +86,12 @@ doTick state@{ lastTick } =
         , seed = fst processedSpawns
         }
     )
-    (snd sceneTick <> snd bulletTick <> snd processedSpawns)
+    (snd sceneTick <> bulletEvents <> (snd processedSpawns))
   where
   explosionTick = Explosions.tick state.explosions
+
+  bulletEvents :: List (Variant GameEvent)
+  bulletEvents = expand <$> snd bulletTick
 
   bulletTick = Bullets.tick state.bullets (fst sceneTick)
 
@@ -113,30 +116,35 @@ doTick state@{ lastTick } =
 
             b@(Tuple y s2) = random Tuple s1
           in
-            (Tuple s2 $ (PlayerSpawn { x: x * 1000.0 - 500.0, y: y * 1000.0 - 500.0, id }) : (snd acc))
+            (Tuple s2 $ (playerSpawn { x: x * 1000.0 - 500.0, y: y * 1000.0 - 500.0, id }) : (snd acc))
       )
       (Tuple state.seed Nil)
       (snd spawnTick)
 
-handleEvent :: State -> GameEvent -> Tuple State (List GameEvent)
-handleEvent state@{ scene, players } ev = case ev of
-  BulletFired deets -> Tuple (state { bullets = Bullets.fireBullet deets.owner deets.location deets.velocity deets.power state.bullets }) Nil
-  EntityDestroyed { entity: id, destroyer } -> case Map.lookup id players of
-    Nothing -> Tuple (state { scene = Scene.removeEntity id scene }) Nil
-    Just _player -> Tuple (handleEntityDestruction state id destroyer) Nil
-  PlayerSpawn { id, x, y } -> Tuple (state { scene = Scene.addEntity (Tank.init id { x, y }) scene }) Nil
-  BulletHit hit ->
-    lmap
-      ( \s ->
-          state
-            { scene = s
-            , explosions = explosions
-            }
-      )
-      $ Scene.sendCommand hit.entity (inj (SProxy :: SProxy "damage") { amount: hit.bullet.power, source: Just hit.bullet.owner }) scene
-    where
-    explosions = Explosions.createExplosion hit.entity hit.bullet.location hit.bullet.velocity state.explosions
-  EntityCollided _ -> Tuple state Nil
+handleEvent :: State -> Variant GameEvent -> Tuple State (List (Variant GameEvent))
+handleEvent state@{ scene, players } =
+  match
+    { bulletFired: \deets -> Tuple (state { bullets = Bullets.fireBullet deets.owner deets.location deets.velocity deets.power state.bullets }) Nil
+    , entityDestroyed:
+        \{ entity: id, destroyer } -> case Map.lookup id players of
+          Nothing -> Tuple (state { scene = Scene.removeEntity id scene }) Nil
+          Just _player -> Tuple (handleEntityDestruction state id destroyer) Nil
+    , playerSpawn: \{ id, x, y } -> Tuple (state { scene = Scene.addEntity (Tank.init id { x, y }) scene }) Nil
+    , bulletHit:
+        \hit ->
+          let
+            explosions = Explosions.createExplosion hit.entity hit.bullet.location hit.bullet.velocity state.explosions
+          in
+            lmap
+              ( \s ->
+                  state
+                    { scene = s
+                    , explosions = explosions
+                    }
+              )
+              $ Scene.sendCommand hit.entity (inj (SProxy :: SProxy "damage") { amount: hit.bullet.power, source: Just hit.bullet.owner }) scene
+    , entityCollided: \_ -> Tuple state Nil
+    }
 
 handleEntityDestruction :: State -> EntityId -> Maybe EntityId -> State
 handleEntityDestruction state@{ scene, players, pendingSpawns } id destroyer =
@@ -146,7 +154,7 @@ handleEntityDestruction state@{ scene, players, pendingSpawns } id destroyer =
     , pendingSpawns = { playerId: id, ticks: ticksForRespawn } : pendingSpawns
     }
 
-sendCommand :: EntityId -> Variant (Cmd EntityCommand) -> State -> Tuple State (List GameEvent)
+sendCommand :: EntityId -> Variant (Cmd EntityCommand) -> State -> Tuple State (List (Variant GameEvent))
 sendCommand id cmd state = lmap (\s -> (state { scene = s })) $ Scene.sendCommand id cmd state.scene
 
 fromSync :: Number -> GameSync -> State

@@ -6,12 +6,11 @@ import Data.Variant (default, onMatch)
 import Pure.Behaviour as B
 import Pure.Entity (EntityBehaviour(..))
 import Pure.Math (Point, lerp)
-import Pure.Types (GameEvent)
 
 type ElasticConfig
   = { force :: Number }
 
-init :: forall entity (cmd :: Row Type). ElasticConfig -> Exists (EntityBehaviour (Command cmd) GameEvent entity)
+init :: forall entity cmd ev. ElasticConfig -> Exists (EntityBehaviour (Command cmd) ev entity)
 init c =
   mkExists
     $ EntityBehaviour
