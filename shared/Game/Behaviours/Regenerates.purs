@@ -5,10 +5,9 @@ import Data.Exists (Exists, mkExists)
 import Data.Maybe (Maybe)
 import Data.Variant (default, onMatch)
 import Math as Math
-import Prim.Row as Row
 import Pure.Behaviour as B
 import Pure.Entity (EntityBehaviour(..), EntityId)
-import Pure.Types (EntityCommand(..), GameEvent(..))
+import Pure.Types (GameEvent)
 
 type Config
   = { healthRegen :: Number

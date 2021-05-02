@@ -2,7 +2,6 @@ module Pure.Entities.Bullet where
 
 import Prelude
 import Data.List (List(..), (:))
-import Data.Maybe (Maybe(..))
 import Pure.Behaviours.BasicBitchPhysics as BasicBitchPhysics
 import Pure.Entity (Entity, EntityId, HtmlColor(..), sprite)
 import Pure.Game.Entities.Classes (EntityClass(..), GameEntity)

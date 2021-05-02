@@ -33,7 +33,7 @@ instance showEmpty :: Show Empty where
   show _ = "Empty"
 
 instance eqEmpty :: Eq Empty where
-  eq  _ _ = true
+  eq _ _ = true
 
 type EntityCommand
   = ( damage :: { amount :: Number, source :: Maybe EntityId }

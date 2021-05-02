@@ -26,7 +26,6 @@ import Pure.Logging as Log
 import Pure.RunningGameList as RunningGameList
 import Pure.Timing as Timing
 import Pure.Types (GameEvent)
-import Pure.Types (GameEvent)
 import SimpleBus as Bus
 
 type State

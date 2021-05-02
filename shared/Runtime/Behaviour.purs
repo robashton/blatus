@@ -6,7 +6,6 @@ import Control.Monad.State as State
 import Data.List ((:))
 import Pure.Entity (EntityId)
 import Pure.Entity as Entity
-import Pure.Math as Math
 
 id :: forall cmd ev entity. State (Entity.BehaviourExecutionContext cmd ev entity) EntityId
 id = _.id <$> State.gets _.entity

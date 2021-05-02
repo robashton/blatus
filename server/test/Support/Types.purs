@@ -9,7 +9,7 @@ import Data.Variant (default, onMatch)
 import GenericJSON (writeTaggedSumRep, taggedSumRep)
 import Pure.Behaviour (raiseEvent)
 import Pure.Behaviour as B
-import Pure.Entity (Entity, EntityBehaviour(..), EntityId(..))
+import Pure.Entity (Entity, EntityBehaviour(..), EntityId)
 import Pure.Math (point)
 import Simple.JSON (class ReadForeign, class WriteForeign)
 

@@ -1,24 +1,20 @@
 module Pure.Runtime.Scene where
 
 import Prelude
-import Control.Apply (lift2)
 import Data.Array as Array
-import Data.Foldable (foldl, class Foldable)
+import Data.Foldable (foldl)
 import Data.FoldableWithIndex (foldlWithIndex)
-import Data.List (List(..), concat, foldr, (:))
+import Data.List (List(..), concat, (:))
 import Data.Map (Map)
 import Data.Map as Map
-import Data.Maybe (Maybe(..), maybe, fromMaybe)
+import Data.Maybe (Maybe(..), maybe)
 import Data.Symbol (SProxy(..))
 import Data.Traversable (find)
 import Data.Tuple (Tuple(..))
-import Data.Variant (Variant, expand, inj)
-import Math (pow, sqrt) as Math
-import Prim.Row as Row
+import Data.Variant (Variant, inj)
 import Pure.Entity (Entity, EntityId, Cmd)
 import Pure.Entity as Entity
-import Pure.Math (Point, Rect)
-import Unsafe.Coerce (unsafeCoerce)
+import Pure.Math (Rect)
 
 type EntityMap cmd ev entity
   = Map EntityId (Entity cmd ev entity)

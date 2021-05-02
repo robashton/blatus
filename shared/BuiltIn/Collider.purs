@@ -4,13 +4,11 @@ import Prelude
 import Control.Apply (lift2)
 import Data.Array (foldl)
 import Data.Array as Array
-import Data.Exists (mkExists)
 import Data.List (List(..), (:))
 import Data.Map as Map
 import Data.Maybe (fromMaybe)
 import Math as Math
-import Pure.Entity (Entity, EntityBehaviour(..), EntityId(..), EntityCommandHandler, emptyEntity)
-import Pure.Entity as Entity
+import Pure.Entity (Entity, EntityId)
 import Pure.Math (Point)
 import Pure.Runtime.Scene (TickState)
 import Pure.Behaviours.BasicBitchPhysics as BasicBitchPhysics
@@ -21,7 +19,8 @@ type CollisionInfo
     , force :: Number
     }
 
-onTick :: forall cmd ev entity. 
+onTick ::
+  forall cmd ev entity.
   (CollisionInfo -> ev) -> TickState cmd ev (BasicBitchPhysics.Required entity) -> TickState cmd ev (BasicBitchPhysics.Required entity)
 onTick fn state = foldl (collideEntity fn state.entityCount) state state.entityRange
 

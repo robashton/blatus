@@ -9,7 +9,7 @@ import Pure.Behaviours.Driven as Driven
 import Pure.Behaviours.FiresBullets as FiresBullets
 import Pure.Behaviours.NetworkSync as NetworkSync
 import Pure.Behaviours.Regenerates as Regenerates
-import Pure.Entity (Entity, EntityId, HtmlColor(..), sprite)
+import Pure.Entity (Entity, EntityId, sprite)
 import Pure.Game.Entities.Classes (EntityClass(..), GameEntity)
 import Pure.Math (Point)
 import Pure.Types (EntityCommand, GameEvent)

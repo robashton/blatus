@@ -5,12 +5,11 @@ import Control.Monad.State (State)
 import Control.Monad.State as State
 import Data.Exists (Exists, mkExists)
 import Data.Variant (default, onMatch)
-import Prim.Row as Row
 import Pure.Behaviour as B
-import Pure.Entity (Entity, EntityRow, EntityBehaviour(..), BehaviourExecutionContext)
+import Pure.Entity (BehaviourExecutionContext, Entity, EntityBehaviour(..))
 import Pure.Math (Point, scalePoint)
 import Pure.Math as Math
-import Pure.Types (EntityCommand(..), GameEvent)
+import Pure.Types (GameEvent)
 
 init ::
   forall entity cmd.
@@ -54,5 +53,6 @@ type Required r
     | r
     )
 
+type Command :: forall k. k -> k
 type Command r
   = ( | r )

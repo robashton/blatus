@@ -6,7 +6,7 @@ import Data.Variant (default, onMatch)
 import Pure.Behaviour as B
 import Pure.Entity (EntityBehaviour(..))
 import Pure.Math (Point, lerp)
-import Pure.Types (EntityCommand(..), GameEvent)
+import Pure.Types (GameEvent)
 
 type ElasticConfig
   = { force :: Number }

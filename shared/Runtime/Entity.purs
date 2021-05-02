@@ -3,15 +3,12 @@ module Pure.Entity where
 import Prelude
 import Control.Monad.State (State, runState)
 import Data.Exists (Exists, mkExists, runExists)
-import Data.Generic.Rep (class Generic)
 import Data.List (List(..), concat, foldr, (:))
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
-import Data.Show.Generic (genericShow)
 import Data.Tuple (Tuple(..), fst, snd)
 import Data.Variant (Variant)
-import GenericJSON (writeTaggedSumRep, taggedSumRep)
-import Pure.Math (Rect, Point, scalePoint)
+import Pure.Math (Point, Rect)
 import Record as Record
 import Simple.JSON (class ReadForeign, class WriteForeign)
 

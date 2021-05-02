@@ -2,12 +2,11 @@ module Pure.Behaviours.FiresBullets where
 
 import Prelude
 import Data.Exists (Exists, mkExists)
-import Data.Newtype (unwrap, wrap)
 import Data.Variant (default, onMatch)
 import Pure.Behaviour as B
 import Pure.Entity (EntityBehaviour(..))
 import Pure.Math (rotationToVector, scalePoint)
-import Pure.Types (Empty(..), EntityCommand(..), GameEvent(..))
+import Pure.Types (Empty, GameEvent(..))
 
 init ::
   forall entity cmd.

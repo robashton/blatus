@@ -6,26 +6,24 @@ import Data.Array as Array
 import Data.Bifunctor (lmap, rmap)
 import Data.Filterable (filter)
 import Data.Foldable (foldl)
-import Data.List (List(..), head, (:))
-import Data.List (toUnfoldable)
+import Data.List (List(..), head, (:), toUnfoldable)
 import Data.Map as Map
 import Data.Maybe (Maybe(..), maybe)
 import Data.Symbol (SProxy(..))
-import Data.Tuple (Tuple(..), fst, snd, uncurry)
+import Data.Tuple (Tuple(..), fst, snd)
 import Data.Variant (Variant, inj)
-import Pure.Behaviours.NetworkSync as NetworkSync
 import Pure.BuiltIn.Bullets as Bullets
 import Pure.BuiltIn.Collider as Collider
 import Pure.BuiltIn.Explosions as Explosions
 import Pure.Comms (GameSync, EntitySync)
 import Pure.Entities.Bullet as Bullet
 import Pure.Entities.Tank as Tank
-import Pure.Entity (Entity, EntityId(..), Cmd)
+import Pure.Entity (Cmd, Entity, EntityId)
 import Pure.Game.Entities.Classes (EntityClass(..), GameEntity)
 import Pure.Runtime.Scene (Game)
 import Pure.Runtime.Scene as Scene
 import Pure.Runtime.Ticks as Ticks
-import Pure.Types (EntityCommand(..), GameEvent(..), RegisteredPlayer)
+import Pure.Types (EntityCommand, GameEvent(..), RegisteredPlayer)
 
 timePerFrame :: Number
 timePerFrame = 1000.0 / 30.0

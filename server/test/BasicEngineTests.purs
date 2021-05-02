@@ -4,15 +4,12 @@ import Prelude
 import Control.Monad.Free (Free)
 import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
-import Data.Symbol (SProxy(..))
 import Data.Tuple (Tuple(..))
-import Data.Variant (Variant, inj)
 import Erl.Test.EUnit (TestF, suite, test)
 import Pure.Entity (EntityId(..), emptyEntity)
 import Pure.Runtime.Scene (Game, addEntity, tickCmd)
 import Pure.Runtime.Scene as Scene
-import Simple.JSON (writeJSON)
-import Test.Assert (assert, assertEqual)
+import Test.Assert (assertEqual)
 import Test.Support.Types (TestEvent(..), tickEcho)
 
 tests :: Free TestF Unit

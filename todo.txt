@@ -3,13 +3,11 @@ How about
 
 [ ] Slow down the space ship, there is no need for such speed
 [ ] Destroyable asteroids floating around
-[ ] Inventory (Can just do this in HTML..)
 [ ] Persistence
     [ ] Ship / Inventory / Player
     [ ] World 
-
 [ ] Start off with no shield, small health
-[ ] Planets / Suns / Etc (Representative, gravity wells?)
+
 [ ] Resources to collect
     [ ] Metal(s)
     [ ] Rock
@@ -19,106 +17,26 @@ How about
     [ ] Space port
 
 [ ] Automatable shit, no farming.
+[ ] Automatable shit, defence.
+
+Could we do hybrid RTS? 
+  - State how many players you want
+  - Wait for players to join
+  - Spawn across the 'map' from each other
+  - Randomised resources/etc distributed across the map
+  - Randomised things to shoot at other than the other player (maybe)
+  - Fly around shooty shooty
+  - Fly around buildy buildy
+  - Minimap with alerts when fighty fighty
+  - Respawn back at base so long as spawner still exists
 
 
--- Features
+-- Tech
 
-[x] Pings need sending from client/server every second
-[x] Deal with players disconnecting (10 second timeout)
-[x] Deal with players (re) connecting
-[x] Display game URL in UI
-[x] Display player info in UI
-[x] Send (valid) events to clients for processing
-[x] Ignore our own messages when they come back to us
-[x] Rubberbanding (simple lerp)
-[/] Delay processing commands by [latency]
-[/] Handle disconection as client (either server rejection or socket gone pop) (I think)
-[x] Ticks (especially on server side) need to be adjusted for elapsed time
-[ ] Use shared clock/ticks to attempt to make commands happen at the same time server/client
-
-[ ] Rendering needs to be function rather than straight up scene graph
-  - Issue with this: Game is server/client and 'canvas' doesn't exist on the server
-[x] Bullets needs to be a single entity rendering all the bullets
-[x] Bullets can then send commands to entities to let them know they've been damaged..
-
-[x] Move player mgmt logic into game itself
-[x] Ship destruction means points
-[x] Ship destruction means respawn required
-[x] Need to find a psuedo-random generator actually written in Purescript.. (no Effect)
-[x] Player death need to tell the player they died
-[x] Player death need to show a countdown to player
-[x] Player death would be nice to animate the camera zoom/roll 
-[x] Will need to differentiate between player destruction/asteroid/other
-
-[x] Display ship health to player whose ship it is
-[x] Ship has regenerable shield (prolonged attack required to destroy)
-
-[x] Display the shield 
-
-[x] suspend+terminate unused games
-[x] When a game doesn't exist anymore, player needs booting to the lobby
-[x] Graceful disconnect
-[x] Need to discover the base url to connect to..
-
-[ ] Player name != Player Id
-[ ] Show player names next to ships
-
-[x] Bullets need to not inherit ship speed
-[ ] Bullets should come in bursts, more likely to hit other players that way
-[ ] Ideally bullets are smaller, and double barrelled from the guns on the ship
-[ ] Afterburner trail/animation :)
-[ ] Sounds (just buy an effects lib)
-
-[ ] Fullscreen canvas, UI overlayed on top
-[ ] Mobile input/controls
-[ ] Test on iphone
-[ ] Release process (systemd package, etc)
-
-[ ] List public games in UI for easy selection
-[ ] Auth (bare minimum, preferably no data needed)
-[ ] Encrypted cookie for telling who somebody is
-[ ] Admin UI (view games / players / latency / etc)
-[ ] Write some tests for game behaviour when nobody is watching
-[ ] Shitty chat window so we can hurl abuse when dead (RTC chat should really be done but meh)
-[ ] Probably need different types for the initial sync (shield/health/etc) vs incremental (shouldn't need those things)
-[ ] Distributed setup (worker nodes, erlang comms - unnecessary, but example of how to do this in Purerl..)
-[ ] Opentelemetry integration 
-
-
-[ ] Collision + network sync requires some thought as it drifts a lot
-
--- Power-ups
-
-[ ] Health gain
-[ ] Shield restore
-[ ] Speed boost
-[ ] Radar
-[ ] Scatter shot
-
-===========================
-
--- Possible Game Play Idea #1
-
-[ ] Collect resources..
-[ ] Grow in size 
-[ ] Health++ as you grow
-[ ] Speed++ as you grow
-[ ] Power++ as you grow
-
-The idea being that big ships attack other big ships, it'll be hard to aim at small ships if you're a big ship
-
--- Possible Game Play Idea #2
-
-- Capture the flag/area
-- Points awarded for staying alive in a specific region of space
-
-
-
-The idea being that big ships attack other big ships, it'll be hard to aim at small ships if you're a big ship
-
-===========================
-
--- Code
+[ ] Move ev into a Variant
+[ ] Move most components outside of 'game'
+[ ] Generify the networking aspect of this
+[ ] Generify the rendering aspect of this
 
 [ ] Newtypes for Game/Player... 
 [ ] Ticks should really be a type
@@ -134,4 +52,4 @@ The idea being that big ships attack other big ships, it'll be hard to aim at sm
 [ ] Shaders/layers
 [ ] Proper collision 
 [ ] Asteroids
-[ ] Might want to move health/shield data into the state of the component itself, but then we'd need a way to get it out...
+[x] Might want to move health/shield data into the state of the component itself, but then we'd need a way to get it out...

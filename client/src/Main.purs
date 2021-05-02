@@ -4,7 +4,6 @@ import Prelude
 import Assets (AssetPackage)
 import Assets (AssetPackage, load) as Assets
 import Control.Monad.Except (runExcept)
-import Data.Array as Array
 import Data.DateTime.Instant as Instant
 import Data.Either (either, hush)
 import Data.Foldable (foldl, for_)
@@ -15,9 +14,8 @@ import Data.Newtype (unwrap, wrap)
 import Data.Symbol (SProxy(..))
 import Data.Time.Duration (Milliseconds(..))
 import Data.Traversable (for, traverse)
-import Data.Tuple (Tuple(..), fst)
+import Data.Tuple (fst)
 import Data.Variant (Variant, expand, inj)
-import Debug (spy)
 import Effect (Effect)
 import Effect.Aff (runAff_)
 import Effect.Now as Now
@@ -30,13 +28,11 @@ import Pure.BuiltIn.Bullets as Bullets
 import Pure.BuiltIn.Explosions as Explosions
 import Pure.Camera (Camera, CameraViewport, CameraConfiguration, applyViewport, setupCamera, viewportFromConfig)
 import Pure.Comms (ClientMsg(..), ServerMsg(..))
-import Pure.Comms as Comms
 import Pure.Entities.Tank as Tank
 import Pure.Game.Entities.Classes (GameEntity)
 import Pure.Game.Main as Main
-import Pure.Math (lerp)
 import Pure.Runtime.Scene (Game, entityById)
-import Pure.Types (EntityCommand(..), GameEvent, empty)
+import Pure.Types (EntityCommand, GameEvent, empty)
 import Signal (Signal, dropRepeats, foldp, runSignal, sampleOn)
 import Signal as Signal
 import Signal.Channel as Channel

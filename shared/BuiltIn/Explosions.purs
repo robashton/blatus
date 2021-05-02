@@ -1,15 +1,11 @@
 module Pure.BuiltIn.Explosions where
 
 import Prelude
-import Data.Array (find, foldl)
-import Data.Bifunctor (lmap)
 import Data.Filterable (filterMap)
 import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
-import Data.Tuple (Tuple(..), fst)
-import Pure.Entity (Entity, EntityId)
+import Pure.Entity (EntityId)
 import Pure.Math (Point)
-import Pure.Runtime.Scene (Game)
 
 -- Might make this a particle system, might stylise it
 -- as animations, shrug.

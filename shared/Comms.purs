@@ -2,23 +2,15 @@ module Pure.Comms where
 
 -- TODO: Move this into Engine by getting rid of the specifics
 import Prelude
-import Data.Foldable (foldl)
 import Data.Generic.Rep (class Generic)
-import Data.List (toUnfoldable)
-import Data.Map as Map
 import Data.Show.Generic (genericShow)
 import Data.Variant (Variant)
 import GenericJSON (writeTaggedSumRep, taggedSumRep)
-import Pure.Entities.Bullet as Bullet
-import Pure.Entities.Tank as Tank
-import Pure.Entity (Entity, EntityId)
+import Pure.Entity (EntityId)
 import Pure.Game.Entities.Classes (EntityClass)
 import Pure.Math (Point, Rect)
-import Pure.Runtime.Scene (Game)
-import Pure.Runtime.Scene as Scene
-import Pure.Types (EntityCommand(..), GameEvent(..), RegisteredPlayer)
+import Pure.Types (EntityCommand, GameEvent, RegisteredPlayer)
 import Simple.JSON (class ReadForeign, class WriteForeign)
-import Unsafe.Coerce (unsafeCoerce)
 
 data ServerMsg
   = Sync GameSync
