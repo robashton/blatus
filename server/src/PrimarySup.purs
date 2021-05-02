@@ -33,7 +33,7 @@ init = do
         , period: 5
         }
     , childSpecs:
-        (worker "pure_web" $ Web.startLink { webPort })
+        (worker "web" $ Web.startLink { webPort })
           : (worker "game_list" $ RunningGameList.startLink {})
           : (sup "game_sup" $ RunningGameSup.startLink)
           : nil

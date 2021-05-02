@@ -58,14 +58,14 @@ init { webPort } =
           Stetson.configure
             # Stetson.routes
                 ServerRoutes.topRoute
-                { "Assets": PrivDir "pure_unit" "www/assets"
-                , "Art": PrivDir "pure_unit" "www/art"
+                { "Assets": PrivDir "blatus" "www/assets"
+                , "Art": PrivDir "blatus" "www/art"
                 , "GameStart": gamesHandler
                 , "GameJoin": gameJoinHandler
-                , "GameJoinHtml": (\(id :: String) -> PrivFile "pure_unit" "www/join.html")
-                , "GamePlay": PrivFile "pure_unit" "www/game.html"
+                , "GameJoinHtml": (\(id :: String) -> PrivFile "blatus" "www/join.html")
+                , "GamePlay": PrivFile "blatus" "www/game.html"
                 , "GameComms": gameCommsHandler
-                , "Index": PrivFile "pure_unit" "www/index.html"
+                , "Index": PrivFile "blatus" "www/index.html"
                 }
             # Stetson.port webPort
             # Stetson.bindTo 0 0 0 0

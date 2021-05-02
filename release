@@ -10,6 +10,6 @@ nix-build release.nix -o _etwas/result
 
 cd _etwas
 
-etwas result "pure_unit-release"
+etwas result "blatus-release"
 
-tar -cavf "pure_unit-release.tgz" "pure_unit-release"
+tar -cavf "blatus-release.tgz" "blatus-release"

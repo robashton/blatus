@@ -4,7 +4,7 @@
 - curl -sfL https://direnv.net/install.sh | bash
 - eval "$(direnv hook bash)" to bashrc or whatever
 - yum install git
-- git clone pure_unit
-- cd pure_unit, direnv allow..
+- git clone blatus
+- cd blatus, direnv allow..
 - github keys
 

@@ -15,7 +15,7 @@ in
 
 with nixpkgs;
 stdenv.mkDerivation rec {
-  pname = "pure_unit";
+  pname = "blatus";
   version = "1.0";
 
   src = ./_build/default/rel/pure_unit;
