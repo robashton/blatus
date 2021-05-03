@@ -60,6 +60,19 @@ applyViewport viewport ctx = do
   _ <- Canvas.translate ctx { translateX: (-viewport.left), translateY: (-viewport.top) }
   pure unit
 
+testRect :: CameraViewport -> Point -> Number -> Number -> Boolean
+testRect viewport location width height =
+  if viewport.right < location.x then
+    false
+  else if viewport.bottom < location.y then
+    false
+  else if viewport.left > location.x + width then
+    false
+  else if viewport.top > location.y + height then
+    false
+  else
+    true
+
 viewportFromConfig :: CameraConfiguration -> CameraViewport
 viewportFromConfig config =
   { aspectRatio

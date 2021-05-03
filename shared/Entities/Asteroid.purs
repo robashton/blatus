@@ -1,11 +1,12 @@
 module Blatus.Entities.Asteroid where
 
 import Prelude
-import Data.List (List(..), (:))
-import Sisy.BuiltIn.Behaviours.BasicBitchPhysics as BasicBitchPhysics
-import Sisy.Runtime.Entity (Entity, EntityId, HtmlColor(..), sprite)
-import Sisy.Math (Point)
 import Blatus.Types (EntityCommand, GameEvent, GameEntity, EntityClass(..))
+import Data.List (List(..), (:))
+import Data.Maybe (Maybe(..))
+import Sisy.BuiltIn.Behaviours.BasicBitchPhysics as BasicBitchPhysics
+import Sisy.Math (Point)
+import Sisy.Runtime.Entity (Entity, EntityId, HtmlColor(..), sprite)
 
 data EntityMode
   = Server
@@ -35,6 +36,7 @@ init id location width height =
             , height
             }
           , color = HtmlColor "#ccc"
+          , image = Just "asteroid"
           }
       )
         : Nil

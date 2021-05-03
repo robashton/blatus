@@ -3,9 +3,8 @@ How about
 
 Actual todo
 
-[ ] On 'game creation', generate a map in some 'bounds'
-  [ ] Random spawn locations
-  [ ] Giant Asteroids ?
+[x] On 'game creation', generate a map in some 'bounds'
+  [x] Asteroids
   [ ] Gas clouds
 
 [ ] Don't allow leaving of the 'bounds'

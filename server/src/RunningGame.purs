@@ -231,15 +231,19 @@ spawnAsteroid id state@{ seed, scene } =
 
     (Tuple size s3) = Main.random Tuple s2
 
+    (Tuple rotation s4) = Main.random Tuple s3
+
     asteroid =
-      Asteroid.init id
-        { x: x * scene.world.width + scene.world.x
-        , y: y * scene.world.height + scene.world.y
-        }
-        (size * 20.0 - 10.0)
-        (size * 20.0 - 10.0)
+      ( Asteroid.init id
+          { x: x * scene.world.width + scene.world.x
+          , y: y * scene.world.height + scene.world.y
+          }
+          (size * 20.0 - 10.0)
+          (size * 20.0 - 10.0)
+      )
+        { rotation = rotation }
   in
     state
-      { seed = s3
+      { seed = s4
       , scene = Scene.addEntity asteroid scene
       }

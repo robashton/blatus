@@ -4,7 +4,8 @@ import Prelude
 import Blatus.Client.Assets (AssetPackage)
 import Blatus.Client.Assets (AssetPackage, load) as Assets
 import Blatus.Client.Background (render) as Background
-import Blatus.Client.Camera (Camera, CameraViewport, CameraConfiguration, applyViewport, setupCamera, viewportFromConfig)
+import Blatus.Client.Camera (Camera, CameraConfiguration, CameraViewport, applyViewport, setupCamera, viewportFromConfig)
+import Blatus.Client.Camera as Camera
 import Blatus.Comms (ClientMsg(..), ServerMsg(..))
 import Blatus.Entities.Tank as Tank
 import Blatus.Main as Main
@@ -22,6 +23,7 @@ import Data.Time.Duration (Milliseconds(..))
 import Data.Traversable (for, traverse)
 import Data.Tuple (fst)
 import Data.Variant (Variant, expand, inj)
+import Debug (spy)
 import Effect (Effect)
 import Effect.Aff (runAff_)
 import Effect.Now as Now
@@ -409,7 +411,7 @@ render context@{ camera: { viewport, config: { target: { width, height } } }, ga
   _ <- Background.render viewport game.scene offscreenContext
   _ <- renderExplosions game.explosions offscreenContext
   _ <- renderBullets game.bullets offscreenContext
-  _ <- renderScene game.scene assets offscreenContext
+  _ <- renderScene viewport game.scene assets offscreenContext
   _ <- Canvas.restore offscreenContext
   let
     image = Canvas.canvasElementToImageSource offscreenCanvas
@@ -466,32 +468,35 @@ renderBullets state ctx = do
       state.bullets
   Canvas.fill ctx
 
-renderScene :: forall cmd ev entity. Game cmd ev entity -> AssetPackage -> Canvas.Context2D -> Effect Unit
-renderScene { entities } assets ctx = do
+renderScene :: forall cmd ev entity. CameraViewport -> Game cmd ev entity -> AssetPackage -> Canvas.Context2D -> Effect Unit
+renderScene viewport { entities } assets ctx = do
   _ <-
-    for entities \{ location, renderables, rotation } ->
-      Canvas.withContext ctx
-        $ do
-            _ <- Canvas.translate ctx { translateX: location.x, translateY: location.y }
-            _ <- Canvas.rotate ctx (rotation * 2.0 * Math.pi)
-            _ <-
-              for renderables \{ transform, color, image, rotation: rr, visible } ->
-                Canvas.withContext ctx
-                  $ do
-                      if visible then do
-                        _ <- Canvas.translate ctx { translateX: transform.x, translateY: transform.y }
-                        _ <- Canvas.rotate ctx (rr * 2.0 * Math.pi)
-                        _ <- Canvas.translate ctx { translateX: (-transform.x), translateY: (-transform.y) }
-                        _ <- Canvas.setFillStyle ctx (unwrap color)
-                        _ <-
-                          fromMaybe (Canvas.fillRect ctx transform)
-                            $ map (\img -> Canvas.drawImageScale ctx img transform.x transform.y transform.width transform.height)
-                            $ (flip Map.lookup assets)
-                            =<< image
-                        pure unit
-                      else
-                        pure unit
-            Canvas.translate ctx { translateX: (-location.x), translateY: (-location.y) }
+    for entities \{ location, width, height, renderables, rotation } -> do
+      if (spy "no?"  Camera.testRect viewport location width height) then
+        Canvas.withContext ctx
+          $ do
+              _ <- Canvas.translate ctx { translateX: location.x, translateY: location.y }
+              _ <- Canvas.rotate ctx (rotation * 2.0 * Math.pi)
+              _ <-
+                for renderables \{ transform, color, image, rotation: rr, visible } ->
+                  Canvas.withContext ctx
+                    $ do
+                        if visible then do
+                          _ <- Canvas.translate ctx { translateX: transform.x, translateY: transform.y }
+                          _ <- Canvas.rotate ctx (rr * 2.0 * Math.pi)
+                          _ <- Canvas.translate ctx { translateX: (-transform.x), translateY: (-transform.y) }
+                          _ <- Canvas.setFillStyle ctx (unwrap color)
+                          _ <-
+                            fromMaybe (Canvas.fillRect ctx transform)
+                              $ map (\img -> Canvas.drawImageScale ctx img transform.x transform.y transform.width transform.height)
+                              $ (flip Map.lookup assets)
+                              =<< image
+                          pure unit
+                        else
+                          pure unit
+              Canvas.translate ctx { translateX: (-location.x), translateY: (-location.y) }
+      else
+        pure unit
   pure unit
 
 createSocket :: String -> (String -> Effect Unit) -> Effect WS.WebSocket

@@ -6,10 +6,12 @@ import Data.List (List(..), (:))
 import Data.Map (Map)
 import Data.Map (fromFoldable) as Map
 import Data.Maybe (maybe)
+import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 import Effect.Aff (Aff, error, makeAff)
 import Graphics.Canvas (CanvasImageSource)
 import Graphics.Canvas (tryLoadImage) as Canvas
+import Partial.Unsafe (unsafeCrashWith)
 
 type AssetPackage
   = Map String CanvasImageSource
@@ -27,6 +29,8 @@ loadImage path = makeAff wrapped
 
 load :: Aff AssetPackage
 load = do
-  ship <- loadImage "/art/ship.png"
-  shield <- loadImage "/art/shield.png"
-  pure $ Map.fromFoldable $ (Tuple "ship" ship) : (Tuple "shield" shield) : Nil
+  images $ "ship" : "shield" : "asteroid" : Nil
+
+images :: List String -> Aff AssetPackage
+images l = do
+  Map.fromFoldable <$> traverse (\i -> Tuple i <$> (loadImage $ "/art/" <> i <> ".png")) l
