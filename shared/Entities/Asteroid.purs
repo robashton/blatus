@@ -4,6 +4,7 @@ import Prelude
 import Blatus.Types (EntityCommand, GameEvent, GameEntity, EntityClass(..))
 import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
+import Sisy.BuiltIn.Behaviours.BasicBitchPhysics (Mass(..))
 import Sisy.BuiltIn.Behaviours.BasicBitchPhysics as BasicBitchPhysics
 import Sisy.Math (Point)
 import Sisy.Runtime.Entity (Entity, EntityId, HtmlColor(..), sprite)
@@ -21,7 +22,7 @@ init id location width height =
   , velocity: { x: 0.0, y: 0.0 }
   , friction: 0.0
   , rotation: 0.0
-  , mass: 200.0
+  , mass: Infinite
   , health: 100.0
   , shield: 0.0
   , behaviour: Nil

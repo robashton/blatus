@@ -75,13 +75,9 @@ init scale game@{ world: { x, y, width, height } } = do
 render :: Camera -> State -> Context2D -> Effect Unit
 render { config: { lookAt: { x: lax, y: lay } }, viewport: { left, right, top, bottom } } { scale, tiles, width, height } ctx = do
   let
-    scaledX = lax * scale
+    scaleX = lax * scale
 
-    scaledY = lay * scale
-
-    scaledTop = top * scale
-
-    scaledBottom = bottom * scale
+    scaleY = lay * scale
   gradient <- Context2D.createRadialGradient ctx { x0: 0.0, y0: 0.0, r0: 200.0, x1: 0.0, y1: 0.0, r1: width + height }
   _ <- Context2D.addColorStop gradient 0.0 "#fff"
   _ <- Context2D.addColorStop gradient 0.5 "#00f"
@@ -92,18 +88,22 @@ render { config: { lookAt: { x: lax, y: lay } }, viewport: { left, right, top, b
   _ <-
     traverse
       ( \{ x: tileX, y: tileY, offsetX, offsetY } -> do
-          --          if tileX > scaledRight then
-          --            pure unit
-          --          else if tileY > scaledBottom then
-          --            pure unit
-          --          else if tileX + tileWidth < scaledLeft then
-          --            pure unit
-          --          else if tileY + tileHeight < scaledTop then
-          --            pure unit
-          --          else do
-          _ <- Context2D.moveTo ctx (tileX + scaledX + offsetX) (tileY + scaledY + offsetY)
-          _ <- Context2D.lineTo ctx (tileX + scaledX + offsetX + 1.0) (tileY + scaledY + offsetY + 1.0)
-          pure unit
+          let
+            sx = (tileX + scaleX + offsetX)
+
+            sy = (tileY + scaleY + offsetY)
+          if sx < left then
+            pure unit
+          else if sx > right then
+            pure unit
+          else if sy < top then
+            pure unit
+          else if sy > bottom then
+            pure unit
+          else do
+            _ <- Context2D.moveTo ctx sx sy
+            _ <- Context2D.lineTo ctx (sx + 1.0) (sy + 1.0)
+            pure unit
       )
       tiles
   _ <- Context2D.stroke ctx

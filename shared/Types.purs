@@ -1,20 +1,21 @@
 module Blatus.Types where
 
 import Prelude
+import Blatus.GenericJSON (writeTaggedSumRep, taggedSumRep)
+import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe)
+import Data.Show.Generic (genericShow)
 import Data.Symbol (SProxy(..))
 import Data.Variant (Variant, inj)
+import Simple.JSON (class ReadForeign, class WriteForeign)
+import Sisy.BuiltIn.Behaviours.BasicBitchPhysics (Mass)
 import Sisy.BuiltIn.Behaviours.Damageable (EntityDestroyed)
 import Sisy.BuiltIn.Behaviours.FiresBullets (BulletFired)
 import Sisy.BuiltIn.Extensions.Bullets as Bullets
 import Sisy.BuiltIn.Extensions.Collider (CollisionInfo)
-import Sisy.Runtime.Entity (EntityId)
 import Sisy.Math (Point)
+import Sisy.Runtime.Entity (EntityId)
 import Sisy.Types (Empty)
-import Simple.JSON (class ReadForeign, class WriteForeign)
-import Data.Generic.Rep (class Generic)
-import Data.Show.Generic (genericShow)
-import Blatus.GenericJSON (writeTaggedSumRep, taggedSumRep)
 
 type RegisteredPlayer
   = { id :: EntityId
@@ -32,7 +33,7 @@ type GameEntity
     , health :: Number
     , shield :: Number
     , velocity :: Point
-    , mass :: Number
+    , mass :: Mass
     , friction :: Number
     )
 

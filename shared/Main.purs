@@ -1,6 +1,10 @@
 module Blatus.Main where
 
 import Prelude
+import Blatus.Comms (GameSync, EntitySync)
+import Blatus.Entities.Asteroid as Asteroid
+import Blatus.Entities.Tank as Tank
+import Blatus.Types (EntityCommand, GameEvent, EntityClass(..), GameEntity, RegisteredPlayer, playerSpawn)
 import Data.Array (fromFoldable)
 import Data.Array as Array
 import Data.Bifunctor (lmap, rmap)
@@ -12,6 +16,7 @@ import Data.Maybe (Maybe(..), maybe)
 import Data.Symbol (SProxy(..))
 import Data.Tuple (Tuple(..), fst, snd)
 import Data.Variant (Variant, expand, inj, match)
+import Debug (spy)
 import Sisy.BuiltIn.Extensions.Bullets as Bullets
 import Sisy.BuiltIn.Extensions.Collider as Collider
 import Sisy.BuiltIn.Extensions.Explosions as Explosions
@@ -19,10 +24,6 @@ import Sisy.Runtime.Entity (Cmd, Entity, EntityId)
 import Sisy.Runtime.Scene (Game)
 import Sisy.Runtime.Scene as Scene
 import Sisy.Runtime.Ticks as Ticks
-import Blatus.Entities.Tank as Tank
-import Blatus.Entities.Asteroid as Asteroid
-import Blatus.Types (EntityCommand, GameEvent, EntityClass(..), GameEntity, RegisteredPlayer, playerSpawn)
-import Blatus.Comms (GameSync, EntitySync)
 
 timePerFrame :: Number
 timePerFrame = 1000.0 / 30.0
@@ -237,7 +238,7 @@ mergeSyncInfo state@{ scene } sync =
                   acc
         )
         scene
-        sync.entities
+        $ spy "fromSync" sync.entities
     }
 
 mergePlayerSync :: State -> EntitySync -> State

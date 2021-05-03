@@ -8,12 +8,16 @@ import Data.List (List(..), (:))
 import Data.Map as Map
 import Data.Maybe (fromMaybe)
 import Data.Symbol (SProxy(..))
+import Data.Tuple (Tuple(..))
 import Data.Variant (Variant, inj)
+import Debug (spy)
 import Math as Math
+import Sisy.BuiltIn.Behaviours.BasicBitchPhysics (Mass(..))
 import Sisy.BuiltIn.Behaviours.BasicBitchPhysics as BasicBitchPhysics
+import Sisy.Math (Point, scalePoint)
 import Sisy.Runtime.Entity (Entity, EntityId)
 import Sisy.Runtime.Scene (TickState)
-import Sisy.Math (Point)
+import Unsafe.Coerce (unsafeCoerce)
 
 type CollisionInfo
   = { left :: EntityId
@@ -45,15 +49,52 @@ collidePair li state ri =
   fromMaybe state
     $ lift2
         ( \left right ->
+            -- handwavey as **** but as long as it's fun I don't care
             if squareCheck left right then
               let
-                lf = (magnitude left.velocity) * left.mass
+                applyForce target source = case target.mass of
+                  Infinite -> Tuple 0.0 target -- we're immovable, shrug it off
+                  Fixed targetMass -> case source.mass of
+                    Infinite ->  -- we've hit an immovable object so we just need to do the standard 'get the hell off it' thing
+                      let
+                        force = (magnitude target.velocity) * targetMass
 
-                rf = (magnitude right.velocity) * right.mass
+                        newLocation = target.location - target.velocity
 
-                ur = BasicBitchPhysics.applyForce { direction: (vectorBetween left.location right.location), force: lf } right -- force from left to right, applied to right
+                        newVelocity = target.velocity * { x: -0.5, y: -0.5 }
 
-                ul = BasicBitchPhysics.applyForce { direction: (vectorBetween right.location left.location), force: rf } left -- force from right to left, applied to left
+                        newTarget = target { location = newLocation, velocity = newVelocity }
+                      in
+                        Tuple force newTarget
+                    Fixed sourceMass -> Tuple 0.0 target
+
+                Tuple lf ul = applyForce left right
+
+                Tuple rf ur = applyForce right left
+              --                ul = case left.mass of
+              --                  Fixed leftMass -> 
+              --                    let borrowedForce = case right.mass of
+              --                                          Infinite -> 0.0
+              --                                          Fixed rightMass -> 
+              --
+              --
+              --                                    
+              --
+              --                    (magnitude left.velocity) * mass
+              --                  Infinite -> left
+              --
+              --                -- And then right
+              --                ur = case right.mass of
+              --                  Fixed mass -> (magnitude right.velocity) * mass
+              --                  Infinite -> 0.0
+              --
+              --                ur = case right.mass of
+              --                  Fixed _ -> BasicBitchPhysics.applyForce { direction: (vectorBetween left.location right.location), force: lf } right
+              --                  Infinite -> right
+              --
+              --                ul = case left.mass of
+              --                  Fixed _ -> BasicBitchPhysics.applyForce { direction: (vectorBetween right.location left.location), force: rf } left
+              --                  Infinite -> left
               in
                 state
                   { entities = Map.insert ri ur $ Map.insert li ul state.entities

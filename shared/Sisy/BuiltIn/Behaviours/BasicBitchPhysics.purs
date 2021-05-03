@@ -34,7 +34,9 @@ init =
 applyForce ::
   forall cmd ev entity.
   { direction :: Point, force :: Number } -> Entity cmd ev (Required entity) -> Entity cmd ev (Required entity)
-applyForce { direction, force } entity@{ velocity, mass } = entity { velocity = velocity + (scalePoint (force / mass) direction) }
+applyForce { direction, force } entity@{ velocity, mass: Infinite } = entity
+
+applyForce { direction, force } entity@{ velocity, mass: Fixed mass } = entity { velocity = velocity + (scalePoint (force / mass) direction) }
 
 applyThrust ::
   forall cmd ev entity.
@@ -46,11 +48,15 @@ applyThrust accel maxSpeed = do
   State.modify_ (\s -> s { entity = updated })
 
 type Required r
-  = ( mass :: Number
+  = ( mass :: Mass
     , velocity :: Point
     , friction :: Number
     | r
     )
+
+data Mass
+  = Fixed Number
+  | Infinite
 
 type Command :: forall k. k -> k
 type Command r

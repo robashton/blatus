@@ -6,7 +6,12 @@ let overrides =
         { repo = "https://github.com/purerl/purescript-erl-cowboy.git"
         , version = "3efdf080b8f1eece411411068b93951b851284cc"
         , dependencies = [ "lists", "prelude" ]
-        }
+        },
+        debug = 
+        { repo = "https://github.com/robashton/purescript-debug.git"
+        , version = "66e2e5e236ec0498d2ca0de304926d0a144cfddd"
+        , dependencies = [ "prelude", "effect" ]
+        } 
       }
 
 

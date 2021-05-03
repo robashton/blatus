@@ -1,8 +1,10 @@
 module Blatus.Entities.Tank where
 
 import Prelude
+import Blatus.Types (EntityClass(..), GameEntity, EntityCommand, GameEvent)
 import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
+import Sisy.BuiltIn.Behaviours.BasicBitchPhysics (Mass(..))
 import Sisy.BuiltIn.Behaviours.BasicBitchPhysics as BasicBitchPhysics
 import Sisy.BuiltIn.Behaviours.Damageable as Damageable
 import Sisy.BuiltIn.Behaviours.Driven as Driven
@@ -11,7 +13,6 @@ import Sisy.BuiltIn.Behaviours.NetworkSync as NetworkSync
 import Sisy.BuiltIn.Behaviours.Regenerates as Regenerates
 import Sisy.Math (Point)
 import Sisy.Runtime.Entity (Entity, EntityId, sprite)
-import Blatus.Types (EntityClass(..), GameEntity, EntityCommand, GameEvent)
 
 maxHealth :: Number
 maxHealth = 100.0
@@ -29,7 +30,7 @@ init id location =
   , velocity: { x: 0.0, y: 0.0 }
   , friction: 0.9
   , rotation: (-0.25)
-  , mass: 1000.0
+  , mass: Fixed 1000.0
   , health: maxHealth
   , shield: maxShield
   , networkSync: true
