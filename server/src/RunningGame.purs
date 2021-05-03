@@ -183,6 +183,7 @@ doMaintenance state
       <$> foldM
           ( \acc p ->
               if state.game.lastTick - p.lastTick > playerTimeout then do
+                Log.info Log.RunningGame "Player timed out from game" { game: state.game, player: p }
                 Bus.raise (bus state.info.id) $ PlayerRemoved p.id
                 pure $ acc { game = Main.removePlayer p.id acc.game }
               else

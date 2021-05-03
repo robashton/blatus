@@ -1,4 +1,4 @@
-{ sources = [ "src/**/*.purs" ]
+{ sources = [ "src/**/*.purs", "src/*.purs" ]
 , name = "blatus-client"
 , packages = ./packages.dhall
 , dependencies = [
@@ -16,6 +16,7 @@
   "web-dom",
   "aff",
   "routing-duplex",
+  "random",
   "sequences",
   "debug",
   "st",

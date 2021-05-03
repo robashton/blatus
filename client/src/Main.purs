@@ -3,7 +3,7 @@ module Pure.Main where
 import Prelude
 import Blatus.Client.Assets (AssetPackage)
 import Blatus.Client.Assets (AssetPackage, load) as Assets
-import Blatus.Client.Background (render) as Background
+import Blatus.Client.Background as Background
 import Blatus.Client.Camera (Camera, CameraConfiguration, CameraViewport, applyViewport, setupCamera, viewportFromConfig)
 import Blatus.Client.Camera as Camera
 import Blatus.Comms (ClientMsg(..), ServerMsg(..))
@@ -77,6 +77,8 @@ type LocalContext
     , isStarted :: Boolean
     , hasError :: Boolean
     , now :: Number
+    , sf1 :: Background.State
+    , sf2 :: Background.State
     }
 
 rotateLeftSignal :: Effect (Signal (Variant EntityCommand))
@@ -152,6 +154,8 @@ load cb = do
       camera = setupCamera { width: canvasWidth, height: canvasHeight }
 
       game = Main.init now
+    sf1 <- Background.init 0.5 game.scene
+    sf2 <- Background.init 0.3 game.scene
     cb
       $ { offscreenContext
         , offscreenCanvas
@@ -170,6 +174,8 @@ load cb = do
         , tickLatency: 0
         , isStarted: false
         , hasError: false
+        , sf1
+        , sf2
         }
 
 gameInfoSelector :: QuerySelector
@@ -351,7 +357,14 @@ handleServerMessage :: LocalContext -> ServerMsg -> LocalContext
 handleServerMessage lc msg = case msg of
   Sync gameSync ->
     if not lc.isStarted then
-      lc { game = Main.fromSync lc.now gameSync, serverTick = gameSync.tick, isStarted = true }
+      let
+        newGame = Main.fromSync lc.now gameSync
+      in
+        lc
+          { game = newGame
+          , serverTick = gameSync.tick
+          , isStarted = true
+          }
     else
       let
         game = lc.game --Trace.trace { msg: "pre", game: lc.game } \_ -> lc.game
@@ -404,11 +417,12 @@ trackPlayer playerName game config =
     $ entityById (wrap playerName) game
 
 render :: LocalContext -> Effect Unit
-render context@{ camera: { viewport, config: { target: { width, height } } }, game, offscreenContext, offscreenCanvas, renderContext, assets } = do
+render context@{ camera: camera@{ viewport, config: { target: { width, height } } }, game, offscreenContext, offscreenCanvas, renderContext, assets, sf1, sf2 } = do
   _ <- Canvas.clearRect offscreenContext { x: 0.0, y: 0.0, width, height }
   _ <- Canvas.save offscreenContext
   _ <- applyViewport viewport offscreenContext
-  _ <- Background.render viewport game.scene offscreenContext
+  --  _ <- Background.render camera sf1 offscreenContext
+  _ <- Background.render camera sf2 offscreenContext
   _ <- renderExplosions game.explosions offscreenContext
   _ <- renderBullets game.bullets offscreenContext
   _ <- renderScene viewport game.scene assets offscreenContext
@@ -472,7 +486,7 @@ renderScene :: forall cmd ev entity. CameraViewport -> Game cmd ev entity -> Ass
 renderScene viewport { entities } assets ctx = do
   _ <-
     for entities \{ location, width, height, renderables, rotation } -> do
-      if (spy "no?"  Camera.testRect viewport location width height) then
+      if (Camera.testRect viewport location width height) then
         Canvas.withContext ctx
           $ do
               _ <- Canvas.translate ctx { translateX: location.x, translateY: location.y }

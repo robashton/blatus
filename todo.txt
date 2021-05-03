@@ -6,9 +6,13 @@ Actual todo
 [x] On 'game creation', generate a map in some 'bounds'
   [x] Asteroids
   [ ] Gas clouds
+  [ ] Structures (space stationy bits whatever)
 
+[ ] Starfield pls
 [ ] Don't allow leaving of the 'bounds'
 [ ] Visual indication of the 'bounds'
+[ ] Don't spawn the player ship until the first sync has been received
+[ ] Work out what's going on with the dodgy collision sync
 
 [ ] Game workflow 
   - Create new game (how many players)
