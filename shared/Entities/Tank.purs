@@ -35,9 +35,9 @@ init id location =
   , networkSync: true
   , behaviour:
       Damageable.init
-        : FiresBullets.init { max: 10, speed: 25.0, rate: 2, power: 25.0, coolOffPeriod: 30 }
+        : FiresBullets.init { max: 5, speed: 8.0, rate: 2, power: 25.0, coolOffPeriod: 5 }
         : BasicBitchPhysics.init
-        : Driven.init { maxSpeed: 5.0, acceleration: 1500.0, turningSpeed: 0.030 }
+        : Driven.init { maxSpeed: 5.0, acceleration: 500.0, turningSpeed: 0.015 }
         : NetworkSync.init { force: 0.08 }
         : Regenerates.init { maxHealth, maxShield, healthDelay: 0, healthRegen: 0.0, shieldDelay: 180, shieldRegen: 0.2 }
         : Nil

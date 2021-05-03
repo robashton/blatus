@@ -18,21 +18,21 @@ init id location width height =
   , width
   , height
   , velocity: { x: 0.0, y: 0.0 }
-  , friction: 1.0
+  , friction: 0.0
   , rotation: 0.0
   , mass: 200.0
   , health: 100.0
   , shield: 0.0
-  , behaviour: BasicBitchPhysics.init : Nil
+  , behaviour: Nil
   , class: Asteroid
   , networkSync: true
   , renderables:
       ( sprite
           { transform =
-            { x: -2.5
-            , y: -2.5
-            , width: 5.0
-            , height: 5.0
+            { x: -(width / 2.0)
+            , y: -(height / 2.0)
+            , width
+            , height
             }
           , color = HtmlColor "#ccc"
           }

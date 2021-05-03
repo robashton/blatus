@@ -177,7 +177,6 @@ toSync state@{ players, scene: { entities, world }, lastTick } =
   , world
   , tick: lastTick
   , players: fromFoldable $ Map.values players
-  -- Bullets go here
   }
 
 entityToSync :: forall cmd ev. Entity cmd ev GameEntity -> EntitySync
@@ -201,7 +200,7 @@ addEntity sync state = state { scene = Scene.addEntity (entityFromSync sync) sta
   where
   entity = case sync.class of
     Tank -> Tank.init sync.id sync.location
-    Asteroid -> Asteroid.init sync.id sync.location 100.0 100.0
+    Asteroid -> Asteroid.init sync.id sync.location 50.0 50.0
 
 removeEntity :: EntityId -> State -> State
 removeEntity id state = state { scene = Scene.removeEntity id state.scene }
@@ -211,7 +210,7 @@ entityFromSync sync =
   let
     blank = case sync.class of
       Tank -> Tank.init sync.id sync.location
-      Asteroid -> Asteroid.init sync.id sync.location 100.0 100.0 -- and lo, for we realise that class needs paramterising
+      Asteroid -> Asteroid.init sync.id sync.location 50.0 50.0 -- and lo, for we realise that class needs paramterising
   in
     blank
       { location = sync.location

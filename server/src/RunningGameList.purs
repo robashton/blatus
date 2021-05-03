@@ -43,7 +43,7 @@ create playerName gameName public =
         , numPlayers: 2 -- todo: Get these bits from client
         , width: 2500
         , height: 2500
-        , density: 0.005
+        , density: 0.0005
         }
     Gen.lift $ Bus.raise bus $ GameCreated newGame
     pure $ Gen.reply id $ s { knownGames = newGame : existingGames }
