@@ -35,7 +35,15 @@ create playerName gameName public =
   Gen.call (ByName serverName) \_from s@{ knownGames: existingGames } -> do
     id <- Gen.lift generateId
     let
-      newGame = { id, startedBy: playerName, name: gameName, public }
+      newGame =
+        { id
+        , startedBy: playerName
+        , name: gameName
+        , public
+        , numPlayers: 2 -- todo: Get these bits from client
+        , width: 2500
+        , height: 2500
+        }
     Gen.lift $ Bus.raise bus $ GameCreated newGame
     pure $ Gen.reply id $ s { knownGames = newGame : existingGames }
 
@@ -50,10 +58,20 @@ findAll =
   Gen.call (ByName serverName) \_from s@{ knownGames } -> do
     pure $ Gen.reply knownGames s
 
+findPublic :: Effect (List RunningGame)
+findPublic =
+  Gen.call (ByName serverName) \_from s@{ knownGames } -> do
+    pure $ Gen.reply (filter _.public knownGames) s
+
 findById :: String -> Effect (Maybe RunningGame)
 findById id =
   Gen.call (ByName serverName) \_from s@{ knownGames } -> do
     pure $ Gen.reply (head $ filter (\g -> g.id == id) knownGames) s
+
+findByName :: String -> Effect (Maybe RunningGame)
+findByName name =
+  Gen.call (ByName serverName) \_from s@{ knownGames } -> do
+    pure $ Gen.reply (head $ filter (\g -> g.name == name) knownGames) s
 
 startLink :: StartArgs -> Effect (StartLinkResult (ServerPid Unit Unit Unit State))
 startLink args = Gen.startLink $ (Gen.defaultSpec init) { name = Just serverName }

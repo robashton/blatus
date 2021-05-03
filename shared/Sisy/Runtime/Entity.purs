@@ -39,7 +39,12 @@ type Renderable
     , rotation :: Number
     , visible :: Boolean
     , id :: String
+    , shape :: Shape
     }
+
+data Shape
+  = Circle
+  | Rect
 
 sprite :: Renderable
 sprite =
@@ -49,6 +54,7 @@ sprite =
   , rotation: 0.0
   , visible: true
   , id: "anon"
+  , shape: Rect
   }
 
 data EntityBehaviourResult cmd ev entity state

@@ -1,4 +1,4 @@
-module Blatus.Entities.Bullet where
+module Blatus.Entities.Asteroid where
 
 import Prelude
 import Data.List (List(..), (:))
@@ -11,21 +11,21 @@ data EntityMode
   = Server
   | Client
 
-init :: EntityId -> Point -> Point -> Entity EntityCommand GameEvent GameEntity
-init id location velocity =
+init :: EntityId -> Point -> Number -> Number -> Entity EntityCommand GameEvent GameEntity
+init id location width height =
   { id
   , location
-  , width: 5.0
-  , height: 5.0
-  , velocity
+  , width
+  , height
+  , velocity: { x: 0.0, y: 0.0 }
   , friction: 1.0
   , rotation: 0.0
-  , mass: 20.0
-  , health: 1.0
+  , mass: 200.0
+  , health: 100.0
   , shield: 0.0
   , behaviour: BasicBitchPhysics.init : Nil
-  , class: Bullet
-  , networkSync: false
+  , class: Asteroid
+  , networkSync: true
   , renderables:
       ( sprite
           { transform =
@@ -34,7 +34,7 @@ init id location velocity =
             , width: 5.0
             , height: 5.0
             }
-          , color = HtmlColor "#ff0"
+          , color = HtmlColor "#ccc"
           }
       )
         : Nil

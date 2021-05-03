@@ -19,8 +19,8 @@ import Sisy.Runtime.Entity (Cmd, Entity, EntityId)
 import Sisy.Runtime.Scene (Game)
 import Sisy.Runtime.Scene as Scene
 import Sisy.Runtime.Ticks as Ticks
-import Blatus.Entities.Bullet as Bullet
 import Blatus.Entities.Tank as Tank
+import Blatus.Entities.Asteroid as Asteroid
 import Blatus.Types (EntityCommand, GameEvent, EntityClass(..), GameEntity, RegisteredPlayer, playerSpawn)
 import Blatus.Comms (GameSync, EntitySync)
 
@@ -201,7 +201,7 @@ addEntity sync state = state { scene = Scene.addEntity (entityFromSync sync) sta
   where
   entity = case sync.class of
     Tank -> Tank.init sync.id sync.location
-    Bullet -> Bullet.init sync.id sync.location sync.velocity
+    Asteroid -> Asteroid.init sync.id sync.location 100.0 100.0
 
 removeEntity :: EntityId -> State -> State
 removeEntity id state = state { scene = Scene.removeEntity id state.scene }
@@ -211,7 +211,7 @@ entityFromSync sync =
   let
     blank = case sync.class of
       Tank -> Tank.init sync.id sync.location
-      Bullet -> Bullet.init sync.id sync.location sync.velocity
+      Asteroid -> Asteroid.init sync.id sync.location 100.0 100.0 -- and lo, for we realise that class needs paramterising
   in
     blank
       { location = sync.location

@@ -1,23 +1,37 @@
 How about
 ----
 
-[ ] Slow down the space ship, there is no need for such speed
-[ ] Destroyable asteroids floating around
-[ ] Persistence
-    [ ] Ship / Inventory / Player
-    [ ] World 
-[ ] Start off with no shield, small health
+Actual todo
 
-[ ] Resources to collect
-    [ ] Metal(s)
-    [ ] Rock
-    [ ] Bio matter
-    [ ] Gases
-[ ] Structures to create
-    [ ] Space port
+[ ] On 'game creation', generate a map in some 'bounds'
+  [ ] Random spawn locations
+  [ ] Giant Asteroids ?
+  [ ] Gas clouds
 
-[ ] Automatable shit, no farming.
-[ ] Automatable shit, defence.
+[ ] Don't allow leaving of the 'bounds'
+[ ] Visual indication of the 'bounds'
+
+[ ] Game workflow 
+  - Create new game (how many players)
+  - Public?
+  - Get the URL, give it to pals (or wait for people otherwise)
+  - Once enough people joined, 5 second countdown and go..
+
+
+Thoughts
+Slow down the space ship, there is no need for such speed
+Start off with no shield, small health
+
+Resources to collect
+ Metal(s)
+ Rock
+ Bio matter
+ Gases
+Structures to create
+  Space port
+
+Automatable shit, no farming.
+Automatable shit, defence.
 
 Could we do hybrid RTS? 
   - State how many players you want
@@ -33,13 +47,14 @@ Could we do hybrid RTS?
 
 -- Tech
 
-[ ] Move ev into a Variant
-[ ] Sort out the namespaces again
-[ ] Move most components outside of 'game'
+[x] Move ev into a Variant
+[x] Sort out the namespaces again
+[x] Move most components outside of 'game'
 [ ] Generify the networking aspect of this
 [ ] Generify the rendering aspect of this
-
+[ ] Newtypes for width/height
 [ ] Newtypes for Game/Player... 
+[ ] Purge wrap/unwrap
 [ ] Ticks should really be a type
 [ ] Break up LocalContext
 [ ] Just sort out main.purs on the client in general :S :S :S

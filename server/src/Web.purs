@@ -44,7 +44,7 @@ type PureWebStartArgs
   = { webPort :: Int }
 
 serverName :: RegistryName (ServerType Unit Unit Unit State)
-serverName = Local $ atom "pure_web"
+serverName = Local $ atom "web"
 
 startLink :: PureWebStartArgs -> Effect (StartLinkResult (ServerPid Unit Unit Unit State))
 startLink args = Gen.startLink $ (Gen.defaultSpec $ init args) { name = Just serverName }
@@ -154,7 +154,7 @@ gamesHandler :: SimpleStetsonHandler (List RunningGame)
 gamesHandler =
   Rest.handler
     ( \req -> do
-        all <- PureRunningGameList.findAll
+        all <- PureRunningGameList.findPublic
         Rest.initResult req all
     )
     # Rest.allowedMethods (\req state -> Rest.result (Stetson.POST : Stetson.HEAD : Stetson.GET : Stetson.OPTIONS : nil) req state)

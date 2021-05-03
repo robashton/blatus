@@ -1,6 +1,14 @@
 module Blatus.Server.RunningGame where
 
 import Prelude
+import Blatus.Api (RunningGame)
+import Blatus.Comms (ClientMsg(..), ServerMsg(..))
+import Blatus.Comms as Comms
+import Blatus.Main as Main
+import Blatus.Server.Logging as Log
+import Blatus.Server.RunningGameList as RunningGameList
+import Blatus.Server.Timing as Timing
+import Blatus.Types (GameEvent)
 import Data.Foldable (foldM, foldl)
 import Data.Int as Int
 import Data.List (toUnfoldable, List(..))
@@ -17,16 +25,8 @@ import Pinto.GenServer (Action(..), InfoFn, InitResult(..), ServerPid, ServerTyp
 import Pinto.GenServer as Gen
 import Pinto.Timer as Timer
 import Pinto.Types (RegistryReference(..))
-import Blatus.Api (RunningGame)
-import Blatus.Comms (ClientMsg(..), ServerMsg(..))
-import Blatus.Comms as Comms
-import Sisy.Runtime.Entity (EntityId)
-import Blatus.Main as Main
-import Blatus.Server.Logging as Log
-import Blatus.Server.RunningGameList as RunningGameList
-import Blatus.Server.Timing as Timing
-import Blatus.Types (GameEvent)
 import SimpleBus as Bus
+import Sisy.Runtime.Entity (EntityId)
 
 type State
   = { info :: RunningGame
@@ -87,18 +87,18 @@ startLink :: StartArgs -> Effect (StartLinkResult RunningGamePid)
 startLink args@{ game } = Gen.startLink $ (Gen.defaultSpec init) { name = Just $ serverName args.game.id, handleInfo = Just handleInfo }
   where
   init = do
-    Gen.lift $ Log.info Log.RunningGame "In the game init bit" game
+    Gen.lift $ Log.info Log.RunningGame "Initialising new game" game
     self <- Gen.self
     Gen.lift do
-      Log.info Log.RunningGame "Started game" game
       void $ Timer.sendAfter 0 Tick self
       void $ Timer.sendAfter 1000 DoSync self
       void $ Timer.sendAfter 10000 Maintenance self
       now <- Int.toNumber <$> Timing.currentMs
+      arena <- populateArena game $ Main.init now
       pure
         $ InitOk
             { info: game
-            , game: Main.init now
+            , game: arena
             , ticksSinceEmpty: 0
             }
 
@@ -147,6 +147,7 @@ tickGame state@{ game, info } = do
       game.scene.entities
   pure $ state { game = ng, ticksSinceEmpty = 0 }
 
+-- todo: limit the numbers where?
 addPlayerToGame :: EntityId -> State -> Effect State
 addPlayerToGame playerId s@{ info, game: game@{ players } } = do
   if Map.member playerId players then
@@ -186,3 +187,6 @@ doSync { info, game } = do
   let
     sync = Main.toSync game
   Bus.raise (bus info.id) $ Comms.Sync $ sync
+
+populateArena :: RunningGame -> Main.State -> Effect Main.State
+populateArena cfg state = pure state
