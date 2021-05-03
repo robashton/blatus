@@ -4,14 +4,16 @@ import Prelude
 import Blatus.Api (RunningGame)
 import Blatus.Comms (ClientMsg(..), ServerMsg(..))
 import Blatus.Comms as Comms
+import Blatus.Entities.Asteroid as Asteroid
 import Blatus.Main as Main
 import Blatus.Server.Logging as Log
 import Blatus.Server.RunningGameList as RunningGameList
 import Blatus.Server.Timing as Timing
 import Blatus.Types (GameEvent)
 import Data.Foldable (foldM, foldl)
+import Data.Int (decimal, floor, hexadecimal, toNumber, toStringAs)
 import Data.Int as Int
-import Data.List (toUnfoldable, List(..))
+import Data.List (List(..), range, toUnfoldable)
 import Data.Map as Map
 import Data.Maybe (Maybe(..))
 import Data.Newtype (wrap)
@@ -26,7 +28,8 @@ import Pinto.GenServer as Gen
 import Pinto.Timer as Timer
 import Pinto.Types (RegistryReference(..))
 import SimpleBus as Bus
-import Sisy.Runtime.Entity (EntityId)
+import Sisy.Runtime.Entity (EntityId(..))
+import Sisy.Runtime.Scene as Scene
 
 type State
   = { info :: RunningGame
@@ -53,6 +56,11 @@ bus game = Bus.bus $ "game-" <> game
 
 serverName :: String -> RegistryName RunningGameType
 serverName id = Local $ atom $ "runninggame-" <> id
+
+latestState :: String -> Effect (Main.State)
+latestState id =
+  Gen.call (ByName $ serverName id) \_from s@{ game } -> do
+    pure $ Gen.reply game s
 
 sendCommand :: String -> String -> ClientMsg -> Effect (Maybe ServerMsg)
 sendCommand id playerId msg =
@@ -94,7 +102,8 @@ startLink args@{ game } = Gen.startLink $ (Gen.defaultSpec init) { name = Just $
       void $ Timer.sendAfter 1000 DoSync self
       void $ Timer.sendAfter 10000 Maintenance self
       now <- Int.toNumber <$> Timing.currentMs
-      arena <- populateArena game $ Main.init now
+      let
+        arena = populateArena game $ Main.init now
       pure
         $ InitOk
             { info: game
@@ -188,5 +197,49 @@ doSync { info, game } = do
     sync = Main.toSync game
   Bus.raise (bus info.id) $ Comms.Sync $ sync
 
-populateArena :: RunningGame -> Main.State -> Effect Main.State
-populateArena cfg state = pure state
+populateArena :: RunningGame -> Main.State -> Main.State
+populateArena { width, height, density } state =
+  let
+    adjustedScene =
+      state.scene
+        { world =
+          { x: (toNumber (-width)) / 2.0
+          , y: (toNumber (-height)) / 2.0
+          , width: toNumber width
+          , height: toNumber height
+          }
+        }
+
+    numAsteroids = floor $ (density * (toNumber width) * (toNumber height)) / 100.0
+
+    adjustedState =
+      state
+        { scene = adjustedScene
+        }
+  in
+    foldl (\s i -> spawnAsteroid (asteroidId i) s) adjustedState $ range 0 numAsteroids
+
+asteroidId :: Int -> EntityId
+asteroidId x = EntityId $ "asteroid-" <> (toStringAs hexadecimal x)
+
+spawnAsteroid :: EntityId -> Main.State -> Main.State
+spawnAsteroid id state@{ seed, scene } =
+  let
+    (Tuple x s1) = Main.random Tuple seed
+
+    (Tuple y s2) = Main.random Tuple s1
+
+    (Tuple size s3) = Main.random Tuple s2
+
+    asteroid =
+      Asteroid.init id
+        { x: x * scene.world.width - scene.world.x
+        , y: y * scene.world.height - scene.world.y
+        }
+        (size * 20.0 - 10.0)
+        (size * 20.0 - 10.0)
+  in
+    state
+      { seed = s3
+      , scene = Scene.addEntity asteroid scene
+      }

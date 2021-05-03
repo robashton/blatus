@@ -1,5 +1,5 @@
-{ sources = [ "src/**/*.purs" ]
-, name = "arqiva_control"
+{ sources = [ "src/**/*.purs", "src/*.purs" ]
+, name = "blatus-client"
 , packages = ./packages.dhall
 , dependencies = [
   "debug",

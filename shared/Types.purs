@@ -41,6 +41,8 @@ derive instance genericEntityClass :: Generic EntityClass _
 instance showEntityClass :: Show EntityClass where
   show = genericShow
 
+derive instance eqEntityClass :: Eq EntityClass
+
 instance writeForeignEntityClass :: WriteForeign EntityClass where
   writeImpl = writeTaggedSumRep
 

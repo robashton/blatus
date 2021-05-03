@@ -9,4 +9,5 @@ type RunningGame
     , numPlayers :: Int
     , width :: Int
     , height :: Int
+    , density :: Number
     }

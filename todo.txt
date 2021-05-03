@@ -54,6 +54,7 @@ Could we do hybrid RTS?
 [ ] Generify the rendering aspect of this
 [ ] Newtypes for width/height
 [ ] Newtypes for Game/Player... 
+[ ] Newtype for game names
 [ ] Purge wrap/unwrap
 [ ] Ticks should really be a type
 [ ] Break up LocalContext
