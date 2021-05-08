@@ -80,6 +80,7 @@ type LocalContext
     , now :: Number
     , sf1 :: Background.State
     , sf2 :: Background.State
+    , sf3 :: Background.State
     }
 
 rotateLeftSignal :: Effect (Signal (Variant EntityCommand))
@@ -157,6 +158,7 @@ load cb = do
       game = Main.init now
     sf1 <- Background.init 0.5 game.scene
     sf2 <- Background.init 0.3 game.scene
+    sf3 <- Background.init 0.7 game.scene
     cb
       $ { offscreenContext
         , offscreenCanvas
@@ -177,6 +179,7 @@ load cb = do
         , hasError: false
         , sf1
         , sf2
+        , sf3
         }
 
 gameInfoSelector :: QuerySelector
@@ -418,12 +421,13 @@ trackPlayer playerName game config =
     $ entityById (wrap playerName) game
 
 render :: LocalContext -> Effect Unit
-render context@{ camera: camera@{ viewport, config: { target: { width, height } } }, game, offscreenContext, offscreenCanvas, renderContext, assets, sf1, sf2 } = do
+render context@{ camera: camera@{ viewport, config: { target: { width, height } } }, game, offscreenContext, offscreenCanvas, renderContext, assets, sf1, sf2, sf3 } = do
   _ <- Canvas.clearRect offscreenContext { x: 0.0, y: 0.0, width, height }
   _ <- Canvas.save offscreenContext
   _ <- applyViewport viewport offscreenContext
-  --  _ <- Background.render camera sf1 offscreenContext
+  _ <- Background.render camera sf1 offscreenContext
   _ <- Background.render camera sf2 offscreenContext
+  _ <- Background.render camera sf3 offscreenContext
   _ <- renderExplosions game.explosions offscreenContext
   _ <- renderBullets game.bullets offscreenContext
   _ <- renderScene viewport game.scene assets offscreenContext

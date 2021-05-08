@@ -14,10 +14,10 @@ import Sisy.Math (Point)
 import Sisy.Runtime.Scene (Game)
 
 tileWidth :: Number
-tileWidth = 100.0
+tileWidth = 500.0
 
 tileHeight :: Number
-tileHeight = 100.0
+tileHeight = 500.0
 
 type Tile
   = { x :: Number
@@ -78,9 +78,9 @@ render { config: { lookAt: { x: lax, y: lay } }, viewport: { left, right, top, b
     scaleX = lax * scale
 
     scaleY = lay * scale
-  gradient <- Context2D.createRadialGradient ctx { x0: 0.0, y0: 0.0, r0: 200.0, x1: 0.0, y1: 0.0, r1: width + height }
+  gradient <- Context2D.createRadialGradient ctx { x0: 0.0, y0: 0.0, r0: 200.0, x1: 0.0, y1: 0.0, r1: (height + width) / 2.0 }
   _ <- Context2D.addColorStop gradient 0.0 "#fff"
-  _ <- Context2D.addColorStop gradient 0.5 "#00f"
+  _ <- Context2D.addColorStop gradient 0.8 "#00f"
   _ <- Context2D.addColorStop gradient 1.0 "#f00"
   _ <- setGradientStrokeStyle ctx gradient
   _ <- Context2D.setLineWidth ctx 2.0

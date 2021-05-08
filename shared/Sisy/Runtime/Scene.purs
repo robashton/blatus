@@ -38,7 +38,7 @@ tickCmd = inj (SProxy :: SProxy "tick") unit
 initialModel :: forall cmd ev entity. Game cmd ev entity
 initialModel =
   { entities: Map.empty
-  , world: { x: -1000.0, y: -1000.0, width: 2000.0, height: 2000.0 }
+  , world: { x: -1250.0, y: -1250.0, width: 2500.0, height: 2500.0 }
   , onTicked: Nil
   }
 
