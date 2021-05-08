@@ -23,7 +23,7 @@ init id location width height =
   , health: 100.0
   , shield: 0.0
   , behaviour: Nil
-  , class: Asteroid
+  , class: Asteroid { width, height }
   , networkSync: true
   , aabb: centreRect location { x: 0.0, y: 0.0, width, height }
   , renderables:

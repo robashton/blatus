@@ -25,7 +25,7 @@ type RegisteredPlayer
 
 data EntityClass
   = Tank
-  | Asteroid
+  | Asteroid { width :: Number, height :: Number }
 
 type GameEntity
   = ( networkSync :: Boolean

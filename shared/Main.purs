@@ -201,7 +201,7 @@ addEntity sync state = state { scene = Scene.addEntity (entityFromSync sync) sta
   where
   entity = case sync.class of
     Tank -> Tank.init sync.id sync.location
-    Asteroid -> Asteroid.init sync.id sync.location 50.0 50.0
+    Asteroid { width, height } -> Asteroid.init sync.id sync.location width height
 
 removeEntity :: EntityId -> State -> State
 removeEntity id state = state { scene = Scene.removeEntity id state.scene }
@@ -211,7 +211,7 @@ entityFromSync sync =
   let
     blank = case sync.class of
       Tank -> Tank.init sync.id sync.location
-      Asteroid -> Asteroid.init sync.id sync.location 50.0 50.0 -- and lo, for we realise that class needs paramterising
+      Asteroid { width, height } -> Asteroid.init sync.id sync.location width height
   in
     blank
       { location = sync.location

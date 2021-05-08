@@ -41,6 +41,7 @@ import Sisy.BuiltIn.Extensions.Bullets as Bullets
 import Sisy.BuiltIn.Extensions.Explosions as Explosions
 import Sisy.Runtime.Scene (Game, entityById)
 import Sisy.Types (empty)
+import Sisy.Math (Rect)
 import Web.DOM.Document as Document
 import Web.DOM.Element as Element
 import Web.DOM.Node as Node
@@ -482,11 +483,11 @@ renderBullets state ctx = do
       state.bullets
   Canvas.fill ctx
 
-renderScene :: forall cmd ev entity. CameraViewport -> Game cmd ev entity -> AssetPackage -> Canvas.Context2D -> Effect Unit
+renderScene :: forall cmd ev entity. CameraViewport -> Game cmd ev ( aabb :: Rect | entity ) -> AssetPackage -> Canvas.Context2D -> Effect Unit
 renderScene viewport { entities } assets ctx = do
   _ <-
-    for entities \{ location, renderables, rotation } -> do
-      if (Camera.testRect viewport location 5.0 5.0) then
+    for entities \{ aabb, location, renderables, rotation } -> do
+      if (Camera.testRect viewport aabb) then
         Canvas.withContext ctx
           $ do
               _ <- Canvas.translate ctx { translateX: location.x, translateY: location.y }

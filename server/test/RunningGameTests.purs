@@ -39,7 +39,14 @@ tests = do
           }
         assertEqual
           { expected: 32 -- bleh
-          , actual: Map.size $ filter (\e -> e.class == Asteroid) $ state.scene.entities
+          , actual:
+              Map.size
+                $ filter
+                    ( \e -> case e.class of
+                        Asteroid _ -> true
+                        _ -> false
+                    )
+                $ state.scene.entities
           }
 
 defaultGame :: RunningGame

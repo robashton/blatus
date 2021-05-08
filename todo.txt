@@ -1,20 +1,42 @@
 How about
 ----
 
-Actual todo
+--                --
+-- The game itelf --
+--                --
 
 [x] On 'game creation', generate a map in some 'bounds'
   [x] Asteroids
   [ ] Gas clouds
   [ ] Structures (space stationy bits whatever)
 
-[ ] Need more info on the 'sync' object so we can have different sizes asteroids
+--        --
+-- Issues --
+--        --
+
 [x] Starfield pls
+[x] Work out what's going on with the dodgy collision sync
+[x] Need more info on the 'sync' object so we can have different sizes asteroids
+[ ] we've got a disconnection problem happening after a timeout despite pings taking place
+[ ] Don't spawn the player ship until the first sync has been received
 [ ] Don't allow leaving of the 'bounds'
 [ ] Visual indication of the 'bounds'
-[ ] Don't spawn the player ship until the first sync has been received
-[x] Work out what's going on with the dodgy collision sync
+
+--                 --
+-- Gameplay Tweaks --
+--                 --
+
 [ ] Need a boost mechanism to spice up the speed a little
+[ ] We need to add a debug console to adjust things 'live'
+      - Change values in client
+      - Change values on server :/
+      - Server needs to validate, maybe they're just special 'events' (DebugEvent)
+[ ] Think about perhaps interpolating bullet-spread if the ship is rotating when firing
+    - Or bring back auto-targeting/lock ala hoverbattles (!!)
+
+--         --
+-- Control --
+--         --
 
 [ ] Game workflow 
   - Create new game (how many players)
@@ -22,9 +44,11 @@ Actual todo
   - Get the URL, give it to pals (or wait for people otherwise)
   - Once enough people joined, 5 second countdown and go..
 
+--          --
+-- thoughts --
+--          --
 
-Thoughts
-Slow down the space ship, there is no need for such speed
+[x] Slow down the space ship, there is no need for such speed
 Start off with no shield, small health
 
 Resources to collect

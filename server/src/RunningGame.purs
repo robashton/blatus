@@ -239,8 +239,8 @@ spawnAsteroid id state@{ seed, scene } =
           { x: x * scene.world.width + scene.world.x
           , y: y * scene.world.height + scene.world.y
           }
-          50.0
-          50.0
+          (25.0 + size * 75.0)
+          (25.0 + size * 75.0)
       )
         { rotation = rotation }
   in

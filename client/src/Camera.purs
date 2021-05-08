@@ -4,7 +4,7 @@ import Prelude
 import Effect (Effect)
 import Graphics.Canvas as Canvas
 import Math (tan) as Math
-import Sisy.Math (Point, point)
+import Sisy.Math (Point, point, Rect)
 
 type CameraViewport
   = { left :: Number
@@ -60,15 +60,15 @@ applyViewport viewport ctx = do
   _ <- Canvas.translate ctx { translateX: (-viewport.left), translateY: (-viewport.top) }
   pure unit
 
-testRect :: CameraViewport -> Point -> Number -> Number -> Boolean
-testRect viewport location width height =
-  if viewport.right < location.x then
+testRect :: CameraViewport -> Rect -> Boolean
+testRect viewport { x, y, width, height } =
+  if viewport.right < x then
     false
-  else if viewport.bottom < location.y then
+  else if viewport.bottom < y then
     false
-  else if viewport.left > location.x + width then
+  else if viewport.left > x + width then
     false
-  else if viewport.top > location.y + height then
+  else if viewport.top > y + height then
     false
   else
     true
