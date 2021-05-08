@@ -19,16 +19,17 @@ How about
 [x] Need more info on the 'sync' object so we can have different sizes asteroids
 [x] we've got a disconnection problem happening after a timeout despite pings taking place
       - Not a bug, browser is disabling ticks when backgrounded, might need to detect that..
-[ ] Don't spawn the player ship until the first sync has been received
+[x] Visual indication of the 'bounds'
 [ ] Don't allow leaving of the 'bounds'
-[ ] Visual indication of the 'bounds'
+[ ] Don't spawn the player ship until the first sync has been received
+[ ] Starfields need updating based on the actual game info we receive from server 
 [ ] What will it take to have a 4x bigger world?
     - Efficiency in ticking 'scene' (do asteroids need a tick?)
     - Static vs Dynamic entities?
     - Sweep for AABB, if a lot of the static geometry is already in sorted lists...
+    - Unpack the foldls into tail recursive fns..
     - Note: A bigger world isn't actually that interesting unless there is content in it
 
-[ ] Starfields need updating based on the actual game info we receive from server 
 
 --                 --
 -- Gameplay Tweaks --
