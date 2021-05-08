@@ -7,11 +7,10 @@ import Data.List (List(..), snoc, (:))
 import Data.Maybe (Maybe(..), maybe)
 import Data.Symbol (SProxy(..))
 import Data.Tuple (Tuple(..))
-import Data.Variant (Variant, expand, inj)
-import Prim.Row as Row
+import Data.Variant (Variant, inj)
+import Sisy.Math (Point, Rect)
 import Sisy.Runtime.Entity (Entity, EntityId)
 import Sisy.Runtime.Scene (Game)
-import Sisy.Math (Point)
 
 type ActiveBullet
   = { location :: Point
@@ -54,7 +53,7 @@ fireBullet owner location velocity power state =
 
 tick ::
   forall cmd ev entity.
-  State -> Game cmd ev entity -> Tuple State (List (Variant Event))
+  State -> Game cmd ev ( aabb :: Rect | entity ) -> Tuple State (List (Variant Event))
 tick state game =
   lmap (\b -> state { bullets = b })
     $ foldl
@@ -69,7 +68,7 @@ tick state game =
 
 updateBullet ::
   forall cmd ev entity.
-  State -> ActiveBullet -> Game cmd ev entity -> Tuple (Maybe ActiveBullet) (Maybe (Variant Event))
+  State -> ActiveBullet -> Game cmd ev ( aabb :: Rect | entity ) -> Tuple (Maybe ActiveBullet) (Maybe (Variant Event))
 updateBullet state b g =
   if b.age > 150 then
     Tuple Nothing Nothing
@@ -87,7 +86,7 @@ updateBullet state b g =
 
 -- We'll just go with a sloppy circle test
 -- for now, but in reality we will *need* a sweep test for line / aabb, just too lazy to do that now
-testBulletWithEntity :: forall cmd ev entity. ActiveBullet -> Entity cmd ev entity -> Boolean
+testBulletWithEntity :: forall cmd ev entity. ActiveBullet -> Entity cmd ev ( aabb :: Rect | entity ) -> Boolean
 testBulletWithEntity bullet entity
   | bullet.owner == entity.id = false
   | otherwise =
@@ -97,6 +96,6 @@ testBulletWithEntity bullet entity
           + (bullet.location.y - entity.location.y)
           * (bullet.location.y - entity.location.y)
 
-      radius = (max entity.width entity.height) * 0.5
+      radius = (max entity.aabb.width entity.aabb.height) * 0.5
     in
       distSq < radius * radius

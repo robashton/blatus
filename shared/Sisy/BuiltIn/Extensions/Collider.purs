@@ -7,14 +7,16 @@ import Data.Array as Array
 import Data.List (List(..), (:))
 import Data.Map as Map
 import Data.Maybe (fromMaybe)
+import Data.Set (Set)
 import Data.Symbol (SProxy(..))
 import Data.Tuple (Tuple(..))
 import Data.Variant (Variant, inj)
 import Debug (spy)
 import Math as Math
+import Partial.Unsafe (unsafeCrashWith)
 import Sisy.BuiltIn.Behaviours.BasicBitchPhysics (Mass(..))
 import Sisy.BuiltIn.Behaviours.BasicBitchPhysics as BasicBitchPhysics
-import Sisy.Math (Point, scalePoint)
+import Sisy.Math (Point, Rect, scalePoint)
 import Sisy.Runtime.Entity (Entity, EntityId)
 import Sisy.Runtime.Scene (TickState)
 import Unsafe.Coerce (unsafeCoerce)
@@ -50,23 +52,26 @@ collidePair li state ri =
     $ lift2
         ( \left right ->
             -- handwavey as **** but as long as it's fun I don't care
-            if squareCheck left right then
+            if squareCheck left.aabb right.aabb then
               let
-                applyForce target source = case target.mass of
-                  Infinite -> Tuple 0.0 target -- we're immovable, shrug it off
-                  Fixed targetMass -> case source.mass of
-                    Infinite ->  -- we've hit an immovable object so we just need to do the standard 'get the hell off it' thing
+                applyForce us them = case us.mass of
+                  Infinite -> Tuple 0.0 us -- we're immovable, shrug it off
+                  Fixed usMass -> case them.mass of -- for now we'll just ignore their mass, but this is a statement of possible intent
+                    _ ->
                       let
-                        force = (magnitude target.velocity) * targetMass
+                        velocity = (magnitude us.velocity)
 
-                        newLocation = target.location - target.velocity
+                        force = velocity * usMass
 
-                        newVelocity = target.velocity * { x: -0.5, y: -0.5 }
+                        vectorFromThemToUs = vectorBetween them.location us.location
 
-                        newTarget = target { location = newLocation, velocity = newVelocity }
+                        newVelocity = (scalePoint velocity vectorFromThemToUs)
+
+                        newLocation = us.location + newVelocity
+
+                        newUs = us { location = newLocation, velocity = newVelocity }
                       in
-                        Tuple force newTarget
-                    Fixed sourceMass -> Tuple 0.0 target
+                        Tuple force newUs
 
                 Tuple lf ul = applyForce left right
 
@@ -122,21 +127,21 @@ normalise point@{ x, y } = { x: x / den, y: y / den }
 magnitude :: Point -> Number
 magnitude { x, y } = Math.sqrt $ (x * x) + (y * y)
 
-squareCheck :: forall cmd ev entity. Entity cmd ev entity -> Entity cmd ev entity -> Boolean
+squareCheck :: Rect -> Rect -> Boolean
 squareCheck inner subject
-  | inner.location.x > subject.location.x + subject.width = false
-  | inner.location.y > subject.location.y + subject.height = false
-  | subject.location.x > inner.location.x + inner.width = false
-  | subject.location.y > inner.location.y + inner.height = false
+  | inner.x > subject.x + subject.width = false
+  | inner.y > subject.y + subject.height = false
+  | subject.x > inner.x + inner.width = false
+  | subject.y > inner.y + inner.height = false
   | otherwise = true
 
-circleCheck :: forall cmd ev entity. Entity cmd ev entity -> Entity cmd ev entity -> Boolean
-circleCheck inner subject =
-  let
-    distSq =
-      (Math.pow (inner.location.x - subject.location.x) 2.0)
-        + (Math.pow (inner.location.y - subject.location.y) 2.0)
-
-    combinedSizeSq = Math.pow ((max inner.width inner.height) / 2.0 + (max subject.width subject.height) / 2.0) 2.0
-  in
-    distSq < combinedSizeSq
+--circleCheck :: forall cmd ev entity. Entity cmd ev entity -> Entity cmd ev entity -> Boolean
+--circleCheck inner subject =
+--  let
+--    distSq =
+--      (Math.pow (inner.location.x - subject.location.x) 2.0)
+--        + (Math.pow (inner.location.y - subject.location.y) 2.0)
+--
+--    combinedSizeSq = Math.pow ((max inner.width inner.height) / 2.0 + (max subject.width subject.height) / 2.0) 2.0
+--  in
+--    distSq < combinedSizeSq

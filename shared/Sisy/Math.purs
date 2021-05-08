@@ -15,6 +15,16 @@ type Rect
     , height :: Number
     }
 
+centreRect :: Point -> Rect -> Rect
+centreRect p rect =
+  rect
+    { x = p.x - (rect.width / 2.0)
+    , y = p.y - (rect.height / 2.0)
+    }
+
+origin :: Point
+origin = point 0.0 0.0
+
 point :: Number -> Number -> Point
 point x y = { x, y }
 

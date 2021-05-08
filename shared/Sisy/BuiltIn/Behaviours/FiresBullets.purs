@@ -58,7 +58,7 @@ init { max, speed, coolOffPeriod, rate, power } =
     where
     direction entity = rotationToVector entity.rotation
 
-    location entity = entity.location + (scalePoint entity.width $ direction entity)
+    location entity = entity.location + (scalePoint 25.0 $ direction entity) -- tod: parameterise this starting distance
 
     velocity entity = (scalePoint speed $ direction entity) -- + entity.velocity
 

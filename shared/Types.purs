@@ -13,7 +13,7 @@ import Sisy.BuiltIn.Behaviours.Damageable (EntityDestroyed)
 import Sisy.BuiltIn.Behaviours.FiresBullets (BulletFired)
 import Sisy.BuiltIn.Extensions.Bullets as Bullets
 import Sisy.BuiltIn.Extensions.Collider (CollisionInfo)
-import Sisy.Math (Point)
+import Sisy.Math (Point, Rect)
 import Sisy.Runtime.Entity (EntityId)
 import Sisy.Types (Empty)
 
@@ -35,6 +35,7 @@ type GameEntity
     , velocity :: Point
     , mass :: Mass
     , friction :: Number
+    , aabb :: Rect
     )
 
 derive instance genericEntityClass :: Generic EntityClass _

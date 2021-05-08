@@ -87,8 +87,6 @@ type Entity cmd ev entity
 type EntityRow cmd ev entity
   = ( id :: EntityId
     , location :: Point
-    , width :: Number
-    , height :: Number
     , rotation :: Number
     , renderables :: List Renderable
     , behaviour :: List (Exists (EntityBehaviour cmd ev entity))
@@ -103,8 +101,6 @@ emptyEntity id entity =
   Record.union
     { id
     , location: { x: 0.0, y: 0.0 }
-    , width: 0.0
-    , height: 0.0
     , rotation: 0.0
     , renderables: Nil
     , behaviour: Nil

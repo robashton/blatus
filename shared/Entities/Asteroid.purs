@@ -5,8 +5,7 @@ import Blatus.Types (EntityCommand, GameEvent, GameEntity, EntityClass(..))
 import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
 import Sisy.BuiltIn.Behaviours.BasicBitchPhysics (Mass(..))
-import Sisy.BuiltIn.Behaviours.BasicBitchPhysics as BasicBitchPhysics
-import Sisy.Math (Point)
+import Sisy.Math (Point, centreRect, origin)
 import Sisy.Runtime.Entity (Entity, EntityId, HtmlColor(..), sprite)
 
 data EntityMode
@@ -17,8 +16,6 @@ init :: EntityId -> Point -> Number -> Number -> Entity EntityCommand GameEvent 
 init id location width height =
   { id
   , location
-  , width
-  , height
   , velocity: { x: 0.0, y: 0.0 }
   , friction: 0.0
   , rotation: 0.0
@@ -28,14 +25,10 @@ init id location width height =
   , behaviour: Nil
   , class: Asteroid
   , networkSync: true
+  , aabb: centreRect location { x: 0.0, y: 0.0, width, height }
   , renderables:
       ( sprite
-          { transform =
-            { x: -(width / 2.0)
-            , y: -(height / 2.0)
-            , width
-            , height
-            }
+          { transform = centreRect origin { x: 0.0, y: 0.0, width, height }
           , color = HtmlColor "#ccc"
           , image = Just "asteroid"
           }

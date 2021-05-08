@@ -485,8 +485,8 @@ renderBullets state ctx = do
 renderScene :: forall cmd ev entity. CameraViewport -> Game cmd ev entity -> AssetPackage -> Canvas.Context2D -> Effect Unit
 renderScene viewport { entities } assets ctx = do
   _ <-
-    for entities \{ location, width, height, renderables, rotation } -> do
-      if (Camera.testRect viewport location width height) then
+    for entities \{ location, renderables, rotation } -> do
+      if (Camera.testRect viewport location 5.0 5.0) then
         Canvas.withContext ctx
           $ do
               _ <- Canvas.translate ctx { translateX: location.x, translateY: location.y }

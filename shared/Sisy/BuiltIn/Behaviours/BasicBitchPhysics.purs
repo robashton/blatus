@@ -4,11 +4,15 @@ import Prelude
 import Control.Monad.State (State)
 import Control.Monad.State as State
 import Data.Exists (Exists, mkExists)
+import Data.Ord (abs)
 import Data.Variant (default, onMatch)
+import Sisy.Math (Point, Rect, centreRect, scalePoint)
+import Sisy.Math as Math
 import Sisy.Runtime.Behaviour as B
 import Sisy.Runtime.Entity (BehaviourExecutionContext, Entity, EntityBehaviour(..))
-import Sisy.Math (Point, scalePoint)
-import Sisy.Math as Math
+
+velocityThreshold :: Number
+velocityThreshold = 0.0000001
 
 init ::
   forall entity cmd ev.
@@ -23,8 +27,15 @@ init =
                 { tick:
                     \_ ->
                       B.updateEntity
-                        ( \e@{ location, velocity, friction } ->
-                            e { location = location + velocity, velocity = scalePoint friction velocity }
+                        ( \e@{ location, velocity, friction, aabb } ->
+                            if (abs velocity.x) > velocityThreshold || (abs velocity.y) > velocityThreshold then
+                              e
+                                { location = location + velocity
+                                , velocity = scalePoint friction velocity
+                                , aabb = centreRect location aabb
+                                }
+                            else
+                              e
                         )
                 }
                 (default (pure unit))
@@ -51,6 +62,7 @@ type Required r
   = ( mass :: Mass
     , velocity :: Point
     , friction :: Number
+    , aabb :: Rect
     | r
     )
 

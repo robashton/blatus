@@ -20,8 +20,6 @@ emptyEntity :: EntityId -> Entity () TestEvent ()
 emptyEntity =
   { id: _
   , location: point 0.0 0.0
-  , width: 5.0
-  , height: 5.0
   , rotation: 0.0
   , behaviour: Nil
   , renderables: Nil
