@@ -56,7 +56,9 @@ collidePair li state ri =
               let
                 applyForce us them = case us.mass of
                   Infinite -> Tuple 0.0 us -- we're immovable, shrug it off
+                  NoMass -> Tuple 0.0 us -- we're ethereal, ignore this
                   Fixed usMass -> case them.mass of -- for now we'll just ignore their mass, but this is a statement of possible intent
+                    NoMass -> Tuple 0.0 us -- they're ethereal, do nothing
                     _ ->
                       let
                         velocity = (magnitude us.velocity)

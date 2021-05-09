@@ -47,6 +47,8 @@ applyForce ::
   { direction :: Point, force :: Number } -> Entity cmd ev (Required entity) -> Entity cmd ev (Required entity)
 applyForce { direction, force } entity@{ velocity, mass: Infinite } = entity
 
+applyForce { direction, force } entity@{ velocity, mass: NoMass } = entity
+
 applyForce { direction, force } entity@{ velocity, mass: Fixed mass } = entity { velocity = velocity + (scalePoint (force / mass) direction) }
 
 applyThrust ::
@@ -69,6 +71,7 @@ type Required r
 data Mass
   = Fixed Number
   | Infinite
+  | NoMass
 
 type Command :: forall k. k -> k
 type Command r

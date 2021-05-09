@@ -23,9 +23,16 @@ type RegisteredPlayer
     , score :: Int
     }
 
+type CollectableArgs
+  = { width :: Number, height :: Number, collectableType :: CollectableType }
+
 data EntityClass
   = Tank
   | Asteroid { width :: Number, height :: Number }
+  | Collectable CollectableArgs
+
+data CollectableType
+  = Rock Int
 
 type GameEntity
   = ( networkSync :: Boolean
@@ -49,6 +56,19 @@ instance writeForeignEntityClass :: WriteForeign EntityClass where
   writeImpl = writeTaggedSumRep
 
 instance readForeignEntityClass :: ReadForeign EntityClass where
+  readImpl = taggedSumRep
+
+derive instance genericCollectableType :: Generic CollectableType _
+
+instance showCollectableType :: Show CollectableType where
+  show = genericShow
+
+derive instance eqCollectableType :: Eq CollectableType
+
+instance writeForeignCollectableType :: WriteForeign CollectableType where
+  writeImpl = writeTaggedSumRep
+
+instance readForeignCollectableType :: ReadForeign CollectableType where
   readImpl = taggedSumRep
 
 type EntityCommand

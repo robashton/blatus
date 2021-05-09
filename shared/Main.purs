@@ -3,6 +3,7 @@ module Blatus.Main where
 import Prelude
 import Blatus.Comms (GameSync, EntitySync)
 import Blatus.Entities.Asteroid as Asteroid
+import Blatus.Entities.Collectable as Collectable
 import Blatus.Entities.Tank as Tank
 import Blatus.Types (EntityCommand, GameEvent, EntityClass(..), GameEntity, RegisteredPlayer, playerSpawn)
 import Data.Array (fromFoldable)
@@ -198,10 +199,6 @@ removePlayer id state@{ players } = removeEntity id state { players = Map.delete
 
 addEntity :: EntitySync -> State -> State
 addEntity sync state = state { scene = Scene.addEntity (entityFromSync sync) state.scene }
-  where
-  entity = case sync.class of
-    Tank -> Tank.init sync.id sync.location
-    Asteroid { width, height } -> Asteroid.init sync.id sync.location width height
 
 removeEntity :: EntityId -> State -> State
 removeEntity id state = state { scene = Scene.removeEntity id state.scene }
@@ -212,6 +209,7 @@ entityFromSync sync =
     blank = case sync.class of
       Tank -> Tank.init sync.id sync.location
       Asteroid { width, height } -> Asteroid.init sync.id sync.location width height
+      Collectable args -> Collectable.init sync.id sync.location args
   in
     blank
       { location = sync.location
