@@ -1,7 +1,8 @@
 module Blatus.Entities.Asteroid where
 
 import Prelude
-import Blatus.Types (EntityCommand, GameEvent, GameEntity, EntityClass(..))
+import Blatus.Types (EntityCommand, GameEvent, GameEntity)
+import Blatus.Entities.Types (EntityClass(..))
 import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
 import Sisy.BuiltIn.Behaviours.BasicBitchPhysics (Mass(..))

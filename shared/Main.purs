@@ -5,7 +5,8 @@ import Blatus.Comms (GameSync, EntitySync)
 import Blatus.Entities.Asteroid as Asteroid
 import Blatus.Entities.Collectable as Collectable
 import Blatus.Entities.Tank as Tank
-import Blatus.Types (EntityClass(..), EntityCommand, GameEntity, GameEvent, RegisteredPlayer, impact, playerSpawn)
+import Blatus.Entities.Types (CollectableType(..), EntityClass(..))
+import Blatus.Types (EntityCommand, GameEntity, GameEvent, RegisteredPlayer, impact, playerSpawn)
 import Data.Array (fromFoldable)
 import Data.Array as Array
 import Data.Bifunctor (lmap, rmap)
@@ -145,6 +146,14 @@ handleEvent state@{ scene, players } =
               )
               $ Scene.sendCommand hit.entity (inj (SProxy :: SProxy "damage") { amount: hit.bullet.power, source: Just hit.bullet.owner }) scene
     , entityCollided: \ev -> lmap (\s -> state { scene = s }) $ Scene.sendCommand ev.left (impact { force: ev.force, source: ev.right }) scene
+    , resourceProvided:
+        ( \ev ->
+            let
+              updatePlayer p = case ev.resource of
+                Rock amount -> Just $ p { availableRock = p.availableRock + amount }
+            in
+              Tuple (state { players = Map.update updatePlayer ev.to players }) Nil
+        )
     }
 
 handleEntityDestruction :: State -> EntityId -> Maybe EntityId -> State
@@ -187,7 +196,7 @@ entityToSync { id, class: c, location, velocity, rotation, health, shield } = { 
 addPlayer :: EntityId -> State -> State
 addPlayer id state@{ players, lastTick, pendingSpawns } =
   state
-    { players = Map.insert id { id, lastTick, score: 0 } players
+    { players = Map.insert id { id, lastTick, score: 0, availableRock: 0 } players
     , pendingSpawns = { playerId: id, ticks: 0 } : pendingSpawns
     }
 

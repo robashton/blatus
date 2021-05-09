@@ -1,6 +1,6 @@
 module Blatus.Comms where
 
--- TODO: Move this into Engine by getting rid of the specifics
+-- TODO: Move this into Sisy by getting rid of the specifics
 import Prelude
 import Data.Generic.Rep (class Generic)
 import Data.Show.Generic (genericShow)
@@ -8,7 +8,8 @@ import Data.Variant (Variant)
 import Sisy.Runtime.Entity (EntityId)
 import Blatus.GenericJSON (writeTaggedSumRep, taggedSumRep)
 import Sisy.Math (Point, Rect)
-import Blatus.Types (EntityClass, EntityCommand, GameEvent, RegisteredPlayer)
+import Blatus.Types (EntityCommand, GameEvent, RegisteredPlayer)
+import Blatus.Entities.Types (EntityClass)
 import Simple.JSON (class ReadForeign, class WriteForeign)
 
 data ServerMsg

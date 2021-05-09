@@ -1,11 +1,12 @@
 module Blatus.Entities.Behaviours.ProvidesResource where
 
 import Prelude
-import Blatus.Types (CollectableType)
+import Blatus.Entities.Types (CollectableType, EntityClass(..))
 import Data.Exists (Exists, mkExists)
-import Data.Maybe (Maybe)
+import Data.Maybe (Maybe(..))
 import Data.Symbol (SProxy(..))
 import Data.Variant (Variant, default, inj, onMatch)
+import Debug (spy)
 import Sisy.Runtime.Behaviour as B
 import Sisy.Runtime.Entity (EntityBehaviour(..), EntityId)
 
@@ -22,30 +23,43 @@ init resource =
               onMatch
                 { impact:
                     \{ source } -> do
-                      -- need to be able to get the scene here, or at least other entities
-                      pure s
+                      scene <- B.scene
+                      entity <- B.entity
+                      let
+                        collider = scene.entityById source
+                      case (_.class <$> collider) of
+                        Just Tank -> do
+                          B.raiseEvent $ resourceProvided { to: source, resource }
+                          B.raiseEvent $ entityDestroyed { entity: entity.id, destroyer: Just source }
+                          pure s
+                        _ -> pure s
                 }
                 (default (pure s))
                 command
         }
 
-type State :: forall k. k -> k
 type State r
-  = ( | r )
+  = ( class :: EntityClass | r )
 
 type Command r
-  = ( impact :: { amount :: Number, source :: EntityId }
+  = ( impact :: { force :: Number, source :: EntityId }
     | r
     )
 
 type Event r
   = ( entityDestroyed :: EntityDestroyed
-    , resourceProvided :: { to :: EntityId, resource :: CollectableType }
+    , resourceProvided :: ResourceProvided
     | r
     )
 
 type EntityDestroyed
   = { entity :: EntityId, destroyer :: Maybe EntityId }
 
+type ResourceProvided
+  = { to :: EntityId, resource :: CollectableType }
+
 entityDestroyed :: forall r. EntityDestroyed -> Variant (Event r)
 entityDestroyed = inj (SProxy :: SProxy "entityDestroyed")
+
+resourceProvided :: forall r. ResourceProvided -> Variant (Event r)
+resourceProvided = inj (SProxy :: SProxy "resourceProvided")

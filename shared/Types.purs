@@ -1,13 +1,10 @@
 module Blatus.Types where
 
-import Prelude
-import Blatus.GenericJSON (writeTaggedSumRep, taggedSumRep)
-import Data.Generic.Rep (class Generic)
+import Blatus.Entities.Behaviours.ProvidesResource (ResourceProvided)
+import Blatus.Entities.Types (EntityClass)
 import Data.Maybe (Maybe)
-import Data.Show.Generic (genericShow)
 import Data.Symbol (SProxy(..))
 import Data.Variant (Variant, inj)
-import Simple.JSON (class ReadForeign, class WriteForeign)
 import Sisy.BuiltIn.Behaviours.BasicBitchPhysics (Mass)
 import Sisy.BuiltIn.Behaviours.Damageable (EntityDestroyed)
 import Sisy.BuiltIn.Behaviours.FiresBullets (BulletFired)
@@ -20,19 +17,18 @@ import Sisy.Types (Empty)
 type RegisteredPlayer
   = { id :: EntityId
     , lastTick :: Int
-    , score :: Int
+    , score :: Int -- probably not anymore
+    , availableRock :: Int
     }
 
-type CollectableArgs
-  = { width :: Number, height :: Number, collectableType :: CollectableType }
+type PlayerSpawn
+  = { id :: EntityId, x :: Number, y :: Number }
 
-data EntityClass
-  = Tank
-  | Asteroid { width :: Number, height :: Number }
-  | Collectable CollectableArgs
+playerSpawn :: forall r. PlayerSpawn -> Variant ( playerSpawn :: PlayerSpawn | r )
+playerSpawn = inj (SProxy :: SProxy "playerSpawn")
 
-data CollectableType
-  = Rock Int
+impact :: forall r. { force :: Number, source :: EntityId } -> Variant ( impact :: { force :: Number, source :: EntityId } | r )
+impact = inj (SProxy :: SProxy "impact")
 
 type GameEntity
   = ( networkSync :: Boolean
@@ -44,32 +40,6 @@ type GameEntity
     , friction :: Number
     , aabb :: Rect
     )
-
-derive instance genericEntityClass :: Generic EntityClass _
-
-instance showEntityClass :: Show EntityClass where
-  show = genericShow
-
-derive instance eqEntityClass :: Eq EntityClass
-
-instance writeForeignEntityClass :: WriteForeign EntityClass where
-  writeImpl = writeTaggedSumRep
-
-instance readForeignEntityClass :: ReadForeign EntityClass where
-  readImpl = taggedSumRep
-
-derive instance genericCollectableType :: Generic CollectableType _
-
-instance showCollectableType :: Show CollectableType where
-  show = genericShow
-
-derive instance eqCollectableType :: Eq CollectableType
-
-instance writeForeignCollectableType :: WriteForeign CollectableType where
-  writeImpl = writeTaggedSumRep
-
-instance readForeignCollectableType :: ReadForeign CollectableType where
-  readImpl = taggedSumRep
 
 type EntityCommand
   = ( damage :: { amount :: Number, source :: Maybe EntityId }
@@ -97,13 +67,5 @@ type GameEvent
     , bulletHit :: Bullets.BulletHit
     , entityDestroyed :: EntityDestroyed
     , playerSpawn :: PlayerSpawn
+    , resourceProvided :: ResourceProvided
     )
-
-type PlayerSpawn
-  = { id :: EntityId, x :: Number, y :: Number }
-
-playerSpawn :: PlayerSpawn -> Variant GameEvent
-playerSpawn = inj (SProxy :: SProxy "playerSpawn")
-
-impact :: forall r. { force :: Number, source :: EntityId } -> Variant ( impact :: { force :: Number, source :: EntityId } | r )
-impact = inj (SProxy :: SProxy "impact")

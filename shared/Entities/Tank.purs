@@ -1,7 +1,8 @@
 module Blatus.Entities.Tank where
 
 import Prelude
-import Blatus.Types (EntityClass(..), GameEntity, EntityCommand, GameEvent)
+import Blatus.Types (GameEntity, EntityCommand, GameEvent)
+import Blatus.Entities.Types (EntityClass(..))
 import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
 import Sisy.BuiltIn.Behaviours.BasicBitchPhysics (Mass(..))

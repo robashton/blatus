@@ -1,7 +1,9 @@
 module Blatus.Entities.Collectable where
 
 import Prelude
-import Blatus.Types (CollectableArgs, EntityClass(..), EntityCommand, GameEntity, GameEvent)
+import Blatus.Types (EntityCommand, GameEntity, GameEvent)
+import Blatus.Entities.Types (EntityClass(..), CollectableArgs)
+import Blatus.Entities.Behaviours.ProvidesResource as ProvidesResource
 import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
 import Sisy.BuiltIn.Behaviours.BasicBitchPhysics (Mass(..))
@@ -23,7 +25,7 @@ init id location args@{ width, height } =
   , mass: NoMass
   , health: 100.0
   , shield: 0.0
-  , behaviour: BasicBitchPhysics.init : Nil
+  , behaviour: BasicBitchPhysics.init : (ProvidesResource.init args.collectableType) : Nil
   , class: Collectable args
   , networkSync: false
   , aabb: centreRect location { x: 0.0, y: 0.0, width, height }
