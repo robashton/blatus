@@ -245,7 +245,7 @@ mergeSyncInfo state@{ scene } sync =
                   acc
         )
         scene
-        $ spy "fromSync" sync.entities
+        sync.entities
     }
 
 mergePlayerSync :: State -> EntitySync -> State
