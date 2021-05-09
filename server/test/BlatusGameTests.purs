@@ -5,6 +5,7 @@ import Blatus.Entities.Behaviours.ProvidesResource (entityDestroyed)
 import Blatus.Entities.Types (CollectableType(..), EntityClass(..))
 import Blatus.Main as Main
 import Blatus.Types (GameEvent)
+import Control.Alternative (class Alternative, empty)
 import Control.Monad.Free (Free)
 import Control.Monad.List.Trans (catMaybes)
 import Data.Filterable (filterMap)
@@ -12,8 +13,10 @@ import Data.Foldable (any, foldl, null)
 import Data.List (List(..), head, (:))
 import Data.Maybe (Maybe(..), isJust)
 import Data.Tuple (Tuple(..), fst, snd, uncurry)
-import Data.Variant (Variant, default, onMatch)
+import Data.Variant (class VariantMatchCases, Variant, default, onMatch)
 import Erl.Test.EUnit (TestF, suite, test)
+import Prim.Row as R
+import Prim.RowList as RL
 import Sisy.BuiltIn.Extensions.Collider (entityCollided)
 import Sisy.Runtime.Entity (EntityId(..))
 import Sisy.Runtime.Scene (entityById)
@@ -45,7 +48,7 @@ tests = do
           }
       test "Results in the player spawning on the next tick" do
         let
-          playerSpawned = any (default false # onMatch { playerSpawn: \s -> s.id == bob }) evs
+          playerSpawned = eventExists { playerSpawn: \s -> s.id == bob } evs
         assertEqual
           { expected: true
           , actual: playerSpawned
@@ -83,7 +86,7 @@ tests = do
           Tuple newState evs = Main.handleEvent originalState (entityCollided { force: 0.0, left: rock, right: bob })
         test "Collectable destruction event raised" do
           let
-            collectableDestroyed = any (default false # onMatch { entityDestroyed: \ev -> ev.entity == rock }) evs
+            collectableDestroyed = eventExists { entityDestroyed: \ev -> ev.entity == rock } evs
           assertEqual
             { expected: true
             , actual: collectableDestroyed
@@ -96,11 +99,28 @@ tests = do
             , actual: resourceProvided
             }
 
---eventExists :: List (Variant GameEvent) -> Boolean
---eventExists
+eventExists ::
+  forall r rl r1 r2.
+  RL.RowToList r rl =>
+  VariantMatchCases rl r1 Boolean =>
+  R.Union r1 r2 GameEvent =>
+  Record r ->
+  List (Variant GameEvent) -> Boolean
+eventExists r = any (default false # onMatch r)
+
+--findEvent ::
+--  forall r rl r1 r2 result m.
+--  RL.RowToList r rl =>
+--  VariantMatchCases rl r1 (m result) =>
+--  Alternative m =>
+--  R.Union r1 r2 GameEvent =>
+--  Record r ->
+--  List (Variant GameEvent) -> (m result)
+--findEvent r = any (default empty # onMatch r)
+--
 --        finalState
 --
---        playerSpawned = any (default false # onMatch { playerSpawn: \s -> s.id == (EntityId "bob") }) evs
+--        playerSpawned = 
 --      assertEqual
 --        { expected: Nil
 --        , actual: newState.pendingSpawns
