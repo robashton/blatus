@@ -144,7 +144,7 @@ handleEvent state@{ scene, players } =
                     , explosions = explosions
                     }
               )
-              $ Scene.sendCommand hit.entity (inj (SProxy :: SProxy "damage") { amount: hit.bullet.power, source: Just hit.bullet.owner }) scene
+              $ Scene.sendCommand hit.entity (inj (SProxy :: SProxy "damage") { amount: hit.bullet.power, location: hit.bullet.location, source: Just hit.bullet.owner }) scene
     , entityCollided: \ev -> lmap (\s -> state { scene = s }) $ Scene.sendCommand ev.left (impact { force: ev.force, source: ev.right }) scene
     , resourceProvided:
         ( \ev ->
@@ -154,6 +154,7 @@ handleEvent state@{ scene, players } =
             in
               Tuple (state { players = Map.update updatePlayer ev.to players }) Nil
         )
+    , collectableSpawned: \ev -> Tuple (state { scene = Scene.addEntity ((Collectable.init ev.id ev.location ev.args) { velocity = ev.velocity }) scene }) Nil
     }
 
 handleEntityDestruction :: State -> EntityId -> Maybe EntityId -> State

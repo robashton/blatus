@@ -1,8 +1,9 @@
 module Blatus.Entities.Asteroid where
 
 import Prelude
+import Blatus.Entities.Behaviours.Farmable as Farmable
+import Blatus.Entities.Types (CollectableType(..), EntityClass(..))
 import Blatus.Types (EntityCommand, GameEvent, GameEntity)
-import Blatus.Entities.Types (EntityClass(..))
 import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
 import Sisy.BuiltIn.Behaviours.BasicBitchPhysics (Mass(..))
@@ -23,7 +24,7 @@ init id location width height =
   , mass: Infinite
   , health: 100.0
   , shield: 0.0
-  , behaviour: Nil
+  , behaviour: (Farmable.init { dropEvery: 50.0, drop: { width: 10.0, height: 10.0, collectableType: Rock 5 } }) : Nil
   , class: Asteroid { width, height }
   , networkSync: true
   , aabb: centreRect location { x: 0.0, y: 0.0, width, height }

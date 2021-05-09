@@ -5,6 +5,7 @@ import Control.Monad.State (State, runState)
 import Data.Exists (Exists, mkExists, runExists)
 import Data.List (List(..), concat, foldr, (:))
 import Data.Maybe (Maybe(..))
+import Data.Monoid (class Semigroup)
 import Data.Newtype (class Newtype)
 import Data.Tuple (Tuple(..), fst, snd)
 import Data.Variant (Variant)
@@ -19,6 +20,9 @@ derive instance ntHtmlColor :: Newtype HtmlColor _
 
 newtype EntityId
   = EntityId String
+
+instance semiGroupEntityId :: Semigroup EntityId where
+  append (EntityId l) (EntityId r) = EntityId $ l <> r
 
 derive instance ntEntityId :: Newtype EntityId _
 

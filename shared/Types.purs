@@ -1,5 +1,6 @@
 module Blatus.Types where
 
+import Blatus.Entities.Behaviours.Farmable (CollectableSpawned)
 import Blatus.Entities.Behaviours.ProvidesResource (ResourceProvided)
 import Blatus.Entities.Types (EntityClass)
 import Data.Maybe (Maybe)
@@ -42,7 +43,7 @@ type GameEntity
     )
 
 type EntityCommand
-  = ( damage :: { amount :: Number, source :: Maybe EntityId }
+  = ( damage :: { amount :: Number, location :: Point, source :: Maybe EntityId }
     , impact :: { force :: Number, source :: EntityId }
     , pushForward :: Empty
     , pushBackward :: Empty
@@ -68,4 +69,5 @@ type GameEvent
     , entityDestroyed :: EntityDestroyed
     , playerSpawn :: PlayerSpawn
     , resourceProvided :: ResourceProvided
+    , collectableSpawned :: CollectableSpawned
     )

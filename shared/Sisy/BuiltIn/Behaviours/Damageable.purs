@@ -5,6 +5,7 @@ import Data.Exists (Exists, mkExists)
 import Data.Maybe (Maybe)
 import Data.Symbol (SProxy(..))
 import Data.Variant (Variant, default, inj, onMatch)
+import Sisy.Math (Point)
 import Sisy.Runtime.Behaviour as B
 import Sisy.Runtime.Entity (EntityBehaviour(..), EntityId)
 
@@ -54,7 +55,7 @@ type Required r
     )
 
 type Command r
-  = ( damage :: { amount :: Number, source :: Maybe EntityId }
+  = ( damage :: { amount :: Number, location :: Point, source :: Maybe EntityId }
     | r
     )
 

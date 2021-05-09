@@ -109,6 +109,24 @@ tests = do
           let
             playerRock = _.availableRock <$> Map.lookup bob finalState.players
           assertEqual { expected: Just 100, actual: playerRock }
+    suite "Farmable resource" do
+       pure unit
+--      let
+--        originalState =
+--          runWhileEvents
+--            $ Main.doTick
+--            $ Main.addEntity
+--                { id: EntityId "asteroid"
+--                , class: Asteroid { width: 25.0, height: 25.0 }
+--                , location: { x: 0.0, y: 0.0 }
+--                , velocity: { x: 0.0, y: 0.0 }
+--                , rotation: 0.0
+--                , shield: 100.0
+--                , health: 100.0
+--                }
+--            $ Main.addPlayer bob
+--            $ Main.init 0.0
+--      pure unit
 
 eventExists ::
   forall r rl r1 r2.
@@ -118,6 +136,8 @@ eventExists ::
   Record r ->
   List (Variant GameEvent) -> Boolean
 eventExists r = any (default false # onMatch r)
+
+
 
 --findEvent ::
 --  forall r rl r1 r2 result m.
