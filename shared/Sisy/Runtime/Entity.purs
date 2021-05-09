@@ -9,8 +9,8 @@ import Data.Newtype (class Newtype)
 import Data.Tuple (Tuple(..), fst, snd)
 import Data.Variant (Variant)
 import Record as Record
-import Sisy.Math (Point, Rect)
 import Simple.JSON (class ReadForeign, class WriteForeign)
+import Sisy.Math (Point, Rect)
 
 newtype HtmlColor
   = HtmlColor String
@@ -66,7 +66,12 @@ data EntityBehaviourResult cmd ev entity state
 
 type BehaviourExecutionContext cmd ev entity
   = { events :: List (Variant ev)
+    , scene :: (SceneSnapshot cmd ev entity)
     , entity :: (Entity cmd ev entity)
+    }
+
+type SceneSnapshot cmd ev entity
+  = { entityById :: EntityId -> Maybe (Entity cmd ev entity)
     }
 
 type EntityCommandHandlerResult cmd ev entity state
@@ -107,8 +112,8 @@ emptyEntity id entity =
     }
     entity
 
-processCommand :: forall cmd ev entity. (Entity cmd ev entity) -> Variant (Cmd cmd) -> Tuple (Entity cmd ev entity) (List (Variant ev))
-processCommand e command = foldr executeCommand (Tuple (e { behaviour = Nil }) Nil) e.behaviour
+processCommand :: forall cmd ev entity. (SceneSnapshot cmd ev entity) -> (Entity cmd ev entity) -> Variant (Cmd cmd) -> Tuple (Entity cmd ev entity) (List (Variant ev))
+processCommand scene e command = foldr executeCommand (Tuple (e { behaviour = Nil }) Nil) e.behaviour
   where
   executeCommand :: Exists (EntityBehaviour cmd ev entity) -> (Tuple (Entity cmd ev entity) (List (Variant ev))) -> (Tuple (Entity cmd ev entity) (List (Variant ev)))
   executeCommand =
@@ -122,7 +127,7 @@ processCommand e command = foldr executeCommand (Tuple (e { behaviour = Nil }) N
   runBehaviour :: forall state. Entity cmd ev entity -> EntityBehaviour cmd ev entity state -> Tuple (Entity cmd ev entity) (List (Variant ev))
   runBehaviour entity@{ behaviour: behaviourList } (EntityBehaviour behaviour@{ handleCommand: (handler) }) =
     let
-      Tuple newState result = runState (handler command behaviour.state) { entity, events: Nil }
+      Tuple newState result = runState (handler command behaviour.state) { entity, events: Nil, scene }
 
       newEntity :: Entity cmd ev entity
       newEntity = result.entity

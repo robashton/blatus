@@ -7,19 +7,15 @@ import Data.Array as Array
 import Data.List (List(..), (:))
 import Data.Map as Map
 import Data.Maybe (fromMaybe)
-import Data.Set (Set)
 import Data.Symbol (SProxy(..))
 import Data.Tuple (Tuple(..))
 import Data.Variant (Variant, inj)
-import Debug (spy)
 import Math as Math
-import Partial.Unsafe (unsafeCrashWith)
 import Sisy.BuiltIn.Behaviours.BasicBitchPhysics (Mass(..))
 import Sisy.BuiltIn.Behaviours.BasicBitchPhysics as BasicBitchPhysics
 import Sisy.Math (Point, Rect, scalePoint)
-import Sisy.Runtime.Entity (Entity, EntityId)
+import Sisy.Runtime.Entity (EntityId)
 import Sisy.Runtime.Scene (TickState)
-import Unsafe.Coerce (unsafeCoerce)
 
 type CollisionInfo
   = { left :: EntityId

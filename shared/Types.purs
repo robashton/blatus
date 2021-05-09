@@ -73,6 +73,7 @@ instance readForeignCollectableType :: ReadForeign CollectableType where
 
 type EntityCommand
   = ( damage :: { amount :: Number, source :: Maybe EntityId }
+    , impact :: { force :: Number, source :: EntityId }
     , pushForward :: Empty
     , pushBackward :: Empty
     , turnLeft :: Empty
@@ -103,3 +104,6 @@ type PlayerSpawn
 
 playerSpawn :: PlayerSpawn -> Variant GameEvent
 playerSpawn = inj (SProxy :: SProxy "playerSpawn")
+
+impact :: forall r. { force :: Number, source :: EntityId } -> Variant ( impact :: { force :: Number, source :: EntityId } | r )
+impact = inj (SProxy :: SProxy "impact")

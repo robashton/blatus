@@ -12,15 +12,16 @@ import Data.Symbol (SProxy(..))
 import Data.Traversable (find)
 import Data.Tuple (Tuple(..))
 import Data.Variant (Variant, inj)
-import Sisy.Runtime.Entity (Entity, EntityId, Cmd)
-import Sisy.Runtime.Entity as Entity
 import Sisy.Math (Rect)
+import Sisy.Runtime.Entity (Cmd, Entity, EntityId, SceneSnapshot)
+import Sisy.Runtime.Entity as Entity
 
 type EntityMap cmd ev entity
   = Map EntityId (Entity cmd ev entity)
 
 type TickState (cmd :: Row Type) ev entity
   = { entities :: Map.Map Int (Entity cmd ev entity)
+    , snapshot :: SceneSnapshot cmd ev entity
     , events :: List (List (Variant ev))
     , entityCount :: Int
     , entityRange :: Array Int
@@ -50,7 +51,7 @@ sendCommand id command game@{ entities } = case (Map.lookup id entities) of
   Nothing -> Tuple game Nil
   Just entity ->
     let
-      (Tuple newEntity evs) = Entity.processCommand entity command
+      (Tuple newEntity evs) = Entity.processCommand (snapshot game) entity command
     in
       Tuple (game { entities = Map.insert id newEntity entities }) evs
 
@@ -83,6 +84,7 @@ tick game = Tuple (game { entities = foldl (\m e -> Map.insert e.id e m) Map.emp
     , events: Nil
     , entityRange
     , entityCount
+    , snapshot: snapshot game
     }
 
   entityRange = Array.range 0 entityCount
@@ -98,7 +100,7 @@ tickEntity cmd state index =
   maybe state
     ( \e ->
         let
-          (Tuple newEntity newEvents) = Entity.processCommand e cmd
+          (Tuple newEntity newEvents) = Entity.processCommand state.snapshot e cmd
         in
           state
             { events = newEvents : state.events
@@ -106,3 +108,6 @@ tickEntity cmd state index =
             }
     )
     $ Map.lookup index state.entities
+
+snapshot :: forall cmd ev entity. Game cmd ev entity -> SceneSnapshot cmd ev entity
+snapshot scene = { entityById: \id -> entityById id scene }

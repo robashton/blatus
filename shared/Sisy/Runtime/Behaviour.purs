@@ -14,6 +14,9 @@ id = _.id <$> State.gets _.entity
 entity :: forall cmd ev entity. State (Entity.BehaviourExecutionContext cmd ev entity) (Entity.Entity cmd ev entity)
 entity = State.gets _.entity
 
+scene :: forall cmd ev entity. State (Entity.BehaviourExecutionContext cmd ev entity) (Entity.SceneSnapshot cmd ev entity)
+scene = State.gets _.scene
+
 updateEntity :: forall cmd ev entity. (Entity.Entity cmd ev entity -> Entity.Entity cmd ev entity) -> State (Entity.BehaviourExecutionContext cmd ev entity) Unit
 updateEntity f = State.modify_ (\s -> s { entity = f s.entity })
 
