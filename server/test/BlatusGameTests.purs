@@ -11,6 +11,7 @@ import Control.Monad.List.Trans (catMaybes)
 import Data.Filterable (filterMap)
 import Data.Foldable (any, foldl, null)
 import Data.List (List(..), head, (:))
+import Data.Map as Map
 import Data.Maybe (Maybe(..), isJust)
 import Data.Tuple (Tuple(..), fst, snd, uncurry)
 import Data.Variant (class VariantMatchCases, Variant, default, onMatch)
@@ -84,6 +85,8 @@ tests = do
       suite "Player collides with collectable" do
         let
           Tuple newState evs = Main.handleEvent originalState (entityCollided { force: 0.0, left: rock, right: bob })
+
+          finalState = runWhileEvents $ Tuple newState evs
         test "Collectable destruction event raised" do
           let
             collectableDestroyed = eventExists { entityDestroyed: \ev -> ev.entity == rock } evs
@@ -98,6 +101,14 @@ tests = do
             { expected: Just { to: bob, resource: Rock 100 }
             , actual: resourceProvided
             }
+        test "Collectable removed from scene" do
+          let
+            collectable = entityById rock $ finalState.scene
+          assertEqual { expected: false, actual: isJust $ collectable }
+        test "Collectable added to player total" do
+          let
+            playerRock = _.availableRock <$> Map.lookup bob finalState.players
+          assertEqual { expected: Just 100, actual: playerRock }
 
 eventExists ::
   forall r rl r1 r2.
