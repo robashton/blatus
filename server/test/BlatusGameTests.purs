@@ -1,10 +1,12 @@
 module Test.BlatusGameTests where
 
 import Prelude
+import Blatus.Entities.Behaviours.Farmable (collectableSpawned)
+import Blatus.Entities.Behaviours.Farmable as Farmable
 import Blatus.Entities.Behaviours.ProvidesResource (entityDestroyed)
 import Blatus.Entities.Types (CollectableType(..), EntityClass(..))
 import Blatus.Main as Main
-import Blatus.Types (GameEvent)
+import Blatus.Types (GameEvent, damage, emptyEntity)
 import Control.Alternative (class Alternative, empty)
 import Control.Monad.Free (Free)
 import Control.Monad.List.Trans (catMaybes)
@@ -19,9 +21,11 @@ import Erl.Test.EUnit (TestF, suite, test)
 import Prim.Row as R
 import Prim.RowList as RL
 import Sisy.BuiltIn.Extensions.Collider (entityCollided)
+import Sisy.Math (origin)
 import Sisy.Runtime.Entity (EntityId(..))
 import Sisy.Runtime.Scene (entityById)
-import Test.Assert (assertEqual)
+import Sisy.Runtime.Scene as Scene
+import Test.Assert (assertEqual, assertFalse', assertTrue')
 
 bob :: EntityId
 bob = EntityId "bob"
@@ -110,23 +114,46 @@ tests = do
             playerRock = _.availableRock <$> Map.lookup bob finalState.players
           assertEqual { expected: Just 100, actual: playerRock }
     suite "Farmable resource" do
-       pure unit
---      let
---        originalState =
---          runWhileEvents
---            $ Main.doTick
---            $ Main.addEntity
---                { id: EntityId "asteroid"
---                , class: Asteroid { width: 25.0, height: 25.0 }
---                , location: { x: 0.0, y: 0.0 }
---                , velocity: { x: 0.0, y: 0.0 }
---                , rotation: 0.0
---                , shield: 100.0
---                , health: 100.0
---                }
---            $ Main.addPlayer bob
---            $ Main.init 0.0
---      pure unit
+      let
+        entity =
+          (emptyEntity rock (Asteroid { width: 25.0, height: 25.0 }))
+            { location = { x: 1.0, y: 1.0 }
+            , behaviour =
+              ( Farmable.init
+                  { dropEvery: 25.0
+                  , drop:
+                      { width: 5.0
+                      , height: 5.0
+                      , collectableType: Rock 10
+                      }
+                  }
+              )
+                : Nil
+            }
+
+        initialScene = Scene.addEntity entity Scene.initialModel
+      test "Damaged but not enough" do
+        let
+          Tuple newGame evs = Scene.sendCommand rock (damage { amount: 12.5, location: origin, source: Nothing }) initialScene
+
+          dropped = eventExists { collectableSpawned: \ev -> true } evs
+        assertFalse' "Item shouldn't drop" dropped
+      test "Damaged enough to drop, item drops" do
+        let
+          Tuple newGame evs = Scene.sendCommand rock (damage { amount: 26.0, location: origin, source: Nothing }) initialScene
+
+          dropped = eventExists { collectableSpawned: \ev -> true } evs
+        assertTrue' "Item should drop" dropped
+      test "Damaged accumulatively enough to drop, item drops" do
+        let
+          Tuple newGame evs =
+            Scene.sendCommand rock (damage { amount: 13.0, location: origin, source: Nothing })
+              $ fst
+              $ Scene.sendCommand rock (damage { amount: 13.0, location: origin, source: Nothing }) initialScene
+
+          dropped = eventExists { collectableSpawned: \ev -> true } evs
+        assertTrue' "Item should drop" dropped
+        pure unit
 
 eventExists ::
   forall r rl r1 r2.
@@ -136,8 +163,6 @@ eventExists ::
   Record r ->
   List (Variant GameEvent) -> Boolean
 eventExists r = any (default false # onMatch r)
-
-
 
 --findEvent ::
 --  forall r rl r1 r2 result m.

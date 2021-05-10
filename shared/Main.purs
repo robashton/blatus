@@ -6,7 +6,7 @@ import Blatus.Entities.Asteroid as Asteroid
 import Blatus.Entities.Collectable as Collectable
 import Blatus.Entities.Tank as Tank
 import Blatus.Entities.Types (CollectableType(..), EntityClass(..))
-import Blatus.Types (EntityCommand, GameEntity, GameEvent, RegisteredPlayer, impact, playerSpawn)
+import Blatus.Types (EntityCommand, GameEntity, GameEvent, RegisteredPlayer, impact, playerSpawn, damage)
 import Data.Array (fromFoldable)
 import Data.Array as Array
 import Data.Bifunctor (lmap, rmap)
@@ -144,7 +144,7 @@ handleEvent state@{ scene, players } =
                     , explosions = explosions
                     }
               )
-              $ Scene.sendCommand hit.entity (inj (SProxy :: SProxy "damage") { amount: hit.bullet.power, location: hit.bullet.location, source: Just hit.bullet.owner }) scene
+              $ Scene.sendCommand hit.entity (damage { amount: hit.bullet.power, location: hit.bullet.location, source: Just hit.bullet.owner }) scene
     , entityCollided: \ev -> lmap (\s -> state { scene = s }) $ Scene.sendCommand ev.left (impact { force: ev.force, source: ev.right }) scene
     , resourceProvided:
         ( \ev ->
