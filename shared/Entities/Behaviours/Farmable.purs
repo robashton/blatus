@@ -6,6 +6,7 @@ import Data.Exists (Exists, mkExists)
 import Data.Maybe (Maybe)
 import Data.Symbol (SProxy(..))
 import Data.Variant (Variant, default, inj, onMatch)
+import Debug (spy)
 import Sisy.BuiltIn.Extensions.Collider (vectorBetween)
 import Sisy.Math (Point, scalePoint)
 import Sisy.Runtime.Behaviour as B
@@ -33,7 +34,7 @@ init cfg =
         $ collectableSpawned
             { id: entity.id <> EntityId (show spawned)
             , location: entity.location
-            , velocity: scalePoint 2.0 $ vectorBetween entity.location ev.location
+            , velocity: scalePoint 0.5 $ vectorBetween entity.location ev.location
             , args: cfg.drop
             }
       pure $ state { totalDamage = 0.0, spawned = spawned + 1 }

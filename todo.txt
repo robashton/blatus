@@ -10,6 +10,11 @@ How about
   [ ] Gas clouds
   [ ] Structures (space stationy bits whatever)
 
+[x] Need collectables
+[x] Need the ability to produce collectables by damaging things
+[ ] Need to display those collectables in the UI
+[ ] Need a building menu that is aware of the collectables/other built shit
+
 --        --
 -- Issues --
 --        --

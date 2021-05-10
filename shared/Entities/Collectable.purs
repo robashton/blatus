@@ -20,7 +20,7 @@ init id location args@{ width, height } =
   { id
   , location
   , velocity: origin
-  , friction: 0.0
+  , friction: 1.0
   , rotation: 0.0
   , mass: NoMass
   , health: 100.0
