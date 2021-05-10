@@ -311,7 +311,7 @@ main = do
                           )
                           $ entityById (wrap lc.playerName) lc.game.scene
                     )
-                     healthElement
+                    healthElement
                 _ <-
                   maybe (pure unit)
                     ( \element ->
