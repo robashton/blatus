@@ -5,24 +5,22 @@
       <link rel="stylesheet" type="text/css" href="/assets/main.css" />
     </head>
   <body>  
-    <div>Invite your friends! <a href="" id="game-info"></a></div>
     <div id="game-container">
-      <div id="canvas-container" >
-        <div id="game-message-container">
-          <div id="game-message"></div>
-        </div>
+      <div id="game-container-inner">
+        <div id="invite">Invite your friends! <a href="" id="game-info"></a></div>
         <div id="game-status-container">
-          <p>s:</p>
-          <div id="game-status-container-inner">
-            <div id="health-bar-container"><div id="health-bar"></div></div>
-            <div id="shield-bar-container"><div id="shield-bar"></div></div>
-          </div>
+          <div class="game-status-widget">H: <div id="health"></div></div>
+          <div class="game-status-widget">S: <div id="shield"></div></div>
+          <div class="game-status-widget">R: <div id="rock"></div></div>
         </div>
-        <canvas  id="target" width="800" height="600"></canvas>
-        <canvas  id="offscreen" style="display: none;" width="800" height="600"></canvas>
-        <script src="/assets/bundle.js"></script>
+        <div id="game-message-container">
+            <div id="game-message"></div>
+          </div>
+       <canvas  id="target" width="800" height="600"></canvas>
+       <canvas  id="offscreen" style="display: none;" width="800" height="600"></canvas>
       </div>
-      <div>
+    </div>
+<!--      <div>
         <h5>Players</h5>
         <ul id="player-list">
         </ul>
@@ -34,6 +32,8 @@
       <div id="latency-info"></div>
       <div id="quit"><a href="#">Back to lobby</div></div>
     </div>
+    --!>
+   <script src="/assets/bundle.js"></script>
   </body>
 </html>
 

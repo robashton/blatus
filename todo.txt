@@ -12,8 +12,9 @@ How about
 
 [x] Need collectables
 [x] Need the ability to produce collectables by damaging things
-[ ] Need to display those collectables in the UI
+[x] Need to display those collectables in the UI
 [ ] Need a building menu that is aware of the collectables/other built shit
+[ ] Collectables probably need to timeout after a a bit to avoid clutter
 
 --        --
 -- Issues --

@@ -195,10 +195,13 @@ gameMessageSelector :: QuerySelector
 gameMessageSelector = QuerySelector ("#game-message")
 
 healthSelector :: QuerySelector
-healthSelector = QuerySelector ("#health-bar")
+healthSelector = QuerySelector ("#health")
 
 shieldSelector :: QuerySelector
-shieldSelector = QuerySelector ("#shield-bar")
+shieldSelector = QuerySelector ("#shield")
+
+rockSelector :: QuerySelector
+rockSelector = QuerySelector ("#rock")
 
 quitSelector :: QuerySelector
 quitSelector = QuerySelector ("#quit")
@@ -221,6 +224,7 @@ main = do
         gameMessageElement <- querySelector gameMessageSelector $ Document.toParentNode document
         healthElement <- querySelector healthSelector $ Document.toParentNode document
         shieldElement <- querySelector shieldSelector $ Document.toParentNode document
+        rockElement <- querySelector rockSelector $ Document.toParentNode document
         quitElement <- querySelector quitSelector $ Document.toParentNode document
         -- Just alter context state as messages come in
         let
@@ -299,27 +303,39 @@ main = do
                 _ <-
                   maybe (pure unit)
                     ( \element ->
-                        maybe (Element.setAttribute "style" ("width: 0%") element)
+                        maybe (pure unit)
                           ( \player -> do
                               let
                                 percentage = show $ (player.health / Tank.maxHealth) * 100.0
-                              Element.setAttribute "style" ("width: " <> percentage <> "%") element
+                              Node.setTextContent percentage $ Element.toNode element
                           )
                           $ entityById (wrap lc.playerName) lc.game.scene
                     )
-                    healthElement
+                     healthElement
                 _ <-
                   maybe (pure unit)
                     ( \element ->
-                        maybe (Element.setAttribute "style" ("width: 0%") element)
+                        maybe (pure unit)
                           ( \player -> do
                               let
                                 percentage = show $ (player.shield / Tank.maxShield) * 100.0
-                              Element.setAttribute "style" ("width: " <> percentage <> "%") element
+                              Node.setTextContent percentage $ Element.toNode element
                           )
                           $ entityById (wrap lc.playerName) lc.game.scene
                     )
                     shieldElement
+                _ <-
+                  maybe (pure unit)
+                    ( \element ->
+                        maybe (pure unit)
+                          ( \player -> do
+                              let
+                                amount = show $ player.availableRock
+                              Node.setTextContent amount $ Element.toNode element
+                          )
+                          $ Map.lookup (wrap lc.playerName) lc.game.players
+                    )
+                    rockElement
                 _ <-
                   maybe (pure unit)
                     ( \element -> do
