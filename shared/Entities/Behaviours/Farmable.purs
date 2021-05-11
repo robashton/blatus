@@ -6,9 +6,7 @@ import Data.Exists (Exists, mkExists)
 import Data.Maybe (Maybe)
 import Data.Symbol (SProxy(..))
 import Data.Variant (Variant, default, inj, onMatch)
-import Debug (spy)
-import Sisy.BuiltIn.Extensions.Collider (vectorBetween)
-import Sisy.Math (Point, scalePoint)
+import Sisy.Math (Point, scalePoint, vectorBetween)
 import Sisy.Runtime.Behaviour as B
 import Sisy.Runtime.Entity (EntityBehaviour(..), EntityId(..))
 

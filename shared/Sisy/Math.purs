@@ -37,6 +37,20 @@ lerp p1 p2 l =
   , y: p1.y + l * (p2.y - p1.y)
   }
 
+distance :: Point -> Point -> Number
+distance x y = magnitude $ (y - x)
+
+vectorBetween :: Point -> Point -> Point
+vectorBetween s d = normalise (d - s)
+
+normalise :: Point -> Point
+normalise point@{ x, y } = { x: x / den, y: y / den }
+  where
+  den = magnitude point
+
+magnitude :: Point -> Number
+magnitude { x, y } = Math.sqrt $ (x * x) + (y * y)
+
 rotationToVector :: Number -> Point
 rotationToVector r = { x: xvel, y: yvel }
   where

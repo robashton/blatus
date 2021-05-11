@@ -5,11 +5,13 @@ import Blatus.GenericJSON (writeTaggedSumRep, taggedSumRep)
 import Data.Generic.Rep (class Generic)
 import Data.Show.Generic (genericShow)
 import Simple.JSON (class ReadForeign, class WriteForeign)
+import Sisy.Runtime.Entity (EntityId)
 
 data EntityClass
   = Tank
   | Asteroid { width :: Number, height :: Number }
   | Collectable CollectableArgs
+  | Turret TurretArgs
 
 type CollectableArgs
   = { width :: Number
@@ -18,6 +20,7 @@ type CollectableArgs
     , collectableType :: CollectableType
     }
 
+type TurretArgs = { owner :: EntityId }
 data CollectableType
   = Rock Int
 

@@ -1,6 +1,7 @@
 module Sisy.BuiltIn.Extensions.Collider where
 
 import Prelude
+
 import Control.Apply (lift2)
 import Data.Array (foldl)
 import Data.Array as Array
@@ -11,11 +12,11 @@ import Data.Symbol (SProxy(..))
 import Data.Tuple (Tuple(..))
 import Data.Variant (Variant, inj)
 import Math as Math
+import Sisy.BuiltIn (Mass(..))
 import Sisy.BuiltIn.Behaviours.BasicBitchPhysics as BasicBitchPhysics
-import Sisy.Math (Point, Rect, scalePoint)
+import Sisy.Math (Point, Rect, magnitude, scalePoint, vectorBetween)
 import Sisy.Runtime.Entity (EntityId)
 import Sisy.Runtime.Scene (TickState)
-import Sisy.BuiltIn (Mass(..))
 
 type CollisionInfo
   = { left :: EntityId
@@ -113,17 +114,6 @@ collidePair li state ri =
         )
         (Map.lookup li state.entities)
         (Map.lookup ri state.entities)
-
-vectorBetween :: Point -> Point -> Point
-vectorBetween s d = normalise (d - s)
-
-normalise :: Point -> Point
-normalise point@{ x, y } = { x: x / den, y: y / den }
-  where
-  den = magnitude point
-
-magnitude :: Point -> Number
-magnitude { x, y } = Math.sqrt $ (x * x) + (y * y)
 
 squareCheck :: Rect -> Rect -> Boolean
 squareCheck inner subject

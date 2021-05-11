@@ -1,13 +1,15 @@
 module Blatus.Main where
 
 import Prelude
+import Blatus.BuildMenu (BuildAction)
+import Blatus.BuildMenu as BuildMenu
 import Blatus.Comms (GameSync, EntitySync)
+import Blatus.Entities (CollectableType(..), EntityClass(..))
 import Blatus.Entities.Asteroid as Asteroid
 import Blatus.Entities.Collectable as Collectable
 import Blatus.Entities.Tank as Tank
-import Blatus.Entities (CollectableType(..), EntityClass(..))
-import Blatus.Types (EntityCommand, GameEntity, GameEvent, RegisteredPlayer, playerSpawn)
-import Sisy.BuiltIn (impact, damage)
+import Blatus.Entities.Turret as Turret
+import Blatus.Types (BuildTemplate(..), EntityCommand, GameEntity, GameEvent, RegisteredPlayer, buildRequested, playerSpawn)
 import Data.Array (fromFoldable)
 import Data.Array as Array
 import Data.Bifunctor (lmap, rmap)
@@ -19,6 +21,7 @@ import Data.Maybe (Maybe(..), maybe)
 import Data.Symbol (SProxy(..))
 import Data.Tuple (Tuple(..), fst, snd)
 import Data.Variant (Variant, expand, inj, match)
+import Sisy.BuiltIn (impact, damage)
 import Sisy.BuiltIn.Extensions.Bullets as Bullets
 import Sisy.BuiltIn.Extensions.Collider as Collider
 import Sisy.BuiltIn.Extensions.Explosions as Explosions
@@ -47,6 +50,7 @@ type State
     , lastTick :: Int
     , ticks :: Ticks.State
     , pendingSpawns :: List { ticks :: Int, playerId :: EntityId }
+    , buildActions :: Map.Map BuildTemplate (BuildAction EntityCommand GameEvent GameEntity)
     , seed :: Seed
     }
 
@@ -64,6 +68,7 @@ init now =
   , ticks: Ticks.init now timePerFrame
   , players: Map.empty
   , pendingSpawns: mempty
+  , buildActions: foldl (\m i -> Map.insert i.template i m) Map.empty $ BuildMenu.actions
   , seed: seed
   }
 
@@ -124,7 +129,7 @@ doTick state@{ lastTick } =
       (snd spawnTick)
 
 handleEvent :: State -> Variant GameEvent -> Tuple State (List (Variant GameEvent))
-handleEvent state@{ scene, players } =
+handleEvent state@{ scene, players, buildActions } =
   match
     { bulletFired: \deets -> Tuple (state { bullets = Bullets.fireBullet deets.owner deets.location deets.velocity deets.power state.bullets }) Nil
     , entityDestroyed:
@@ -155,6 +160,14 @@ handleEvent state@{ scene, players } =
               Tuple (state { players = Map.update updatePlayer ev.to players }) Nil
         )
     , collectableSpawned: \ev -> Tuple (state { scene = Scene.addEntity ((Collectable.init ev.id ev.location ev.args) { velocity = ev.velocity }) scene }) Nil
+    , buildRequested:
+        \ev ->
+          let
+            player = Map.lookup ev.entity players
+
+            action = Map.lookup ev.template buildActions
+          in
+            Tuple state Nil
     }
 
 handleEntityDestruction :: State -> EntityId -> Maybe EntityId -> State
@@ -220,6 +233,7 @@ entityFromSync sync =
       Tank -> Tank.init sync.id sync.location
       Asteroid { width, height } -> Asteroid.init sync.id sync.location width height
       Collectable args -> Collectable.init sync.id sync.location args
+      Turret args -> Turret.init sync.id sync.location args
   in
     blank
       { location = sync.location

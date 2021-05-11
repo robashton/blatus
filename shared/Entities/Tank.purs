@@ -3,6 +3,7 @@ module Blatus.Entities.Tank where
 import Prelude
 import Blatus.Types (GameEntity, EntityCommand, GameEvent)
 import Blatus.Entities (EntityClass(..))
+import Blatus.Entities.Behaviours.Builds as Builds
 import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
 import Sisy.BuiltIn.Behaviours.BasicBitchPhysics as BasicBitchPhysics
@@ -41,6 +42,7 @@ init id location =
         : NetworkSync.init { force: 0.08 }
         : Regenerates.init { maxHealth, maxShield, healthDelay: 0, healthRegen: 0.0, shieldDelay: 180, shieldRegen: 0.2 }
         : BasicBitchPhysics.init
+        : Builds.init
         : Nil
   , renderables:
       ( sprite
