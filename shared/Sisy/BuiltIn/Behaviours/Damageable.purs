@@ -2,12 +2,10 @@ module Sisy.BuiltIn.Behaviours.Damageable where
 
 import Prelude
 import Data.Exists (Exists, mkExists)
-import Data.Maybe (Maybe)
-import Data.Symbol (SProxy(..))
-import Data.Variant (Variant, default, inj, onMatch)
-import Sisy.Math (Point)
+import Data.Variant (default, onMatch)
+import Sisy.BuiltIn (Damage, EntityDestroyed, entityDestroyed)
 import Sisy.Runtime.Behaviour as B
-import Sisy.Runtime.Entity (EntityBehaviour(..), EntityId)
+import Sisy.Runtime.Entity (EntityBehaviour(..))
 
 init ::
   forall entity cmd ev.
@@ -55,7 +53,7 @@ type Required r
     )
 
 type Command r
-  = ( damage :: { amount :: Number, location :: Point, source :: Maybe EntityId }
+  = ( damage :: Damage
     | r
     )
 
@@ -63,9 +61,3 @@ type Event r
   = ( entityDestroyed :: EntityDestroyed
     | r
     )
-
-type EntityDestroyed
-  = { entity :: EntityId, destroyer :: Maybe EntityId }
-
-entityDestroyed :: forall r. EntityDestroyed -> Variant (Event r)
-entityDestroyed = inj (SProxy :: SProxy "entityDestroyed")

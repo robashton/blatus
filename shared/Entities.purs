@@ -1,4 +1,4 @@
-module Blatus.Entities.Types where
+module Blatus.Entities where
 
 import Prelude
 import Blatus.GenericJSON (writeTaggedSumRep, taggedSumRep)

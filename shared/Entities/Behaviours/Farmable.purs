@@ -1,7 +1,7 @@
 module Blatus.Entities.Behaviours.Farmable where
 
 import Prelude
-import Blatus.Entities.Types (CollectableArgs)
+import Blatus.Entities (CollectableArgs)
 import Data.Exists (Exists, mkExists)
 import Data.Maybe (Maybe)
 import Data.Symbol (SProxy(..))

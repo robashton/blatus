@@ -4,7 +4,7 @@ import Prelude
 import Blatus.Api (RunningGame)
 import Blatus.Server.RunningGame as RunningGame
 import Blatus.Server.RunningGameSup as RunningGameSup
-import Blatus.Entities.Types (EntityClass(..))
+import Blatus.Entities (EntityClass(..))
 import Control.Monad.Free (Free)
 import Data.Filterable (filter)
 import Data.Map as Map

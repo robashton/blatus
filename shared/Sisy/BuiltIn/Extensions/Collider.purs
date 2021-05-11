@@ -11,11 +11,11 @@ import Data.Symbol (SProxy(..))
 import Data.Tuple (Tuple(..))
 import Data.Variant (Variant, inj)
 import Math as Math
-import Sisy.BuiltIn.Behaviours.BasicBitchPhysics (Mass(..))
 import Sisy.BuiltIn.Behaviours.BasicBitchPhysics as BasicBitchPhysics
 import Sisy.Math (Point, Rect, scalePoint)
 import Sisy.Runtime.Entity (EntityId)
 import Sisy.Runtime.Scene (TickState)
+import Sisy.BuiltIn (Mass(..))
 
 type CollisionInfo
   = { left :: EntityId

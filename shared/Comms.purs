@@ -9,7 +9,7 @@ import Sisy.Runtime.Entity (EntityId)
 import Blatus.GenericJSON (writeTaggedSumRep, taggedSumRep)
 import Sisy.Math (Point, Rect)
 import Blatus.Types (EntityCommand, GameEvent, RegisteredPlayer)
-import Blatus.Entities.Types (EntityClass)
+import Blatus.Entities (EntityClass)
 import Simple.JSON (class ReadForeign, class WriteForeign)
 
 data ServerMsg

@@ -1,13 +1,12 @@
 module Blatus.Entities.Asteroid where
 
-import Prelude
 import Blatus.Entities.Behaviours.Farmable as Farmable
-import Blatus.Entities.Types (CollectableType(..), EntityClass(..))
+import Blatus.Entities (CollectableType(..), EntityClass(..))
 import Blatus.Types (EntityCommand, GameEvent, GameEntity)
 import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
-import Sisy.BuiltIn.Behaviours.BasicBitchPhysics (Mass(..))
 import Sisy.Math (Point, centreRect, origin)
+import Sisy.BuiltIn (Mass(..))
 import Sisy.Runtime.Entity (Entity, EntityId, HtmlColor(..), sprite)
 
 data EntityMode

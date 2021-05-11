@@ -8,6 +8,7 @@ import Sisy.Runtime.Behaviour as B
 import Sisy.Runtime.Entity (EntityBehaviour(..), EntityId)
 import Sisy.Math (Point, rotationToVector, scalePoint)
 import Sisy.Types (Empty)
+import Sisy.BuiltIn (BulletFired, bulletFired)
 
 init ::
   forall entity cmd ev.
@@ -72,9 +73,3 @@ type Event ev
   = ( bulletFired :: BulletFired
     | ev
     )
-
-type BulletFired
-  = { owner :: EntityId, location :: Point, velocity :: Point, power :: Number }
-
-bulletFired :: forall r. BulletFired -> Variant ( bulletFired :: BulletFired | r )
-bulletFired ev = inj (SProxy :: SProxy "bulletFired") ev

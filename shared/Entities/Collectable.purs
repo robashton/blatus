@@ -1,15 +1,14 @@
 module Blatus.Entities.Collectable where
 
-import Prelude
 import Blatus.Types (EntityCommand, GameEntity, GameEvent)
-import Blatus.Entities.Types (EntityClass(..), CollectableArgs)
+import Blatus.Entities (CollectableArgs, EntityClass(..))
 import Blatus.Entities.Behaviours.ProvidesResource as ProvidesResource
 import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
-import Sisy.BuiltIn.Behaviours.BasicBitchPhysics (Mass(..))
 import Sisy.BuiltIn.Behaviours.BasicBitchPhysics as BasicBitchPhysics
 import Sisy.Math (Point, centreRect, origin)
 import Sisy.Runtime.Entity (Entity, EntityId, HtmlColor(..), sprite)
+import Sisy.BuiltIn (Mass(..))
 
 data EntityMode
   = Server

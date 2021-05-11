@@ -5,8 +5,9 @@ import Blatus.Comms (GameSync, EntitySync)
 import Blatus.Entities.Asteroid as Asteroid
 import Blatus.Entities.Collectable as Collectable
 import Blatus.Entities.Tank as Tank
-import Blatus.Entities.Types (CollectableType(..), EntityClass(..))
-import Blatus.Types (EntityCommand, GameEntity, GameEvent, RegisteredPlayer, impact, playerSpawn, damage)
+import Blatus.Entities (CollectableType(..), EntityClass(..))
+import Blatus.Types (EntityCommand, GameEntity, GameEvent, RegisteredPlayer, playerSpawn)
+import Sisy.BuiltIn (impact, damage)
 import Data.Array (fromFoldable)
 import Data.Array as Array
 import Data.Bifunctor (lmap, rmap)
@@ -18,7 +19,6 @@ import Data.Maybe (Maybe(..), maybe)
 import Data.Symbol (SProxy(..))
 import Data.Tuple (Tuple(..), fst, snd)
 import Data.Variant (Variant, expand, inj, match)
-import Debug (spy)
 import Sisy.BuiltIn.Extensions.Bullets as Bullets
 import Sisy.BuiltIn.Extensions.Collider as Collider
 import Sisy.BuiltIn.Extensions.Explosions as Explosions

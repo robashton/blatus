@@ -10,6 +10,7 @@ import Sisy.Math (Point, Rect, centreRect, scalePoint)
 import Sisy.Math as Math
 import Sisy.Runtime.Behaviour as B
 import Sisy.Runtime.Entity (BehaviourExecutionContext, Entity, EntityBehaviour(..))
+import Sisy.BuiltIn (Mass(..))
 
 velocityThreshold :: Number
 velocityThreshold = 0.0000001
@@ -67,11 +68,6 @@ type Required r
     , aabb :: Rect
     | r
     )
-
-data Mass
-  = Fixed Number
-  | Infinite
-  | NoMass
 
 type Command :: forall k. k -> k
 type Command r

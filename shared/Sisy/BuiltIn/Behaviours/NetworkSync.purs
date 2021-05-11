@@ -3,9 +3,10 @@ module Sisy.BuiltIn.Behaviours.NetworkSync where
 import Prelude
 import Data.Exists (Exists, mkExists)
 import Data.Variant (default, onMatch)
+import Sisy.BuiltIn (UpdateServerState)
+import Sisy.Math (lerp)
 import Sisy.Runtime.Behaviour as B
 import Sisy.Runtime.Entity (EntityBehaviour(..))
-import Sisy.Math (Point, lerp)
 
 type ElasticConfig
   = { force :: Number }
@@ -72,10 +73,6 @@ init c =
       command
 
 type Command cmd
-  = ( updateServerState ::
-        { location :: Point
-        , velocity :: Point
-        , rotation :: Number
-        }
+  = ( updateServerState :: UpdateServerState
     | cmd
     )

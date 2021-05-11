@@ -1,7 +1,7 @@
 module Blatus.Entities.Behaviours.ProvidesResource where
 
 import Prelude
-import Blatus.Entities.Types (CollectableType, EntityClass(..))
+import Blatus.Entities (CollectableType, EntityClass(..))
 import Data.Exists (Exists, mkExists)
 import Data.Maybe (Maybe(..))
 import Data.Symbol (SProxy(..))

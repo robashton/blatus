@@ -1,15 +1,12 @@
 module Test.BlatusGameTests where
 
 import Prelude
-import Blatus.Entities.Behaviours.Farmable (collectableSpawned)
 import Blatus.Entities.Behaviours.Farmable as Farmable
-import Blatus.Entities.Behaviours.ProvidesResource (entityDestroyed)
-import Blatus.Entities.Types (CollectableType(..), EntityClass(..))
+import Blatus.Entities (CollectableType(..), EntityClass(..))
 import Blatus.Main as Main
-import Blatus.Types (GameEvent, damage, emptyEntity)
-import Control.Alternative (class Alternative, empty)
+import Blatus.Types (GameEvent, emptyEntity)
+import Sisy.BuiltIn (damage)
 import Control.Monad.Free (Free)
-import Control.Monad.List.Trans (catMaybes)
 import Data.Filterable (filterMap)
 import Data.Foldable (any, foldl, null)
 import Data.List (List(..), head, (:))

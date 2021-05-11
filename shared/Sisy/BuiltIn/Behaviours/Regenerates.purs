@@ -1,11 +1,11 @@
 module Sisy.BuiltIn.Behaviours.Regenerates where
 
 import Prelude
-
 import Data.Exists (Exists, mkExists)
 import Data.Maybe (Maybe)
 import Data.Variant (default, onMatch)
 import Math as Math
+import Sisy.BuiltIn (Damage)
 import Sisy.Math (Point)
 import Sisy.Runtime.Behaviour as B
 import Sisy.Runtime.Entity (EntityBehaviour(..), EntityId)
@@ -58,6 +58,6 @@ type Required r
     )
 
 type Command cmd
-  = ( damage :: { amount :: Number, location :: Point, source :: Maybe EntityId }
+  = ( damage :: Damage
     | cmd
     )

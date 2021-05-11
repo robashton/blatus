@@ -2,19 +2,16 @@ module Blatus.Types where
 
 import Blatus.Entities.Behaviours.Farmable (CollectableSpawned)
 import Blatus.Entities.Behaviours.ProvidesResource (ResourceProvided)
-import Blatus.Entities.Types (EntityClass)
-import Data.Maybe (Maybe)
+import Blatus.Entities (EntityClass)
 import Data.Symbol (SProxy(..))
 import Data.Variant (Variant, inj)
-import Sisy.BuiltIn.Behaviours.BasicBitchPhysics (Mass(..))
-import Sisy.BuiltIn.Behaviours.Damageable (EntityDestroyed)
-import Sisy.BuiltIn.Behaviours.FiresBullets (BulletFired)
 import Sisy.BuiltIn.Extensions.Bullets as Bullets
 import Sisy.BuiltIn.Extensions.Collider (CollisionInfo)
 import Sisy.Math (Point, Rect, origin)
 import Sisy.Runtime.Entity (EntityId, Entity)
 import Sisy.Runtime.Entity as Entity
 import Sisy.Types (Empty)
+import Sisy.BuiltIn (Damage, Impact, Mass(..), EntityDestroyed, BulletFired)
 
 type RegisteredPlayer
   = { id :: EntityId
@@ -28,18 +25,6 @@ type PlayerSpawn
 
 playerSpawn :: forall r. PlayerSpawn -> Variant ( playerSpawn :: PlayerSpawn | r )
 playerSpawn = inj (SProxy :: SProxy "playerSpawn")
-
-type Impact
-  = { force :: Number, source :: EntityId }
-
-impact :: forall r. Impact -> Variant ( impact :: Impact | r )
-impact = inj (SProxy :: SProxy "impact")
-
-type Damage
-  = { amount :: Number, location :: Point, source :: Maybe EntityId }
-
-damage :: forall r. Damage -> Variant ( damage :: Damage | r )
-damage = inj (SProxy :: SProxy "damage")
 
 type GameEntity
   = ( networkSync :: Boolean
