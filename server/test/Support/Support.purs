@@ -1,14 +1,16 @@
-module Test.Support.Types where
+module Test.Support where
 
 import Prelude
 import Data.Exists (Exists, mkExists)
-import Data.List (List(..))
+import Data.List (List(..), any)
 import Data.Symbol (SProxy(..))
-import Data.Variant (Variant, default, inj, onMatch)
+import Data.Variant (class VariantMatchCases, Variant, default, inj, onMatch)
+import Prim.Row as R
+import Prim.RowList as RL
+import Sisy.Math (point)
 import Sisy.Runtime.Behaviour (raiseEvent)
 import Sisy.Runtime.Behaviour as B
 import Sisy.Runtime.Entity (Entity, EntityBehaviour(..), EntityId)
-import Sisy.Math (point)
 
 type TestEvent
   = ( ticked :: EntityId )
@@ -43,3 +45,34 @@ tickEcho =
                   cmd
             )
         }
+
+eventExists ::
+  forall r rl r1 r2 r3.
+  RL.RowToList r rl =>
+  VariantMatchCases rl r1 Boolean =>
+  R.Union r1 r2 r3 =>
+  Record r ->
+  List (Variant r3) -> Boolean
+eventExists r = any (default false # onMatch r)
+
+--findEvent ::
+--  forall r rl r1 r2 result m.
+--  RL.RowToList r rl =>
+--  VariantMatchCases rl r1 (m result) =>
+--  Alternative m =>
+--  R.Union r1 r2 GameEvent =>
+--  Record r ->
+--  List (Variant GameEvent) -> (m result)
+--findEvent r = any (default empty # onMatch r)
+--
+--        finalState
+--
+--        playerSpawned = 
+--      assertEqual
+--        { expected: Nil
+--        , actual: newState.pendingSpawns
+--        }
+--      assertEqual
+--        { expected: true
+--        , actual: playerSpawned
+--        }

@@ -8,21 +8,20 @@ import Blatus.Types (GameEvent, emptyEntity)
 import Sisy.BuiltIn (damage)
 import Control.Monad.Free (Free)
 import Data.Filterable (filterMap)
-import Data.Foldable (any, foldl, null)
+import Data.Foldable (foldl, null)
 import Data.List (List(..), head, (:))
 import Data.Map as Map
 import Data.Maybe (Maybe(..), isJust)
 import Data.Tuple (Tuple(..), fst, snd, uncurry)
-import Data.Variant (class VariantMatchCases, Variant, default, onMatch)
+import Data.Variant (Variant, default, onMatch)
 import Erl.Test.EUnit (TestF, suite, test)
-import Prim.Row as R
-import Prim.RowList as RL
 import Sisy.BuiltIn.Extensions.Collider (entityCollided)
 import Sisy.Math (origin)
 import Sisy.Runtime.Entity (EntityId(..))
 import Sisy.Runtime.Scene (entityById)
 import Sisy.Runtime.Scene as Scene
 import Test.Assert (assertEqual, assertFalse', assertTrue')
+import Test.Support (eventExists)
 
 bob :: EntityId
 bob = EntityId "bob"
@@ -151,34 +150,3 @@ tests = do
           dropped = eventExists { collectableSpawned: \ev -> true } evs
         assertTrue' "Item should drop" dropped
         pure unit
-
-eventExists ::
-  forall r rl r1 r2.
-  RL.RowToList r rl =>
-  VariantMatchCases rl r1 Boolean =>
-  R.Union r1 r2 GameEvent =>
-  Record r ->
-  List (Variant GameEvent) -> Boolean
-eventExists r = any (default false # onMatch r)
-
---findEvent ::
---  forall r rl r1 r2 result m.
---  RL.RowToList r rl =>
---  VariantMatchCases rl r1 (m result) =>
---  Alternative m =>
---  R.Union r1 r2 GameEvent =>
---  Record r ->
---  List (Variant GameEvent) -> (m result)
---findEvent r = any (default empty # onMatch r)
---
---        finalState
---
---        playerSpawned = 
---      assertEqual
---        { expected: Nil
---        , actual: newState.pendingSpawns
---        }
---      assertEqual
---        { expected: true
---        , actual: playerSpawned
---        }

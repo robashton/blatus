@@ -109,11 +109,12 @@ Could we do hybrid RTS?
 [ ] Probably need to spin up the game itself in a spawnProcess on the server to avoid blocking
 [ ] Show loading screen whilst pre-loading assets on client
 [ ] Need to profile the hot loop, probably benefits to be had by unpacking the records
+[ ] Can the game itself be a Sisy construct (the handling of commands/events/etc, the loop, networking)
 
 -- Entirely unnecessary stuff
 
 [ ] Infinite background (load/render on demand (yawn))
 [ ] Shaders/layers
 [ ] Proper collision 
-[ ] Asteroids
+[x] Asteroids
 [x] Might want to move health/shield data into the state of the component itself, but then we'd need a way to get it out...

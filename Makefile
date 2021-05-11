@@ -1,4 +1,4 @@
-.PHONY: all server client
+.PHONY: all server client test
 
 all: server client
  
@@ -7,3 +7,6 @@ server:
 
 client: 
 	$(MAKE) -C client all
+
+test:
+	rebar3 eunit -m 'test_main@ps' -v

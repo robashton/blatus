@@ -10,7 +10,7 @@ import Sisy.Runtime.Entity (EntityId(..), emptyEntity)
 import Sisy.Runtime.Scene (Game, addEntity, tickCmd)
 import Sisy.Runtime.Scene as Scene
 import Test.Assert (assertEqual)
-import Test.Support.Types (TestEvent, tickEcho, ticked)
+import Test.Support (TestEvent, tickEcho, ticked)
 
 tests :: Free TestF Unit
 tests = do
