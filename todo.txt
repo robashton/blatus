@@ -13,7 +13,7 @@ How about
 [x] Need collectables
 [x] Need the ability to produce collectables by damaging things
 [x] Need to display those collectables in the UI
-[ ] Collectables probably need to timeout after a a bit to avoid clutter
+[x] Collectables probably need to timeout after a a bit to avoid clutter
 [ ] Need a building menu that is aware of the collectables/other built shit
 [ ] Bring back latency indicator 
 [ ] Bring back player list 
