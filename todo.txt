@@ -103,7 +103,7 @@ Could we do hybrid RTS?
 [ ] Newtypes for Game/Player... 
 [ ] Newtype for game names
 [ ] Purge wrap/unwrap
-[ ] Ticks should really be a type
+[ ] Ticks should really be a type (and should have conversion to/from seconds/milliseconds)
 [ ] Break up LocalContext
 [ ] Just sort out main.purs on the client in general :S :S :S
 [ ] Probably need to spin up the game itself in a spawnProcess on the server to avoid blocking

@@ -12,7 +12,11 @@ data EntityClass
   | Collectable CollectableArgs
 
 type CollectableArgs
-  = { width :: Number, height :: Number, collectableType :: CollectableType }
+  = { width :: Number
+    , height :: Number
+    , lifetime :: Int
+    , collectableType :: CollectableType
+    }
 
 data CollectableType
   = Rock Int

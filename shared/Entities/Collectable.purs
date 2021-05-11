@@ -6,6 +6,7 @@ import Blatus.Entities.Behaviours.ProvidesResource as ProvidesResource
 import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
 import Sisy.BuiltIn.Behaviours.BasicBitchPhysics as BasicBitchPhysics
+import Sisy.BuiltIn.Behaviours.DisappearsAfter as DisappearsAfter
 import Sisy.Math (Point, centreRect, origin)
 import Sisy.Runtime.Entity (Entity, EntityId, HtmlColor(..), sprite)
 import Sisy.BuiltIn (Mass(..))
@@ -15,7 +16,7 @@ data EntityMode
   | Client
 
 init :: EntityId -> Point -> CollectableArgs -> Entity EntityCommand GameEvent GameEntity
-init id location args@{ width, height } =
+init id location args@{ width, height, lifetime } =
   { id
   , location
   , velocity: origin
@@ -24,7 +25,11 @@ init id location args@{ width, height } =
   , mass: NoMass
   , health: 100.0
   , shield: 0.0
-  , behaviour: BasicBitchPhysics.init : (ProvidesResource.init args.collectableType) : Nil
+  , behaviour:
+      BasicBitchPhysics.init
+        : (DisappearsAfter.init lifetime)
+        : (ProvidesResource.init args.collectableType)
+        : Nil
   , class: Collectable args
   , networkSync: false
   , aabb: centreRect location { x: 0.0, y: 0.0, width, height }

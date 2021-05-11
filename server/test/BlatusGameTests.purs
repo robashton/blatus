@@ -73,7 +73,7 @@ tests = do
             $ Main.doTick
             $ Main.addEntity
                 { id: EntityId "rock"
-                , class: Collectable { width: 10.0, height: 10.0, collectableType: Rock 100 }
+                , class: Collectable { width: 10.0, height: 10.0, lifetime: 30, collectableType: Rock 100 }
                 , location: { x: 0.0, y: 0.0 }
                 , velocity: { x: 0.0, y: 0.0 }
                 , rotation: 0.0
@@ -120,6 +120,7 @@ tests = do
                   , drop:
                       { width: 5.0
                       , height: 5.0
+                      , lifetime: 30
                       , collectableType: Rock 10
                       }
                   }
