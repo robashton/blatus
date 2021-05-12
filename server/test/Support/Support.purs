@@ -1,22 +1,34 @@
 module Test.Support where
 
 import Prelude
+import Blatus.Main as Main
+import Blatus.Types (GameEvent)
+import Data.Boolean (otherwise)
 import Data.Exists (Exists, mkExists)
-import Data.List (List(..), any)
+import Data.Foldable (foldl)
+import Data.List (List(..), any, null)
 import Data.Symbol (SProxy(..))
+import Data.Tuple (Tuple(..), fst, snd, uncurry)
+import Data.Tuple.Nested (uncurry1)
 import Data.Variant (class VariantMatchCases, Variant, default, inj, onMatch)
 import Prim.Row as R
 import Prim.RowList as RL
 import Sisy.Math (point)
 import Sisy.Runtime.Behaviour (raiseEvent)
 import Sisy.Runtime.Behaviour as B
-import Sisy.Runtime.Entity (Entity, EntityBehaviour(..), EntityId)
+import Sisy.Runtime.Entity (EntityBehaviour(..), EntityId, Entity)
+import Sisy.Runtime.Scene (Game)
 
 type TestEvent
   = ( ticked :: EntityId )
 
 ticked :: EntityId -> Variant TestEvent
 ticked = inj (SProxy :: SProxy "ticked")
+
+runWhileEvents :: Tuple Main.State (List (Variant GameEvent)) -> Main.State
+runWhileEvents (Tuple state evs)
+  | null evs = state
+  | otherwise = runWhileEvents $ foldl (\acc ev -> uncurry (\ng nevs -> Tuple ng $ (snd acc) <> nevs) $ Main.handleEvent (fst acc) ev) (Tuple state Nil) evs
 
 emptyEntity :: EntityId -> Entity () TestEvent ()
 emptyEntity =
@@ -45,6 +57,11 @@ tickEcho =
                   cmd
             )
         }
+
+entityExists ::
+  forall cmd ev entity.
+  (Entity cmd ev entity -> Boolean) -> Game cmd ev entity -> Boolean
+entityExists f game = any f game.entities
 
 eventExists ::
   forall r rl r1 r2 r3.

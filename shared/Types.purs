@@ -56,6 +56,7 @@ type BuildRequested
   = { location :: Point
     , entity :: EntityId
     , template :: BuildTemplate
+    , id :: EntityId
     }
 
 type GameEntity

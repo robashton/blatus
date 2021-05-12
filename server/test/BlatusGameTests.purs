@@ -21,7 +21,7 @@ import Sisy.Runtime.Entity (EntityId(..))
 import Sisy.Runtime.Scene (entityById)
 import Sisy.Runtime.Scene as Scene
 import Test.Assert (assertEqual, assertFalse', assertTrue')
-import Test.Support (eventExists)
+import Test.Support (eventExists, runWhileEvents)
 
 bob :: EntityId
 bob = EntityId "bob"
@@ -29,10 +29,6 @@ bob = EntityId "bob"
 rock :: EntityId
 rock = EntityId "rock"
 
-runWhileEvents :: Tuple Main.State (List (Variant GameEvent)) -> Main.State
-runWhileEvents (Tuple state evs)
-  | null evs = state
-  | otherwise = runWhileEvents $ foldl (\acc ev -> uncurry (\ng nevs -> Tuple ng $ (snd acc) <> nevs) $ Main.handleEvent (fst acc) ev) (Tuple state Nil) evs
 
 tests :: Free TestF Unit
 tests = do

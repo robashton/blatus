@@ -10,6 +10,7 @@ import Blatus.Entities.Collectable as Collectable
 import Blatus.Entities.Tank as Tank
 import Blatus.Entities.Turret as Turret
 import Blatus.Types (BuildTemplate(..), EntityCommand, GameEntity, GameEvent, RegisteredPlayer, buildRequested, playerSpawn)
+import Control.Apply (lift2)
 import Data.Array (fromFoldable)
 import Data.Array as Array
 import Data.Bifunctor (lmap, rmap)
@@ -25,6 +26,7 @@ import Sisy.BuiltIn (impact, damage)
 import Sisy.BuiltIn.Extensions.Bullets as Bullets
 import Sisy.BuiltIn.Extensions.Collider as Collider
 import Sisy.BuiltIn.Extensions.Explosions as Explosions
+import Sisy.Math (origin)
 import Sisy.Runtime.Entity (Cmd, Entity, EntityId)
 import Sisy.Runtime.Scene (Game)
 import Sisy.Runtime.Scene as Scene
@@ -163,11 +165,31 @@ handleEvent state@{ scene, players, buildActions } =
     , buildRequested:
         \ev ->
           let
-            player = Map.lookup ev.entity players
+            mp = Map.lookup ev.entity players
 
-            action = Map.lookup ev.template buildActions
+            ma = Map.lookup ev.template buildActions
+
+            entityClass =
+              join $ lift2
+                ( \action player ->
+                    if (action.available player state.scene) then (action.get ev.location player state.scene) else Nothing
+                )
+                ma
+                mp
+
+            sync =
+              { id: ev.id
+              , location: ev.location
+              , velocity: origin
+              , class: _
+              , rotation: 0.0
+              , health: 0.0
+              , shield: 0.0
+              } <$> entityClass
+
+            next = maybe state (\s -> addEntity s state) sync
           in
-            Tuple state Nil
+            Tuple next Nil
     }
 
 handleEntityDestruction :: State -> EntityId -> Maybe EntityId -> State
