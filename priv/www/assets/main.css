@@ -95,3 +95,32 @@ body a {
 #quit {
   margin-left: 500px;
 }
+
+.enabled { display: block; }
+
+.disabled { display: none; }
+
+#build-menu {
+  position: absolute;
+  left: 300px;
+  top: 200px;
+}
+
+.build-option {
+  width: 80px;
+  height: 80px;
+  border: #eee;
+  margin-left: 5px;
+  margin-top: 5px;
+  float: left;
+  background-color: #333;
+  opacity: 0.5;
+  border: solid 1px #eee;
+  cursor: pointer;
+}
+
+.build-option:hover {
+  opacity: 1.0;
+}
+
+

@@ -14,6 +14,7 @@
   "canvas",
   "web-html",
   "web-dom",
+  "web-uievents",
   "aff",
   "routing-duplex",
   "random",

@@ -23,7 +23,7 @@ init id location width height =
   , mass: Infinite
   , health: 100.0
   , shield: 0.0
-  , behaviour: (Farmable.init { dropEvery: 50.0, drop: { width: 10.0, height: 10.0, lifetime: 120, collectableType: Rock 5 } }) : Nil
+  , behaviour: (Farmable.init { dropEvery: 50.0, drop: { width: 10.0, height: 10.0, lifetime: 600, collectableType: Rock 5 } }) : Nil
   , class: Asteroid { width, height }
   , networkSync: true
   , aabb: centreRect location { x: 0.0, y: 0.0, width, height }

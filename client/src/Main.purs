@@ -4,6 +4,7 @@ import Prelude
 import Blatus.Client.Assets (AssetPackage)
 import Blatus.Client.Assets (AssetPackage, load) as Assets
 import Blatus.Client.Background as Background
+import Blatus.Client.BuildMenu as BuildMenu
 import Blatus.Client.Camera (Camera, CameraConfiguration, CameraViewport, applyViewport, setupCamera, viewportFromConfig)
 import Blatus.Client.Camera as Camera
 import Blatus.Comms (ClientMsg(..), ServerMsg(..))
@@ -39,14 +40,15 @@ import Signal.Time (every, second)
 import Simple.JSON (readJSON, writeJSON)
 import Sisy.BuiltIn.Extensions.Bullets as Bullets
 import Sisy.BuiltIn.Extensions.Explosions as Explosions
+import Sisy.Math (Rect)
 import Sisy.Runtime.Scene (Game, entityById)
 import Sisy.Types (empty)
-import Sisy.Math (Rect)
 import Web.DOM.Document as Document
 import Web.DOM.Element as Element
 import Web.DOM.Node as Node
 import Web.DOM.NodeList as NodeList
 import Web.DOM.ParentNode (QuerySelector(..), querySelector)
+import Web.Event.Event as Event
 import Web.Event.EventTarget as EET
 import Web.Event.EventTarget as ET
 import Web.HTML as HTML
@@ -58,8 +60,10 @@ import Web.Socket.Event.EventTypes as WSET
 import Web.Socket.Event.MessageEvent as ME
 import Web.Socket.ReadyState as RS
 import Web.Socket.WebSocket as WS
+import Web.UIEvent.MouseEvent as MouseEvent
 
--- A pile of this is going to end up in Game.Main..
+-- A giant glob of state, this will need sorting out at 
+-- some point.. or never
 type LocalContext
   = { renderContext :: Canvas.Context2D
     , canvasElement :: Canvas.CanvasElement
@@ -206,6 +210,9 @@ rockSelector = QuerySelector ("#rock")
 quitSelector :: QuerySelector
 quitSelector = QuerySelector ("#quit")
 
+canvasSelector :: QuerySelector
+canvasSelector = QuerySelector ("#target")
+
 main :: Effect Unit
 main = do
   load
@@ -214,10 +221,22 @@ main = do
         renderSignal <- animationFrame
         document <- HTMLDocument.toDocument <$> Window.document window
         location <- Window.location window
+        buildMenu <- BuildMenu.init $ Document.toParentNode document
         Milliseconds start <- Instant.unInstant <$> Now.now
         ticksChannel <- Channel.channel { time: start, hasError: false }
         quitChannel <- Channel.channel false
+        buildChannel <- Channel.channel false
         quitListener <- ET.eventListener (\_ -> Channel.send quitChannel true)
+        buildListener <-
+          ET.eventListener
+            ( \ev -> do
+                Event.stopPropagation ev
+                let
+                  me = spy "foo" $ MouseEvent.fromEvent ev
+                case me of
+                  Just e -> Channel.send buildChannel $ (MouseEvent.button e) == 2
+                  _ -> Channel.send buildChannel true
+            )
         gameInfoElement <- querySelector gameInfoSelector $ Document.toParentNode document
         latencyInfoElement <- querySelector latencyInfoSelector $ Document.toParentNode document
         playerListElement <- querySelector playerListSelector $ Document.toParentNode document
@@ -226,6 +245,7 @@ main = do
         shieldElement <- querySelector shieldSelector $ Document.toParentNode document
         rockElement <- querySelector rockSelector $ Document.toParentNode document
         quitElement <- querySelector quitSelector $ Document.toParentNode document
+        canvasElement <- querySelector canvasSelector $ Document.toParentNode document
         -- Just alter context state as messages come in
         let
           socketSignal = Channel.subscribe loadedContext.socketChannel
@@ -233,6 +253,8 @@ main = do
           gameTickSignal = GameTick <$> Channel.subscribe ticksChannel
 
           quitSignal = Channel.subscribe quitChannel
+
+          buildSignal = Channel.subscribe buildChannel
         let
           gameStateSignal =
             foldp
@@ -269,6 +291,16 @@ main = do
                   pure unit
             )
           <$> quitSignal
+        -- Handle build menu commands
+        runSignal
+          $ ( \build ->
+                if build then
+                  BuildMenu.show { x: 200.0, y: 200.0 } buildMenu
+                else
+                  pure unit
+            )
+          <$> buildSignal
+        maybe (pure unit) (\element -> ET.addEventListener ETS.click buildListener true $ Element.toEventTarget element) canvasElement
         maybe (pure unit) (\element -> ET.addEventListener ETS.click quitListener true $ Element.toEventTarget element) quitElement
         -- Tick as well
         runSignal
