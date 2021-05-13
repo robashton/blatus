@@ -2,18 +2,20 @@ module Test.BuildTests where
 
 import Prelude
 import Blatus.BuildMenu (turret)
-import Blatus.Entities (EntityClass(..))
+import Blatus.Entities (CollectableType(..), EntityClass(..))
+import Blatus.Entities.Behaviours.ProvidesResource (resourceProvided)
 import Blatus.Entities.Tank as Tank
 import Blatus.Main as Game
 import Blatus.Types (BuildTemplate(..), EntityCommand, GameEntity, GameEvent, RegisteredPlayer, build, buildRequested)
 import Control.Monad.Free (Free)
+import Data.Bifunctor (rmap)
 import Data.Maybe (fromJust, isJust, isNothing)
 import Data.Tuple (Tuple(..), fst)
 import Data.Variant (Variant)
 import Debug (spy)
 import Erl.Test.EUnit (TestF, suite, test)
 import Sisy.Math (Point, origin)
-import Sisy.Runtime.Entity (EntityId(..), Cmd)
+import Sisy.Runtime.Entity (Cmd, EntityId(..))
 import Sisy.Runtime.Scene (entityById, updateEntity)
 import Sisy.Runtime.Scene as Scene
 import Test.Assert (assertFalse, assertTrue)
@@ -46,6 +48,11 @@ gameWithPlayerAt location =
         $ Game.init 0.0
   in
     game { scene = updateEntity (\entity -> entity { location = location }) bob game.scene }
+
+givePlayerRock :: EntityId -> Int -> Game.State -> Game.State
+givePlayerRock id amount state =
+  runWhileEvents
+    $ Game.handleEvent state (resourceProvided { to: id, resource: Rock amount })
 
 validBuildCommand :: Variant (Cmd EntityCommand)
 validBuildCommand =
@@ -86,6 +93,7 @@ tests = do
               , template: BuildTemplate "turret"
               }
           )
+          $ givePlayerRock bob 100
           $ gameWithPlayerAt { x: 100.0, y: 0.0 }
     assertTrue $ entityExists (\e -> e.class == Turret { owner: bob }) newGame.scene
   test "Raising an invalid event results in nothing happening" do

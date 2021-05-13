@@ -22,6 +22,7 @@ import Data.Maybe (Maybe(..), maybe)
 import Data.Symbol (SProxy(..))
 import Data.Tuple (Tuple(..), fst, snd)
 import Data.Variant (Variant, expand, inj, match)
+import Debug (spy)
 import Sisy.BuiltIn (impact, damage)
 import Sisy.BuiltIn.Extensions.Bullets as Bullets
 import Sisy.BuiltIn.Extensions.Collider as Collider
@@ -165,19 +166,20 @@ handleEvent state@{ scene, players, buildActions } =
     , buildRequested:
         \ev ->
           let
-            mp = Map.lookup ev.entity players
+            mp = spy "player" $ Map.lookup ev.entity players
 
-            ma = Map.lookup ev.template buildActions
+            ma = spy "action" $ Map.lookup ev.template buildActions
 
             entityClass =
-              join $ lift2
-                ( \action player ->
-                    if (action.available player state.scene) then (action.get ev.location player state.scene) else Nothing
-                )
-                ma
-                mp
+              spy "entityClass" $ join
+                $ lift2
+                    ( \action player ->
+                        if (action.available player state.scene) then (action.get ev.location player state.scene) else Nothing
+                    )
+                    ma
+                    mp
 
-            sync =
+            sync = spy "sync"
               { id: ev.id
               , location: ev.location
               , velocity: origin
@@ -185,7 +187,8 @@ handleEvent state@{ scene, players, buildActions } =
               , rotation: 0.0
               , health: 0.0
               , shield: 0.0
-              } <$> entityClass
+              }
+                <$> entityClass
 
             next = maybe state (\s -> addEntity s state) sync
           in
