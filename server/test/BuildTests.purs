@@ -96,6 +96,20 @@ tests = do
           $ givePlayerRock bob 100
           $ gameWithPlayerAt { x: 100.0, y: 0.0 }
     assertTrue $ entityExists (\e -> e.class == Turret { owner: bob }) newGame.scene
+  test "Trying to build a turret overlapping with player fails" do
+    let
+      Tuple newGame evs =
+        (flip Game.handleEvent)
+          ( buildRequested
+              { entity: bob
+              , location: { x: 0.0, y: 0.0 }
+              , id: EntityId "nice"
+              , template: BuildTemplate "turret"
+              }
+          )
+          $ givePlayerRock bob 100
+          $ gameWithPlayerAt { x: 0.0, y: 0.0 }
+    assertFalse $ entityExists (\e -> e.class == Turret { owner: bob }) newGame.scene
   test "Raising an invalid event results in nothing happening" do
     let
       Tuple newGame evs =
@@ -104,7 +118,7 @@ tests = do
               { entity: bob
               , location: { x: 0.0, y: 0.0 }
               , id: EntityId "nice"
-              , template: BuildTemplate "blah" -- TODO: Maybe this should be a symbol, with a check to see if exists in the union or some shit
+              , template: BuildTemplate "blah" 
               }
           )
           $ gameWithPlayerAt { x: 100.0, y: 0.0 }

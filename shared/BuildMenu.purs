@@ -27,6 +27,7 @@ turret =
       \l p g ->
         entityById p.id g
           >>= (\e -> if (distance l e.location) > 200.0 then Nothing else Just e)
+          >>= (\e -> if (distance l e.location) < 10.0 then Nothing else Just e)
           <#> (_.id)
           <#> (Turret <<< { owner: _ })
   }
