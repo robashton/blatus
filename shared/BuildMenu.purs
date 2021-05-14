@@ -10,8 +10,14 @@ import Sisy.Runtime.Scene (Game, entityById)
 
 type BuildAction cmd ev entity
   = { template :: BuildTemplate
-    , available :: RegisteredPlayer -> Game cmd ev entity -> Boolean
+    , info :: RegisteredPlayer -> Game cmd ev entity -> BuildActionInfo
     , get :: Point -> RegisteredPlayer -> Game cmd ev entity -> Maybe EntityClass
+    }
+
+type BuildActionInfo
+  = { template :: BuildTemplate
+    , available :: Boolean
+    , description :: String
     }
 
 actions :: forall cmd ev entity. List (BuildAction cmd ev entity)
@@ -22,7 +28,18 @@ turret ::
   BuildAction cmd ev entity
 turret =
   { template: BuildTemplate "turret"
-  , available: \p _game -> p.availableRock > 50
+  , info:
+      \p _game ->
+        if p.availableRock > 50 then
+          { template: BuildTemplate "turret"
+          , available: true
+          , description: "Standalone turret that'll fire at your enemies"
+          }
+        else
+          { template: BuildTemplate "turret"
+          , available: false
+          , description: "Requires 50 rock"
+          }
   , get:
       \l p g ->
         entityById p.id g

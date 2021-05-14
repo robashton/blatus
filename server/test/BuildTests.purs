@@ -58,7 +58,7 @@ validBuildCommand :: Variant (Cmd EntityCommand)
 validBuildCommand =
   ( build
       { location: { x: 0.0, y: 0.0 }
-      , template: BuildTemplate "Turret"
+      , template: BuildTemplate "turret"
       }
   )
 
@@ -68,9 +68,9 @@ tests = do
     let
       action = turret
     test "With enough rock, a turret can be built" do
-      assertTrue $ action.available (emptyPlayer { availableRock = 60 }) sceneWithPlayer
+      assertTrue $ _.available $ (action.info (emptyPlayer { availableRock = 60 }) sceneWithPlayer)
     test "With no rock, a turret can't be built" do
-      assertFalse $ action.available (emptyPlayer { availableRock = 0 }) sceneWithPlayer
+      assertFalse $ _.available $ (action.info (emptyPlayer { availableRock = 0 }) sceneWithPlayer)
     test "Can't build too far away from the player" do
       assertFalse $ isJust $ action.get { x: 250.0, y: 0.0 } emptyPlayer sceneWithPlayer
     test "Can build near the player" do
@@ -118,7 +118,7 @@ tests = do
               { entity: bob
               , location: { x: 0.0, y: 0.0 }
               , id: EntityId "nice"
-              , template: BuildTemplate "blah" 
+              , template: BuildTemplate "blah"
               }
           )
           $ gameWithPlayerAt { x: 100.0, y: 0.0 }

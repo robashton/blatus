@@ -1,7 +1,7 @@
 module Blatus.Main where
 
 import Prelude
-import Blatus.BuildMenu (BuildAction)
+import Blatus.BuildMenu (BuildAction, BuildActionInfo)
 import Blatus.BuildMenu as BuildMenu
 import Blatus.Comms (GameSync, EntitySync)
 import Blatus.Entities (CollectableType(..), EntityClass(..))
@@ -14,7 +14,7 @@ import Control.Apply (lift2)
 import Data.Array (fromFoldable)
 import Data.Array as Array
 import Data.Bifunctor (lmap, rmap)
-import Data.Filterable (filter)
+import Data.Filterable (filter, filterMap)
 import Data.Foldable (foldl)
 import Data.List (List(..), head, (:), toUnfoldable)
 import Data.Map as Map
@@ -60,13 +60,13 @@ type State
 pendingSpawn :: EntityId -> State -> Maybe Int
 pendingSpawn id state = map _.ticks $ head $ filter (\x -> x.playerId == id) state.pendingSpawns
 
-playerBuildActions :: EntityId -> State -> List (BuildAction EntityCommand GameEvent GameEntity)
+playerBuildActions :: EntityId -> State -> List BuildActionInfo
 playerBuildActions playerId state =
   let
     player = Map.lookup playerId state.players
   in
-    filter
-      (\action -> fromMaybe false $ ((action.available <$> player) <*> pure state.scene))
+    filterMap
+      (\action -> ((action.info <$> player) <*> pure state.scene))
       $ Map.values state.buildActions
 
 init :: Number -> State
@@ -183,7 +183,10 @@ handleEvent state@{ scene, players, buildActions } =
               spy "entityClass" $ join
                 $ lift2
                     ( \action player ->
-                        if (action.available player state.scene) then (action.get ev.location player state.scene) else Nothing
+                        let
+                          info = action.info player state.scene
+                        in
+                          if info.available then (action.get ev.location player state.scene) else Nothing
                     )
                     ma
                     mp

@@ -212,9 +212,6 @@ rockSelector = QuerySelector ("#rock")
 quitSelector :: QuerySelector
 quitSelector = QuerySelector ("#quit")
 
-canvasSelector :: QuerySelector
-canvasSelector = QuerySelector ("#target")
-
 main :: Effect Unit
 main = do
   load
@@ -223,22 +220,10 @@ main = do
         renderSignal <- animationFrame
         document <- HTMLDocument.toDocument <$> Window.document window
         location <- Window.location window
-        buildMenu <- BuildMenu.init  document
         Milliseconds start <- Instant.unInstant <$> Now.now
         ticksChannel <- Channel.channel { time: start, hasError: false }
         quitChannel <- Channel.channel false
-        buildChannel <- Channel.channel Nothing
         quitListener <- ET.eventListener (\_ -> Channel.send quitChannel true)
-        buildListener <-
-          ET.eventListener
-            ( \ev -> do
-                Event.preventDefault ev
-                let
-                  me = MouseEvent.fromEvent ev
-                case me of
-                  Just e -> Channel.send buildChannel $ Just { x: MouseEvent.clientX e, y: MouseEvent.clientY e }
-                  _ -> Channel.send buildChannel Nothing
-            )
         gameInfoElement <- querySelector gameInfoSelector $ Document.toParentNode document
         latencyInfoElement <- querySelector latencyInfoSelector $ Document.toParentNode document
         playerListElement <- querySelector playerListSelector $ Document.toParentNode document
@@ -247,7 +232,6 @@ main = do
         shieldElement <- querySelector shieldSelector $ Document.toParentNode document
         rockElement <- querySelector rockSelector $ Document.toParentNode document
         quitElement <- querySelector quitSelector $ Document.toParentNode document
-        canvasElement <- querySelector canvasSelector $ Document.toParentNode document
         -- Just alter context state as messages come in
         let
           socketSignal = Channel.subscribe loadedContext.socketChannel
@@ -256,8 +240,6 @@ main = do
 
           quitSignal = Channel.subscribe quitChannel
 
-          buildSignal = Channel.subscribe buildChannel
-        let
           gameStateSignal =
             foldp
               ( \msg lc -> case msg of
@@ -269,6 +251,8 @@ main = do
               $ gameTickSignal
               <> (Input <$> gameInput)
               <> (Ws <$> socketSignal)
+
+          gameSignal = (\lc -> lc.game) <$> gameStateSignal
         -- Feed the current time into the game state in a regulated manner
         -- Could probably do this whole thing with Signal.now and Signal.every
         -- if Signal.now wasn't arbitrary
@@ -293,14 +277,6 @@ main = do
                   pure unit
             )
           <$> quitSignal
-        -- Handle build menu commands
-        runSignal
-          $ ( \input -> case input.build of
-                Nothing -> pure unit
-                Just l -> BuildMenu.display l buildMenu (EntityId input.lc.playerName) input.lc.game
-            )
-          <$> ({ lc: _, build: _ } <~ (sampleOn buildSignal gameStateSignal) ~ buildSignal)
-        maybe (pure unit) (\element -> ET.addEventListener (EventType "contextmenu") buildListener true $ Element.toEventTarget element) canvasElement
         maybe (pure unit) (\element -> ET.addEventListener ETS.click quitListener true $ Element.toEventTarget element) quitElement
         -- Tick as well
         runSignal

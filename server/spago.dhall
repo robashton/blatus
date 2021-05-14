@@ -13,6 +13,8 @@
     , "psci-support"
     , "simple-json"
     , "erl-simplebus"
+    , "assert"
+    , "erl-test-eunit" 
     ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs"   ] 

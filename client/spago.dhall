@@ -21,5 +21,7 @@
   "sequences",
   "debug",
   "st",
-  "exists"    ]
+  "exists" ,
+  "refs"
+  ]
 }
