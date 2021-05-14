@@ -12,14 +12,14 @@ spago: $(PS_SOURCEFILE)
 parcel: $(JS_ASSET_FOLDER)$(BUNDLE_NAME)
 
 $(PS_SOURCEFILE): $(shell find -L src -type f)
-	spago bundle-app --main Pure.Main --to $(PS_SOURCEFILE)
+	spago bundle-app --main Blatus.Client --to $(PS_SOURCEFILE)
 
 $(JS_ASSET_FOLDER)$(BUNDLE_NAME): $(PS_SOURCEFILE) node_modules
 	echo B $(BUNDLE_NAME), P $(PS_SOURCEFILE)
 	node_modules/.bin/parcel build --out-dir $(JS_ASSET_FOLDER) --out-file $(BUNDLE_NAME) $(PS_SOURCEFILE) --no-source-maps --no-cache
 
 watch-spago:
-	spago bundle-app --watch --main Pure.Client --to $(PS_SOURCEFILE)
+	spago bundle-app --watch --main Blatus.Client --to $(PS_SOURCEFILE)
 
 watch-parcel: node_modules
 	./node_modules/.bin/parcel watch --out-dir $(JS_ASSET_FOLDER) --out-file $(BUNDLE_NAME) $(PS_SOURCEFILE) --no-source-maps

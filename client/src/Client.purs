@@ -1,4 +1,4 @@
-module Pure.Main where
+module Blatus.Client where
 
 import Prelude
 import Blatus.Client.Assets (AssetPackage)
@@ -32,7 +32,7 @@ import Foreign (readString)
 import Graphics.Canvas as Canvas
 import Math (abs)
 import Math as Math
-import Signal (Signal, dropRepeats, foldp, runSignal, sampleOn)
+import Signal (Signal, dropRepeats, foldp, runSignal, sampleOn, (~), (<~))
 import Signal as Signal
 import Signal.Channel as Channel
 import Signal.DOM (keyPressed, animationFrame)
@@ -41,6 +41,7 @@ import Simple.JSON (readJSON, writeJSON)
 import Sisy.BuiltIn.Extensions.Bullets as Bullets
 import Sisy.BuiltIn.Extensions.Explosions as Explosions
 import Sisy.Math (Rect)
+import Sisy.Runtime.Entity (EntityId(..))
 import Sisy.Runtime.Scene (Game, entityById)
 import Sisy.Types (empty)
 import Web.DOM.Document as Document
@@ -48,6 +49,7 @@ import Web.DOM.Element as Element
 import Web.DOM.Node as Node
 import Web.DOM.NodeList as NodeList
 import Web.DOM.ParentNode (QuerySelector(..), querySelector)
+import Web.Event.Event (EventType(..))
 import Web.Event.Event as Event
 import Web.Event.EventTarget as EET
 import Web.Event.EventTarget as ET
@@ -221,21 +223,21 @@ main = do
         renderSignal <- animationFrame
         document <- HTMLDocument.toDocument <$> Window.document window
         location <- Window.location window
-        buildMenu <- BuildMenu.init $ Document.toParentNode document
+        buildMenu <- BuildMenu.init  document
         Milliseconds start <- Instant.unInstant <$> Now.now
         ticksChannel <- Channel.channel { time: start, hasError: false }
         quitChannel <- Channel.channel false
-        buildChannel <- Channel.channel false
+        buildChannel <- Channel.channel Nothing
         quitListener <- ET.eventListener (\_ -> Channel.send quitChannel true)
         buildListener <-
           ET.eventListener
             ( \ev -> do
-                Event.stopPropagation ev
+                Event.preventDefault ev
                 let
-                  me = spy "foo" $ MouseEvent.fromEvent ev
+                  me = MouseEvent.fromEvent ev
                 case me of
-                  Just e -> Channel.send buildChannel $ (MouseEvent.button e) == 2
-                  _ -> Channel.send buildChannel true
+                  Just e -> Channel.send buildChannel $ Just { x: MouseEvent.clientX e, y: MouseEvent.clientY e }
+                  _ -> Channel.send buildChannel Nothing
             )
         gameInfoElement <- querySelector gameInfoSelector $ Document.toParentNode document
         latencyInfoElement <- querySelector latencyInfoSelector $ Document.toParentNode document
@@ -293,14 +295,12 @@ main = do
           <$> quitSignal
         -- Handle build menu commands
         runSignal
-          $ ( \build ->
-                if build then
-                  BuildMenu.show { x: 200.0, y: 200.0 } buildMenu
-                else
-                  pure unit
+          $ ( \input -> case input.build of
+                Nothing -> pure unit
+                Just l -> BuildMenu.display l buildMenu (EntityId input.lc.playerName) input.lc.game
             )
-          <$> buildSignal
-        maybe (pure unit) (\element -> ET.addEventListener ETS.click buildListener true $ Element.toEventTarget element) canvasElement
+          <$> ({ lc: _, build: _ } <~ (sampleOn buildSignal gameStateSignal) ~ buildSignal)
+        maybe (pure unit) (\element -> ET.addEventListener (EventType "contextmenu") buildListener true $ Element.toEventTarget element) canvasElement
         maybe (pure unit) (\element -> ET.addEventListener ETS.click quitListener true $ Element.toEventTarget element) quitElement
         -- Tick as well
         runSignal

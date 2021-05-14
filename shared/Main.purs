@@ -18,7 +18,7 @@ import Data.Filterable (filter)
 import Data.Foldable (foldl)
 import Data.List (List(..), head, (:), toUnfoldable)
 import Data.Map as Map
-import Data.Maybe (Maybe(..), maybe)
+import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Symbol (SProxy(..))
 import Data.Tuple (Tuple(..), fst, snd)
 import Data.Variant (Variant, expand, inj, match)
@@ -28,7 +28,7 @@ import Sisy.BuiltIn.Extensions.Bullets as Bullets
 import Sisy.BuiltIn.Extensions.Collider as Collider
 import Sisy.BuiltIn.Extensions.Explosions as Explosions
 import Sisy.Math (origin)
-import Sisy.Runtime.Entity (Cmd, Entity, EntityId)
+import Sisy.Runtime.Entity (Cmd, Entity, EntityId(..))
 import Sisy.Runtime.Scene (Game)
 import Sisy.Runtime.Scene as Scene
 import Sisy.Runtime.Ticks as Ticks
@@ -59,6 +59,15 @@ type State
 
 pendingSpawn :: EntityId -> State -> Maybe Int
 pendingSpawn id state = map _.ticks $ head $ filter (\x -> x.playerId == id) state.pendingSpawns
+
+playerBuildActions :: EntityId -> State -> List (BuildAction EntityCommand GameEvent GameEntity)
+playerBuildActions playerId state =
+  let
+    player = Map.lookup playerId state.players
+  in
+    filter
+      (\action -> fromMaybe false $ ((action.available <$> player) <*> pure state.scene))
+      $ Map.values state.buildActions
 
 init :: Number -> State
 init now =
@@ -179,15 +188,16 @@ handleEvent state@{ scene, players, buildActions } =
                     ma
                     mp
 
-            sync = spy "sync"
-              { id: ev.id
-              , location: ev.location
-              , velocity: origin
-              , class: _
-              , rotation: 0.0
-              , health: 0.0
-              , shield: 0.0
-              }
+            sync =
+              spy "sync"
+                { id: ev.id
+                , location: ev.location
+                , velocity: origin
+                , class: _
+                , rotation: 0.0
+                , health: 0.0
+                , shield: 0.0
+                }
                 <$> entityClass
 
             next = maybe state (\s -> addEntity s state) sync
