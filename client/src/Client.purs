@@ -58,6 +58,7 @@ type RunningState
   = { info :: GameInfo
     , gameStateSignal :: Signal GameState
     , serverMessageChannel :: Channel ServerMsg
+    , errorMessageChannel :: Channel (Maybe String)
     , common :: CommonState
     }
 
@@ -71,6 +72,9 @@ type GameState
 
 tickSignal :: Signal Number
 tickSignal = (every $ second / 30.0)
+
+healthCheckSignal :: Signal Number
+healthCheckSignal = (every $ second)
 
 pingSignal :: Signal Unit
 pingSignal = sampleOn (every $ second) $ Signal.constant unit
@@ -106,6 +110,7 @@ waitForFirstSync common info msg = case msg of
     now <- Time.now
     inputSignal <- Input.signal
     serverMessageChannel <- Channel.channel msg
+    errorMessageChannel <- Channel.channel Nothing
     let
       initialGameState =
         { info
@@ -122,23 +127,34 @@ waitForFirstSync common info msg = case msg of
           <> (ServerMsg <$> Channel.subscribe serverMessageChannel)
     runSignal $ (\gameState -> safeSend common.socket $ writeJSON $ Ping gameState.game.lastTick) <$> sampleOn pingSignal gameStateSignal
     runSignal $ (\cmd -> safeSend common.socket $ writeJSON $ ClientCommand cmd) <$> inputSignal
+    runSignal
+      $ ( \_ -> do
+            socketState <- WS.readyState common.socket
+            if socketState == RS.Closing || socketState == RS.Closed then
+              Channel.send errorMessageChannel $ Just "Connection has been lost, try refreshing or joining a different game"
+            else
+              pure unit
+        )
+      <$> (sampleOn healthCheckSignal $ Signal.constant 1)
     Rendering.init info.playerId $ _.game <$> gameStateSignal
     Ui.init
       { playerId: info.playerId
       , gameUrl: info.gameUrl
       }
-      $ ( \g ->
+      $ ( \g err ->
             { game: g.game
             , tickLatency: g.tickLatency
-            , error: Nothing
+            , error: err
             }
         )
       <$> gameStateSignal
+      <*> Channel.subscribe errorMessageChannel
     pure
       $ Running
           { info
           , gameStateSignal
           , serverMessageChannel
+          , errorMessageChannel
           , common
           }
   _ -> pure $ WaitForFirstSync common info
