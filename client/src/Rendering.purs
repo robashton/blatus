@@ -4,27 +4,29 @@ import Prelude
 import Blatus.Client.Assets (AssetPackage)
 import Blatus.Client.Assets (AssetPackage, load) as Assets
 import Blatus.Client.Background as Background
-import Blatus.Client.Camera (Camera, CameraViewport, applyViewport, setupCamera)
+import Blatus.Client.Camera (Camera, CameraConfiguration, CameraViewport, applyViewport, setupCamera, viewportFromConfig)
 import Blatus.Client.Camera as Camera
 import Blatus.Main as Main
 import Data.Either (hush)
 import Data.Int as Int
 import Data.Map (lookup) as Map
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, maybe')
 import Data.Newtype (unwrap)
 import Data.Traversable (for, traverse)
 import Effect (Effect)
 import Effect.Aff (runAff_)
 import Graphics.Canvas as Canvas
+import Math (abs)
 import Math as Math
 import Signal (Signal, runSignal, sampleOn)
 import Signal as Signal
 import Signal.DOM (animationFrame)
+import Signal.Effect (foldEffect)
 import Sisy.BuiltIn.Extensions.Bullets as Bullets
 import Sisy.BuiltIn.Extensions.Explosions as Explosions
-import Sisy.Math (Rect)
+import Sisy.Math (Rect, Point)
 import Sisy.Runtime.Entity (EntityId)
-import Sisy.Runtime.Scene (Game)
+import Sisy.Runtime.Scene (Game, entityById)
 
 type State
   = { playerId :: EntityId
@@ -38,6 +40,9 @@ type State
     , sf2 :: Background.State
     , sf3 :: Background.State
     }
+
+type EntityState r
+  = ( aabb :: Rect, velocity :: Point | r )
 
 init :: EntityId -> Signal (Main.State) -> Effect Unit
 init playerId gameSignal =
@@ -74,11 +79,15 @@ init playerId gameSignal =
         , sf3
         , playerId
         }
-    runSignal $ (render state) <$> sampleOn renderSignal gameSignal
+    void $ foldEffect render state $ (sampleOn renderSignal gameSignal)
 
-render :: State -> Main.State -> Effect Unit
-render context@{ camera: camera@{ viewport, config: { target: { width, height } } }, offscreenContext, offscreenCanvas, renderContext, assets, sf1, sf2, sf3 } game = do
-  _ <- Canvas.clearRect offscreenContext { x: 0.0, y: 0.0, width, height }
+render :: Main.State -> State -> Effect State
+render game state@{ playerId, camera: camera@{ config }, offscreenContext, offscreenCanvas, renderContext, assets, sf1, sf2, sf3 } = do
+  let
+    updatedConfig = trackPlayer playerId game.scene config
+
+    viewport = viewportFromConfig updatedConfig
+  _ <- Canvas.clearRect offscreenContext { x: 0.0, y: 0.0, width: updatedConfig.target.width, height: updatedConfig.target.height }
   _ <- Canvas.save offscreenContext
   _ <- applyViewport viewport offscreenContext
   _ <- Background.render camera sf1 offscreenContext
@@ -90,12 +99,9 @@ render context@{ camera: camera@{ viewport, config: { target: { width, height } 
   _ <- Canvas.restore offscreenContext
   let
     image = Canvas.canvasElementToImageSource offscreenCanvas
-  _ <- Canvas.clearRect renderContext { x: 0.0, y: 0.0, width, height }
+  _ <- Canvas.clearRect renderContext { x: 0.0, y: 0.0, width: updatedConfig.target.width, height: updatedConfig.target.height }
   _ <- Canvas.drawImage renderContext image 0.0 0.0
-  pure unit
-
-prepareScene :: forall cmd ev entity. CameraViewport -> Game cmd ev entity -> Game cmd ev entity
-prepareScene viewport game = game
+  pure $ state { camera = { config: updatedConfig, viewport } }
 
 renderExplosions :: Explosions.State -> Canvas.Context2D -> Effect Unit
 renderExplosions state ctx = do
@@ -143,7 +149,7 @@ renderBullets state ctx = do
       state.bullets
   Canvas.fill ctx
 
-renderScene :: forall cmd ev entity. CameraViewport -> Game cmd ev ( aabb :: Rect | entity ) -> AssetPackage -> Canvas.Context2D -> Effect Unit
+renderScene :: forall cmd ev entity. CameraViewport -> Game cmd ev (EntityState entity) -> AssetPackage -> Canvas.Context2D -> Effect Unit
 renderScene viewport { entities } assets ctx = do
   _ <-
     for entities \{ aabb, location, renderables, rotation } -> do
@@ -174,22 +180,16 @@ renderScene viewport { entities } assets ctx = do
         pure unit
   pure unit
 
---    updatedConfig = trackPlayer playerName newGame.scene config
---
---    viewport = viewportFromConfig updatedConfig
---
---    updatedContext = context { camera = { config: updatedConfig, viewport } }
---trackPlayer :: String -> Game EntityCommand GameEvent GameEntity -> CameraConfiguration -> CameraConfiguration
---trackPlayer playerName game config =
---  maybe' (\_ -> config { distance = config.distance + 2.0 })
---    ( \player ->
---        let
---          targetDistance = 750.0 + (abs player.velocity.x + abs player.velocity.y) * 20.0
---        in
---          config
---            { lookAt = player.location
---            , distance = config.distance + 0.02 * (targetDistance - config.distance)
---            }
---    )
---    $ entityById (wrap playerName) game
---
+trackPlayer :: forall cmd ev entity. EntityId -> Game cmd ev (EntityState entity) -> CameraConfiguration -> CameraConfiguration
+trackPlayer playerId game config =
+  maybe' (\_ -> config { distance = config.distance + 2.0 })
+    ( \player ->
+        let
+          targetDistance = 750.0 + (abs player.velocity.x + abs player.velocity.y) * 20.0
+        in
+          config
+            { lookAt = player.location
+            , distance = config.distance + 0.02 * (targetDistance - config.distance)
+            }
+    )
+    $ entityById playerId game

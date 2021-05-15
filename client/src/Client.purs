@@ -108,13 +108,12 @@ waitForFirstSync common info msg = case msg of
     serverMessageChannel <- Channel.channel msg
     let
       initialGameState =
-        spy "Setting up nitial game"
-          { info
-          , serverTick: sync.tick
-          , tickLatency: 0
-          , game: (Main.fromSync now sync)
-          , now
-          }
+        { info
+        , serverTick: sync.tick
+        , tickLatency: 0
+        , game: (Main.fromSync now sync)
+        , now
+        }
 
       gameStateSignal =
         foldp gameLoop initialGameState
@@ -153,7 +152,7 @@ gameLoop :: GameLoopMsg -> GameState -> GameState
 gameLoop msg state = case msg of
   Input i -> handleClientCommand i state
   GameTick tick -> handleTick tick state
-  ServerMsg serverMsg -> handleServerMessage (spy "SeverMsg" serverMsg) state
+  ServerMsg serverMsg -> handleServerMessage serverMsg state
 
 handleServerMessage :: ServerMsg -> GameState -> GameState
 handleServerMessage msg state@{ info, game } = case msg of
