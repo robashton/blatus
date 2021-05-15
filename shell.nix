@@ -13,14 +13,14 @@ let
     builtins.fetchGit {
       url = "https://github.com/purerl/nixpkgs-purerl.git";
       ref = "master";
-      rev = "01820500971cf0772a505ca055a9fd58c8729320";
+      rev = "0f28e40f9942c1449bfa0d400dee49a517102047";
     };
 
   purerlSupport =
     builtins.fetchGit {
       name = "purerl-support-packages";
       url = "git@github.com:id3as/nixpkgs-purerl-support.git";
-      rev = "1bb777de71b0532c961de68a8ccd24709b93318d";
+      rev = "1338c5b08480b4a3e67d60aaf33492d224a46bcf";
     };
 
   etwasPackages =
@@ -66,13 +66,13 @@ mkShell {
     erlangChannel.rebar3
     erlangChannel.erlang-ls
 
-    purerl-support.purescript-0-14-0
+    purerl-support.purescript-0-14-1
     purerl-support.spago-0-16-0
     purerl-support.dhall-json-1-5-0
     purerl-support.purty-7-0-0
     purerl-support.psa-0-8-2
 
-    purerl.purerl-0-0-8
+    purerl.purerl-0-0-9
     pls
 
     etwas

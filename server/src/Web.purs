@@ -103,8 +103,8 @@ gameCommsHandler =
             _ <- WebSocket.lift $ Bus.subscribe (RunningGame.bus s.game) $ ProxiedServerMessage >>> send self
             pure
               $ Reply
-                  ( ( TextFrame $ writeJSON
-                        $ Comms.Welcome
+                  ( ( TextFrame
+                        $ writeJSON
                             { gameUrl: ServerRoutes.routeUrl $ ServerRoutes.GameJoinHtml s.game
                             , playerId: s.playerName
                             }

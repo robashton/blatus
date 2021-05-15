@@ -17,7 +17,6 @@ data ServerMsg
   | PlayerAdded EntityId
   | PlayerRemoved EntityId
   | PlayerSync EntitySync
-  | Welcome WelcomeInfo
   | ServerCommand { cmd :: Variant EntityCommand, id :: EntityId }
   | ServerEvents (Array (Variant GameEvent))
   | Pong Int
@@ -32,11 +31,6 @@ data ClientMsg
   = ClientCommand (Variant EntityCommand)
   | Quit
   | Ping Int
-
-type WelcomeInfo
-  = { gameUrl :: String
-    , playerId :: String
-    }
 
 type GameSync
   = { world :: Rect

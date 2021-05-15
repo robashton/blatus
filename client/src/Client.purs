@@ -1,46 +1,33 @@
 module Blatus.Client where
 
 import Prelude
+import Blatus.Client.Input as Input
 import Blatus.Client.Rendering as Rendering
 import Blatus.Client.Ui as Ui
 import Blatus.Comms (ClientMsg(..), ServerMsg(..))
-import Blatus.Entities.Tank as Tank
 import Blatus.Main as Main
 import Blatus.Types (EntityCommand)
-import Control.Apply (lift2)
 import Control.Monad.Except (runExcept)
-import Data.DateTime.Instant as Instant
 import Data.Either (either)
 import Data.Foldable (foldl, for_)
-import Data.Map (lookup) as Map
-import Data.Maybe (Maybe(..), fromMaybe, maybe)
-import Data.Newtype (unwrap, wrap)
-import Data.Symbol (SProxy(..))
-import Data.Time.Duration (Milliseconds(..))
-import Data.Traversable (traverse)
+import Data.Maybe (Maybe(..))
 import Data.Tuple (fst)
-import Data.Variant (Variant, expand, inj)
+import Data.Variant (Variant, expand)
+import Debug (spy)
 import Effect (Effect)
-import Effect.Now as Now
 import Foreign (readString)
-import Signal (Signal, dropRepeats, foldp, runSignal, sampleOn)
+import Signal (Signal, foldp, runSignal, sampleOn)
 import Signal as Signal
+import Signal.Channel (Channel)
 import Signal.Channel as Channel
-import Signal.DOM (keyPressed)
+import Signal.Effect (foldEffect)
 import Signal.Time (every, second)
+import Signal.Time as Time
 import Simple.JSON (readJSON, writeJSON)
-import Sisy.Runtime.Entity (EntityId(..))
-import Sisy.Runtime.Scene (entityById)
-import Sisy.Types (empty)
-import Web.DOM.Document as Document
-import Web.DOM.Element as Element
-import Web.DOM.Node as Node
-import Web.DOM.NodeList as NodeList
-import Web.DOM.ParentNode (QuerySelector(..), querySelector)
+import Sisy.Runtime.Entity (EntityId)
+import Web.DOM.ParentNode (QuerySelector(..))
 import Web.Event.EventTarget as EET
-import Web.Event.EventTarget as ET
 import Web.HTML as HTML
-import Web.HTML.Event.EventTypes as ETS
 import Web.HTML.HTMLDocument as HTMLDocument
 import Web.HTML.Location as Location
 import Web.HTML.Window as Window
@@ -48,11 +35,6 @@ import Web.Socket.Event.EventTypes as WSET
 import Web.Socket.Event.MessageEvent as ME
 import Web.Socket.ReadyState as RS
 import Web.Socket.WebSocket as WS
-
-type GameInfo
-  = { playerId :: EntityId
-    , gameUrl :: String
-    }
 
 type LocalContext
   = { window :: HTML.Window
@@ -70,208 +52,156 @@ type LocalContext
 quitSelector :: QuerySelector
 quitSelector = QuerySelector ("#quit")
 
-rotateLeftSignal :: Effect (Signal (Variant EntityCommand))
-rotateLeftSignal = do
-  key <- keyPressed 37
-  pure $ dropRepeats $ (\x -> if x then (inj (SProxy :: SProxy "turnLeft") empty) else (inj (SProxy :: SProxy "stopTurnLeft") empty)) <$> key
-
-thrustSignal :: Effect (Signal (Variant EntityCommand))
-thrustSignal = do
-  key <- keyPressed 38
-  pure $ dropRepeats $ (\x -> if x then (inj (SProxy :: SProxy "pushForward") empty) else (inj (SProxy :: SProxy "stopPushForward") empty)) <$> key
-
-rotateRightSignal :: Effect (Signal (Variant EntityCommand))
-rotateRightSignal = do
-  key <- keyPressed 39
-  pure $ dropRepeats $ (\x -> if x then (inj (SProxy :: SProxy "turnRight") empty) else (inj (SProxy :: SProxy "stopTurnRight") empty)) <$> key
-
-brakeSignal :: Effect (Signal (Variant EntityCommand))
-brakeSignal = do
-  key <- keyPressed 40
-  pure $ dropRepeats $ (\x -> if x then (inj (SProxy :: SProxy "pushBackward") empty) else (inj (SProxy :: SProxy "stopPushBackward") empty)) <$> key
-
-fireSignal :: Effect (Signal (Variant EntityCommand))
-fireSignal = do
-  key <- keyPressed 32
-  pure $ dropRepeats $ (\x -> if x then (inj (SProxy :: SProxy "startFireBullet") empty) else (inj (SProxy :: SProxy "stopFireBullet") empty)) <$> key
-
-inputSignal :: Effect (Signal (Variant EntityCommand))
-inputSignal = do
-  fs <- fireSignal
-  rl <- rotateLeftSignal
-  ts <- thrustSignal
-  rr <- rotateRightSignal
-  bs <- brakeSignal
-  pure $ fs <> rl <> ts <> rr <> bs
-
 data GameLoopMsg
   = Input (Variant EntityCommand)
-  | GameTick { time :: Number, hasError :: Boolean }
-  | Ws String
+  | GameTick Number
+  | ServerMsg ServerMsg
 
-tickSignal :: Signal Unit
-tickSignal = sampleOn (every $ second / 30.0) $ Signal.constant unit
+data State
+  = Initialising CommonState
+  | WaitForFirstSync CommonState GameInfo
+  | Running RunningState
+  | Error String
+
+type CommonState
+  = { socket :: WS.WebSocket
+    }
+
+type RunningState
+  = { info :: GameInfo
+    , gameStateSignal :: Signal GameState
+    , serverMessageChannel :: Channel ServerMsg
+    , common :: CommonState
+    }
+
+type GameState
+  = { game :: Main.State
+    , info :: GameInfo
+    , serverTick :: Int
+    , tickLatency :: Int
+    , now :: Number
+    }
+
+tickSignal :: Signal Number
+tickSignal = (every $ second / 30.0)
 
 pingSignal :: Signal Unit
 pingSignal = sampleOn (every $ second) $ Signal.constant unit
 
-uiUpdateSignal :: Signal Unit
-uiUpdateSignal = sampleOn (every $ second * 0.3) $ Signal.constant unit
-
-load :: (LocalContext -> Effect Unit) -> Effect Unit
-load cb = do
+main :: Effect Unit
+main = do
   window <- HTML.window
+  document <- HTMLDocument.toDocument <$> Window.document window
   location <- Window.location window
   socketChannel <- Channel.channel $ ""
   host <- Location.host location
   socket <- createSocket ("ws://" <> host <> "/messaging") $ Channel.send socketChannel
-  Milliseconds now <- Instant.unInstant <$> Now.now
---  let
---    game = Main.init now
--- TODO: Dear Rob in the morning
--- info/game just need to be their own thing
--- that only get created once we get the welcome message
--- We can subscribe to that (or just do it) to start the renderer and the build menu system
--- this cb goes away too
-  cb
-    { window
-    , info: Nothing
-    , socket
-    , socketChannel
-    , serverTick: 0
-    , now
-    , tickLatency: 0
-    , isStarted: false
-    , hasError: false
-    }
+  let
+    socketSignal = Channel.subscribe socketChannel
+  void $ foldEffect messageLoop (Initialising { socket }) socketSignal
 
-main :: Effect Unit
-main = do
-  load
-    ( \loadedContext@{ socket, window } -> do
-        gameInput <- inputSignal
-        document <- HTMLDocument.toDocument <$> Window.document window
-        location <- Window.location window
-        Milliseconds start <- Instant.unInstant <$> Now.now
-        ticksChannel <- Channel.channel { time: start, hasError: false }
-        quitChannel <- Channel.channel false
-        gameStartedChannel <- Channel.channel false
-        quitElement <- querySelector quitSelector $ Document.toParentNode document
-        quitListener <- ET.eventListener (\_ -> Channel.send quitChannel true)
-        let
-          socketSignal = Channel.subscribe loadedContext.socketChannel
+messageLoop :: String -> State -> Effect State
+messageLoop "" state = pure state -- that icky first message
 
-          gameTickSignal = GameTick <$> Channel.subscribe ticksChannel
-
-          quitSignal = Channel.subscribe quitChannel
-
-          gameStartedSignal = Channel.subscribe gameStartedChannel
-
-          gameStateSignal =
-            foldp
-              ( \msg lc -> case msg of
-                  Input i -> handleClientCommand lc i
-                  GameTick tick -> handleTick (lc { hasError = tick.hasError }) tick.time
-                  Ws str -> either (handleServerError lc) (handleServerMessage lc) $ readJSON str
-              )
-              loadedContext
-              $ gameTickSignal
-              <> (Input <$> gameInput)
-              <> (Ws <$> socketSignal)
-
-          gameSignal = (\lc -> lc.game) <$> gameStateSignal
-        -- Feed the current time into the game state in a regulated manner
-        -- Could probably do this whole thing with Signal.now and Signal.every
-        -- if Signal.now wasn't arbitrary
-        -- Once I refactor that massive LocalContext object I probably can as I won't need to init up front
-        runSignal
-          $ ( \_ -> do
-                Milliseconds now <- Instant.unInstant <$> Now.now
-                socketState <- WS.readyState socket
-                Channel.send ticksChannel { time: now, hasError: socketState == RS.Closing || socketState == RS.Closed }
-            )
-          <$> tickSignal
-        -- Send player input up to the server
-        runSignal $ (\cmd -> safeSend socket $ writeJSON $ ClientCommand cmd) <$> gameInput
-        -- Handle quitting manually
-        runSignal
-          $ ( \quit ->
-                if quit then do
-                  _ <- safeSend socket $ writeJSON Quit
-                  _ <- Location.setHref "/" location
-                  pure unit
-                else
-                  pure unit
-            )
-          <$> quitSignal
-        maybe (pure unit) (\element -> ET.addEventListener ETS.click quitListener true $ Element.toEventTarget element) quitElement
-        runSignal $ (\lc -> safeSend socket $ writeJSON $ Ping lc.game.lastTick) <$> sampleOn pingSignal gameStateSignal
-        runSignal
-          $ ( \lc -> case lc.info of
-                Just info -> Rendering.init info.playerId gameSignal
-                Nothing -> pure unit -- todo: avoid this
-            )
-          <$> sampleOn gameStartedSignal gameStateSignal
-    )
-
-safeSend :: WS.WebSocket -> String -> Effect Unit
-safeSend ws str = do
-  state <- WS.readyState ws
+messageLoop msg state = do
   case state of
-    RS.Open -> WS.sendString ws str
-    _ -> pure unit
+    Initialising common -> either handleServerError (processWelcomeMessage common) $ readJSON msg
+    WaitForFirstSync common info -> either handleServerError (waitForFirstSync common info) $ readJSON msg
+    Running running -> either handleServerError (proxyServerMessage running) $ readJSON msg
+    other -> pure other
 
-handleServerError :: forall a. LocalContext -> a -> LocalContext
-handleServerError lc _ = lc { hasError = true }
+processWelcomeMessage :: CommonState -> GameInfo -> Effect State
+processWelcomeMessage common info = pure $ WaitForFirstSync common info
 
-handleServerMessage :: LocalContext -> ServerMsg -> LocalContext
-handleServerMessage lc (Welcome info) = lc { info = Just { playerId: wrap info.playerId, gameUrl: info.gameUrl } }
-
-handleServerMessage lc@{ info: Just info } msg = case msg of
-  Sync gameSync ->
-    if not lc.isStarted then
-      let
-        newGame = Main.fromSync lc.now gameSync
-      in
-        lc
-          { game = newGame
-          , serverTick = gameSync.tick
-          , isStarted = true
+waitForFirstSync :: CommonState -> GameInfo -> ServerMsg -> Effect State
+waitForFirstSync common info msg = case msg of
+  Sync sync -> do
+    now <- Time.now
+    inputSignal <- Input.signal
+    serverMessageChannel <- Channel.channel msg
+    let
+      initialGameState =
+        spy "Setting up nitial game"
+          { info
+          , serverTick: sync.tick
+          , tickLatency: 0
+          , game: (Main.fromSync now sync)
+          , now
           }
-    else
-      let
-        game = lc.game --Trace.trace { msg: "pre", game: lc.game } \_ -> lc.game
 
-        updated = Main.mergeSyncInfo game gameSync -- Trace.trace {msg: "sync", sync: gameSync } \_ -> Main.mergeSyncInfo game gameSync
+      gameStateSignal =
+        foldp gameLoop initialGameState
+          $ (GameTick <$> tickSignal)
+          <> (Input <$> inputSignal)
+          <> (ServerMsg <$> Channel.subscribe serverMessageChannel)
+    runSignal $ (\gameState -> safeSend common.socket $ writeJSON $ Ping gameState.game.lastTick) <$> sampleOn pingSignal gameStateSignal
+    runSignal $ (\cmd -> safeSend common.socket $ writeJSON $ ClientCommand cmd) <$> inputSignal
+    Rendering.init info.playerId $ _.game <$> gameStateSignal
+    Ui.init
+      { playerId: info.playerId
+      , gameUrl: info.gameUrl
+      }
+      $ ( \g ->
+            { game: g.game
+            , tickLatency: g.tickLatency
+            , error: Nothing
+            }
+        )
+      <$> gameStateSignal
+    pure
+      $ Running
+          { info
+          , gameStateSignal
+          , serverMessageChannel
+          , common
+          }
+  _ -> pure $ WaitForFirstSync common info
 
-        result = lc { game = updated, serverTick = gameSync.tick } --Trace.trace {msg: "after", game: updated } \_ -> lc { game = updated, serverTick = gameSync.tick }
-      in
-        result
-  PlayerSync sync -> lc { game = Main.mergePlayerSync lc.game sync }
+proxyServerMessage :: RunningState -> ServerMsg -> Effect State
+proxyServerMessage state@{ serverMessageChannel } msg = do
+  void $ Channel.send serverMessageChannel msg
+  pure $ Running state
+
+gameLoop :: GameLoopMsg -> GameState -> GameState
+gameLoop msg state = case msg of
+  Input i -> handleClientCommand i state
+  GameTick tick -> handleTick tick state
+  ServerMsg serverMsg -> handleServerMessage (spy "SeverMsg" serverMsg) state
+
+handleServerMessage :: ServerMsg -> GameState -> GameState
+handleServerMessage msg state@{ info, game } = case msg of
+  Sync gameSync -> do
+    let
+      updated = Main.mergeSyncInfo game gameSync
+    state { game = updated, serverTick = gameSync.tick }
+  PlayerSync sync -> state { game = Main.mergePlayerSync game sync }
   ServerCommand { id, cmd: cmd } ->
     if id == info.playerId then
-      lc
+      state
     else
-      lc { game = fst $ Main.sendCommand id (expand cmd) lc.game }
-  ServerEvents evs -> lc { game = foldl (\a i -> fst $ Main.handleEvent a i) lc.game evs }
-  PlayerAdded id -> lc { game = Main.addPlayer id lc.game }
-  PlayerRemoved id -> lc { game = Main.removePlayer id lc.game }
-  Pong tick -> lc { tickLatency = lc.game.lastTick - tick }
-  Welcome _ -> lc
+      state { game = fst $ Main.sendCommand id (expand cmd) game }
+  ServerEvents evs -> state { game = foldl (\a i -> fst $ Main.handleEvent a i) game evs }
+  PlayerAdded id -> state { game = Main.addPlayer id game }
+  PlayerRemoved id -> state { game = Main.removePlayer id game }
+  Pong tick -> state { tickLatency = game.lastTick - tick }
 
-handleServerMessage lc _ = lc
+handleClientCommand :: Variant EntityCommand -> GameState -> GameState
+handleClientCommand msg state@{ info: { playerId }, game } = state { game = fst $ Main.sendCommand playerId (expand msg) game }
 
-handleClientCommand :: LocalContext -> Variant EntityCommand -> LocalContext
-handleClientCommand lc@{ info: Just { playerId }, game } msg = lc { game = fst $ Main.sendCommand playerId (expand msg) game }
+handleTick :: Number -> GameState -> GameState
+handleTick now state@{ game } = state { game = fst $ Main.tick now game, now = now }
 
-handleClientCommand lc _ = lc
-
-handleTick :: LocalContext -> Number -> LocalContext
-handleTick context@{ game, socket } now =
+handleServerError :: forall a. a -> Effect State
+handleServerError err =
   let
-    newGame = fst $ Main.tick now game
+    _ = spy "Arse" err
   in
-    context { game = newGame, now = now }
+    pure $ Error "Something went wrong"
+
+type GameInfo
+  = { playerId :: EntityId
+    , gameUrl :: String
+    }
 
 createSocket :: String -> (String -> Effect Unit) -> Effect WS.WebSocket
 createSocket url cb = do
@@ -287,3 +217,10 @@ destroySocket :: WS.WebSocket -> Effect Unit
 destroySocket socket = do
   _ <- WS.close socket
   pure unit
+
+safeSend :: WS.WebSocket -> String -> Effect Unit
+safeSend ws str = do
+  state <- WS.readyState ws
+  case state of
+    RS.Open -> WS.sendString ws str
+    _ -> pure unit
