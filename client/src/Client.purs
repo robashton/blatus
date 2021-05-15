@@ -36,19 +36,6 @@ import Web.Socket.Event.MessageEvent as ME
 import Web.Socket.ReadyState as RS
 import Web.Socket.WebSocket as WS
 
-type LocalContext
-  = { window :: HTML.Window
-    , game :: Main.State
-    , socketChannel :: Channel.Channel String
-    , socket :: WS.WebSocket
-    , serverTick :: Int
-    , tickLatency :: Int
-    , info :: Maybe GameInfo
-    , isStarted :: Boolean
-    , hasError :: Boolean
-    , now :: Number
-    }
-
 quitSelector :: QuerySelector
 quitSelector = QuerySelector ("#quit")
 
