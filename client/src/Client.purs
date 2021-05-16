@@ -145,9 +145,8 @@ waitForFirstSync common info msg = case msg of
               pure unit
         )
       <$> (sampleOn healthCheckSignal $ Signal.constant 1)
-    buildMenu <- BuildMenu.init info.playerId $ _.game <$> gameStateSignal
-    --modifiedStateSignal <- Signal.unwrap $ (\game -> BuildMenu.hook buildMenu game) <$> _.game <$> gameStateSignal
-    Rendering.init info.playerId $ (\s -> { game: s.game, camera: s.camera }) <$> gameStateSignal
+    buildMenu <- BuildMenu.init info.playerId $ (\s -> { game: s.game, camera: s.camera }) <$> gameStateSignal
+    Rendering.init info.playerId buildMenu.output
     Ui.init
       { playerId: info.playerId
       , gameUrl: info.gameUrl

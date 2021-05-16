@@ -53,7 +53,7 @@ type State
     , lastTick :: Int
     , ticks :: Ticks.State
     , pendingSpawns :: List { ticks :: Int, playerId :: EntityId }
-    , buildActions :: Map.Map BuildTemplate (BuildAction EntityCommand GameEvent GameEntity)
+    , buildActions :: Map.Map BuildTemplate BuildAction
     , seed :: Seed
     }
 
@@ -188,7 +188,7 @@ handleEvent state@{ scene, players, buildActions } =
             ma = spy "action" $ Map.lookup ev.template buildActions
 
             entityClass =
-              spy "entityClass" $ join
+               join
                 $ lift2
                     ( \action player ->
                         let
@@ -256,7 +256,7 @@ entityToSync { id, class: c, location, velocity, rotation, health, shield } = { 
 addPlayer :: EntityId -> State -> State
 addPlayer id state@{ players, lastTick, pendingSpawns } =
   state
-    { players = Map.insert id { id, lastTick, score: 0, availableRock: 0 } players
+    { players = Map.insert id { id, lastTick, score: 0, availableRock: 100 } players
     , pendingSpawns = { playerId: id, ticks: 0 } : pendingSpawns
     }
 

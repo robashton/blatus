@@ -41,6 +41,12 @@ type Camera
 type EntityState r
   = ( velocity :: Point | r )
 
+canvasToWorld :: Camera -> Point -> Point
+canvasToWorld c p =
+  { x: (p.x / c.viewport.scale.x) + c.viewport.left
+  , y: (p.y / c.viewport.scale.y) + c.viewport.top
+  }
+
 setupCamera :: CameraTarget -> Camera
 setupCamera target =
   let

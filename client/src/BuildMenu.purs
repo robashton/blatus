@@ -1,8 +1,10 @@
 module Blatus.Client.BuildMenu where
 
 import Prelude
+
 import Blatus.BuildMenu (BuildActionInfo)
 import Blatus.Client.Camera (Camera)
+import Blatus.Client.Camera as Camera
 import Blatus.Main as Main
 import Blatus.Types (Build, BuildTemplate(..), EntityCommand)
 import Control.Apply (lift2)
@@ -14,13 +16,14 @@ import Debug (spy)
 import Effect (Effect)
 import Effect.Ref (Ref)
 import Effect.Ref as Ref
+import Graphics.Canvas as Canvas
 import Partial.Unsafe (unsafeCrashWith, unsafePartial)
-import Signal (Signal, filter, filterMap, sampleOn, (~), get)
+import Signal (Signal, filter, filterMap, get, sampleOn, (~), map2)
 import Signal.Channel (Channel)
 import Signal.Channel as Channel
 import Signal.Effect (foldEffect)
 import Sisy.BuiltIn (impact)
-import Sisy.Math (Point)
+import Sisy.Math (Point, origin)
 import Sisy.Runtime.Behaviour (entity)
 import Sisy.Runtime.Entity (EntityId(..))
 import Sisy.Runtime.Scene as Scene
@@ -57,6 +60,7 @@ type State
     , commandChannel :: Channel (Maybe (Variant EntityCommand))
     , currentTemplate :: Maybe BuildActionInfo
     , open :: Boolean
+    , mouse :: Point
     }
 
 data BuildMenuMessage
@@ -68,11 +72,22 @@ data BuildMenuMessage
     { game :: Main.State
     , item :: BuildTemplate
     }
+  | UpdateMouse Point
   | None
+
+type Input
+  = { game :: Main.State
+    , camera :: Camera
+    }
+
+type Output
+  = { game :: Main.State
+    , camera :: Camera
+    }
 
 type Handle
   = { commands :: (Signal (Variant EntityCommand))
-    , state :: Signal State
+    , output :: Signal Output
     }
 
 mkMenuListener :: Channel (Maybe Coordinate) -> Effect EventListener
@@ -87,8 +102,8 @@ mkMenuListener menuChannel =
           _ -> Channel.send menuChannel Nothing
     )
 
-mkTrackListener :: Channel Point -> Effect EventListener
-mkTrackListener trackChannel =
+mkTrackListener :: { width :: Number, height :: Number } -> Channel Point -> Effect EventListener
+mkTrackListener canvas trackChannel =
   ET.eventListener
     ( \ev -> do
         Event.preventDefault ev
@@ -101,11 +116,22 @@ mkTrackListener trackChannel =
               ( \mouseEvent target -> do
                   elementX <- Element.clientLeft target
                   elementY <- Element.clientTop target
+                  realWidth <- Element.clientWidth target
+                  realHeight <- Element.clientHeight target
                   let
                     elementLocation = { x: elementX, y: elementY }
 
                     mouseLocation = { x: toNumber $ MouseEvent.clientX mouseEvent, y: toNumber $ MouseEvent.clientY mouseEvent }
-                  Channel.send trackChannel $ mouseLocation - elementLocation
+
+                    scaleX = canvas.width / realWidth
+
+                    scaleY = canvas.height / realHeight
+
+                    scaledLocation =
+                      { x: (mouseLocation.x - elementLocation.x) * scaleX
+                      , y: (mouseLocation.y - elementLocation.y) * scaleY
+                      }
+                  Channel.send trackChannel scaledLocation
               )
               me
               canvasElement
@@ -125,24 +151,22 @@ mkSelectListener selectChannel =
         Channel.send selectChannel template
     )
 
-type Input
-  = { game :: Main.State
-    , camera :: Camera
-    }
-
 init :: EntityId -> Signal Input -> Effect Handle
 init playerId gameStateSignal = do
   window <- HTML.window
   document <- HTMLDocument.toDocument <$> Window.document window
   buildMenu <- unsafePartial fromJust <$> (querySelector buildMenuSelector $ Document.toParentNode document)
   canvasElement <- unsafePartial fromJust <$> (querySelector canvasSelector $ Document.toParentNode document)
+  canvas <- (unsafePartial fromJust) <$> Canvas.getCanvasElementById "target"
+  canvasWidth <- Canvas.getCanvasWidth canvas
+  canvasHeight <- Canvas.getCanvasHeight canvas
   template <- Element.toNode <$> Document.createElement "div" document
   commandChannel <- Channel.channel Nothing
   menuChannel <- Channel.channel Nothing
   selectChannel <- Channel.channel Nothing
-  trackChannel <- Channel.channel { x: 0, y: 0 }
+  trackChannel <- Channel.channel { x: 0.0, y: 0.0 }
   menuListener <- mkMenuListener menuChannel
-  trackListener <- mkTrackListener trackChannel
+  trackListener <- mkTrackListener { width: canvasWidth, height: canvasHeight } trackChannel
   selectListener <- mkSelectListener selectChannel
   void $ ET.addEventListener (EventType "contextmenu") menuListener true $ Element.toEventTarget canvasElement
   void $ ET.addEventListener (EventType "mousemove") trackListener true $ Element.toEventTarget canvasElement
@@ -159,6 +183,7 @@ init playerId gameStateSignal = do
       , commandChannel
       , currentTemplate: Nothing
       , open: false
+      , mouse: origin
       }
 
     menuToggleSignal =
@@ -185,7 +210,7 @@ init playerId gameStateSignal = do
               hide state
             else
               display cmd.build state playerId cmd.game
-            pure $ state { open = not state.open }
+            pure $ state { open = not state.open, currentTemplate = Nothing }
           SelectMenuItem cmd -> do
             case (Main.buildAction cmd.item playerId cmd.game) of
               Nothing -> pure state
@@ -195,23 +220,39 @@ init playerId gameStateSignal = do
                   pure $ state { open = false, currentTemplate = Just action }
                 else
                   pure state
+          UpdateMouse p -> pure $ state { mouse = p }
           None -> pure state
       )
       initialState
-      $ filterMap identity None
-      $ menuToggleSignal
-      <> menuSelectSignal
+      $ ( filterMap identity None
+            $ menuToggleSignal
+            <> menuSelectSignal
+        )
+      <> (UpdateMouse <$> Channel.subscribe trackChannel)
+  let
+    output =
+      map2
+        ( \{ game, camera } { currentTemplate, mouse } -> case currentTemplate of
+            Nothing -> { game, camera }
+            Just t ->
+              let
+                world = spy "world" $ Camera.canvasToWorld camera mouse
+
+                entity = t.build (EntityId "build-template") world
+              in
+                { game:
+                    game
+                      { scene = Scene.addEntity entity game.scene
+                      }
+                , camera
+                }
+        )
+        gameStateSignal
+        (sampleOn gameStateSignal state)
   pure
     { commands: filterMap identity unusedCommand $ Channel.subscribe commandChannel
-    , state
+    , output
     }
-
-hook :: Handle -> Main.State -> Effect Main.State
-hook { state } game = do
-  latest <- get state
-  case latest.currentTemplate of
-    Nothing -> pure game
-    Just template -> pure game --{ scene = Scene.addEntity (templateEntity template) scene }
 
 unusedCommand :: Variant EntityCommand
 unusedCommand = impact { force: 0.0, source: EntityId "" }
