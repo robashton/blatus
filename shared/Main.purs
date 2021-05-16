@@ -60,6 +60,14 @@ type State
 pendingSpawn :: EntityId -> State -> Maybe Int
 pendingSpawn id state = map _.ticks $ head $ filter (\x -> x.playerId == id) state.pendingSpawns
 
+buildAction :: BuildTemplate -> EntityId -> State -> Maybe BuildActionInfo
+buildAction template playerId { scene, buildActions, players } =
+  let
+    player = Map.lookup playerId players
+  in
+    Map.lookup template buildActions
+      >>= (\action -> (action.info <$> player) <*> pure scene)
+
 playerBuildActions :: EntityId -> State -> List BuildActionInfo
 playerBuildActions playerId state =
   let

@@ -2,32 +2,35 @@ module Blatus.BuildMenu where
 
 import Prelude
 import Blatus.Entities (EntityClass(..))
-import Blatus.Types (RegisteredPlayer, BuildTemplate(..))
+import Blatus.Entities.Turret as Turret
+import Blatus.Types (BuildTemplate(..), RegisteredPlayer, GameEvent)
 import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
 import Sisy.Math (Point, distance)
+import Sisy.Runtime.Entity (Entity, EntityId(..))
 import Sisy.Runtime.Scene (Game, entityById)
 
-type BuildAction cmd ev entity
+type BuildAction
   = { template :: BuildTemplate
-    , info :: RegisteredPlayer -> Game cmd ev entity -> BuildActionInfo
-    , get :: Point -> RegisteredPlayer -> Game cmd ev entity -> Maybe EntityClass
+    , info :: RegisteredPlayer -> Game EntityCommand GameEvent GameEntity -> BuildActionInfo 
+    , build :: EntityId -> Point -> Entity EntityCommand GameEvent GameEntity 
+    , get :: Point -> RegisteredPlayer -> Game EntityCommand GameEvent GameEntity  -> Maybe EntityClass
     }
 
 type BuildActionInfo
   = { template :: BuildTemplate
     , available :: Boolean
     , description :: String
+    , build :: EntityId -> Point -> Entity EntityCommand GameEvent GameEntity -
     }
 
-actions :: forall cmd ev entity. List (BuildAction cmd ev entity)
+actions :: List BuildAction 
 actions = turret : Nil
 
-turret ::
-  forall cmd ev entity.
-  BuildAction cmd ev entity
+turret :: BuildAction
 turret =
   { template: BuildTemplate "turret"
+  , build: \id location -> Turret.init id location { owner: EntityId "" }
   , info:
       \p _game ->
         if p.availableRock > 50 then

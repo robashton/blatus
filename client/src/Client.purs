@@ -1,8 +1,8 @@
 module Blatus.Client where
 
 import Prelude
-import Blatus.Client.Input as Input
 import Blatus.Client.BuildMenu as BuildMenu
+import Blatus.Client.Input as Input
 import Blatus.Client.Rendering as Rendering
 import Blatus.Client.Ui as Ui
 import Blatus.Comms (ClientMsg(..), ServerMsg(..))
@@ -137,8 +137,9 @@ waitForFirstSync common info msg = case msg of
               pure unit
         )
       <$> (sampleOn healthCheckSignal $ Signal.constant 1)
-    Rendering.init info.playerId $ _.game <$> gameStateSignal
-    void $ BuildMenu.init info.playerId $ _.game <$> gameStateSignal
+    buildMenu <- BuildMenu.init info.playerId $ _.game <$> gameStateSignal
+    modifiedStateSignal <- Signal.unwrap $ (\game -> BuildMenu.hook buildMenu game) <$> _.game <$> gameStateSignal
+    Rendering.init info.playerId modifiedStateSignal
     Ui.init
       { playerId: info.playerId
       , gameUrl: info.gameUrl

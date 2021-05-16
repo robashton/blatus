@@ -1,6 +1,7 @@
 module Blatus.Client.BuildMenu where
 
 import Prelude
+import Blatus.BuildMenu (BuildActionInfo)
 import Blatus.Main as Main
 import Blatus.Types (Build, BuildTemplate(..), EntityCommand)
 import Data.Maybe (Maybe(..), fromJust, isJust, maybe)
@@ -11,7 +12,7 @@ import Effect (Effect)
 import Effect.Ref (Ref)
 import Effect.Ref as Ref
 import Partial.Unsafe (unsafeCrashWith, unsafePartial)
-import Signal (Signal, filter, filterMap, sampleOn, (~))
+import Signal (Signal, filter, filterMap, sampleOn, (~), get)
 import Signal.Channel (Channel)
 import Signal.Channel as Channel
 import Signal.Effect (foldEffect)
@@ -19,7 +20,7 @@ import Sisy.BuiltIn (impact)
 import Sisy.Math (Point)
 import Sisy.Runtime.Behaviour (entity)
 import Sisy.Runtime.Entity (EntityId(..))
-import Sisy.Runtime.Scene (tickCmd)
+import Sisy.Runtime.Scene as Scene
 import Web.DOM (Document, Element, Node, ParentNode)
 import Web.DOM.ChildNode as ChildNode
 import Web.DOM.Document as Document
@@ -51,7 +52,7 @@ type State
     , document :: Document
     , template :: Node
     , commandChannel :: Channel (Maybe (Variant EntityCommand))
-    , currentTemplate :: Maybe BuildTemplate
+    , currentTemplate :: Maybe BuildActionInfo
     , open :: Boolean
     }
 
@@ -65,6 +66,11 @@ data BuildMenuMessage
     , item :: BuildTemplate
     }
   | None
+
+type Handle
+  = { commands :: (Signal (Variant EntityCommand))
+    , state :: Signal State
+    }
 
 mkMenuListener :: Channel (Maybe Coordinate) -> Effect EventListener
 mkMenuListener menuChannel =
@@ -84,14 +90,12 @@ mkSelectListener selectChannel =
     ( \ev -> do
         Event.preventDefault ev
         let
-          me = MouseEvent.fromEvent ev
-
-          targetElement = Element.fromEventTarget =<< MouseEvent.relatedTarget =<< me
+          targetElement = Element.fromEventTarget =<< (Event.target ev)
         template <- maybe (pure Nothing) (Element.getAttribute "data-template") targetElement
-        pure template
+        Channel.send selectChannel template
     )
 
-init :: EntityId -> Signal (Main.State) -> Effect (Signal (Variant EntityCommand))
+init :: EntityId -> Signal (Main.State) -> Effect Handle
 init playerId gameStateSignal = do
   window <- HTML.window
   document <- HTMLDocument.toDocument <$> Window.document window
@@ -121,36 +125,56 @@ init playerId gameStateSignal = do
 
     menuToggleSignal =
       sampleOn menuSignal
-        $ ( \game build ->
-              ToggleMenu <$> { game, build: _ } <$> build
+        $ ( \game build -> ToggleMenu <$> { game, build: _ } <$> build
           )
         <$> gameStateSignal
         <*> menuSignal
 
     menuSelectSignal =
-      sampleOn menuSignal
+      sampleOn selectSignal
         $ ( \game item ->
               SelectMenuItem <$> { game, item: _ } <$> BuildTemplate <$> item
           )
         <$> gameStateSignal
         <*> selectSignal
-  void
-    $ foldEffect
-        ( \ev state -> case ev of
-            ToggleMenu cmd -> do
-              if state.open then
-                hide state
-              else
-                display cmd.build state playerId cmd.game
-              pure $ state { open = not state.open }
-            SelectMenuItem item -> do
-              pure state
-            None -> pure state
-        )
-        initialState
-    $ filterMap identity None
-    $ menuToggleSignal
-  pure $ filterMap identity unusedCommand $ Channel.subscribe commandChannel
+  state <-
+    foldEffect
+      ( \ev state -> case ev of
+          ToggleMenu cmd -> do
+            if state.open then
+              hide state
+            else
+              display cmd.build state playerId cmd.game
+            pure $ state { open = not state.open }
+          SelectMenuItem cmd -> do
+            case (spy "Action" (Main.buildAction cmd.item playerId cmd.game)) of
+              Nothing -> pure state
+              Just action ->
+                if action.available then do
+                  hide state
+                  pure $ state { open = false, currentTemplate = Just action }
+                else
+                  pure state
+          None -> pure state
+      )
+      initialState
+      $ filterMap identity None
+      $ menuToggleSignal
+      <> menuSelectSignal
+  pure
+    { commands: filterMap identity unusedCommand $ Channel.subscribe commandChannel
+    , state
+    }
+
+hook :: Handle -> Main.State -> Effect Main.State
+hook { state } game = do
+  latest <- get state
+  case latest.currentTemplate of
+    Nothing -> pure game
+    Just template -> pure $ game { scene = Scene.addEntity (templateEntity template) scene }
+
+templateEntity :: forall cmd ev entity. BuildActionInfo -> Entity`cmd ev entity
+templateEntity info = 
 
 unusedCommand :: Variant EntityCommand
 unusedCommand = impact { force: 0.0, source: EntityId "" }
@@ -173,7 +197,7 @@ display location { buildMenu, template } playerId game = do
                 _ <- Element.setClassName ("build-option " <> name <> if a.available then " available" else " unavailable") e
                 _ <- Node.setTextContent name node
                 _ <- Element.setAttribute "title" a.description e
-                _ <- Element.setAttribute "data-template" name
+                _ <- Element.setAttribute "data-template" name e
                 _ <- Node.appendChild node buildMenuNode
                 pure unit
               Nothing -> pure unit
