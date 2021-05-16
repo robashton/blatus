@@ -29,6 +29,7 @@ import Web.DOM.Node as Node
 import Web.DOM.ParentNode (QuerySelector(..), querySelector)
 import Web.Event.Event (EventType(..))
 import Web.Event.Event as Event
+import Web.Event.EventTarget (EventListener)
 import Web.Event.EventTarget as ET
 import Web.HTML as HTML
 import Web.HTML.HTMLDocument as HTMLDocument
@@ -59,33 +60,58 @@ data BuildMenuMessage
     { game :: Main.State
     , build :: Coordinate
     }
+  | SelectMenuItem
+    { game :: Main.State
+    , item :: BuildTemplate
+    }
   | None
+
+mkMenuListener :: Channel (Maybe Coordinate) -> Effect EventListener
+mkMenuListener menuChannel =
+  ET.eventListener
+    ( \ev -> do
+        Event.preventDefault ev
+        let
+          me = MouseEvent.fromEvent ev
+        case me of
+          Just e -> Channel.send menuChannel $ Just { x: MouseEvent.clientX e, y: MouseEvent.clientY e }
+          _ -> Channel.send menuChannel Nothing
+    )
+
+mkSelectListener :: Channel (Maybe String) -> Effect EventListener
+mkSelectListener selectChannel =
+  ET.eventListener
+    ( \ev -> do
+        Event.preventDefault ev
+        let
+          me = MouseEvent.fromEvent ev
+
+          targetElement = Element.fromEventTarget =<< MouseEvent.relatedTarget =<< me
+        template <- maybe (pure Nothing) (Element.getAttribute "data-template") targetElement
+        pure template
+    )
 
 init :: EntityId -> Signal (Main.State) -> Effect (Signal (Variant EntityCommand))
 init playerId gameStateSignal = do
   window <- HTML.window
   document <- HTMLDocument.toDocument <$> Window.document window
-  buildMenu <- querySelector buildMenuSelector $ Document.toParentNode document
-  canvasElement <- querySelector canvasSelector $ Document.toParentNode document
+  buildMenu <- unsafePartial fromJust <$> (querySelector buildMenuSelector $ Document.toParentNode document)
+  canvasElement <- unsafePartial fromJust <$> (querySelector canvasSelector $ Document.toParentNode document)
   template <- Element.toNode <$> Document.createElement "div" document
   commandChannel <- Channel.channel Nothing
   menuChannel <- Channel.channel Nothing
-  menuListener <-
-    ET.eventListener
-      ( \ev -> do
-          Event.preventDefault ev
-          let
-            me = MouseEvent.fromEvent ev
-          case me of
-            Just e -> Channel.send menuChannel $ Just { x: MouseEvent.clientX e, y: MouseEvent.clientY e }
-            _ -> Channel.send menuChannel Nothing
-      )
-  void $ maybe (pure unit) (\element -> ET.addEventListener (EventType "contextmenu") menuListener true $ Element.toEventTarget element) canvasElement
+  selectChannel <- Channel.channel Nothing
+  menuListener <- mkMenuListener menuChannel
+  selectListener <- mkSelectListener selectChannel
+  void $ ET.addEventListener (EventType "contextmenu") menuListener true $ Element.toEventTarget canvasElement
+  void $ ET.addEventListener (EventType "click") selectListener true $ Element.toEventTarget buildMenu
   let
     menuSignal = Channel.subscribe menuChannel
 
+    selectSignal = Channel.subscribe selectChannel
+
     initialState =
-      { buildMenu: unsafePartial $ fromJust buildMenu
+      { buildMenu
       , document
       , template
       , commandChannel
@@ -100,6 +126,14 @@ init playerId gameStateSignal = do
           )
         <$> gameStateSignal
         <*> menuSignal
+
+    menuSelectSignal =
+      sampleOn menuSignal
+        $ ( \game item ->
+              SelectMenuItem <$> { game, item: _ } <$> BuildTemplate <$> item
+          )
+        <$> gameStateSignal
+        <*> selectSignal
   void
     $ foldEffect
         ( \ev state -> case ev of
@@ -109,6 +143,8 @@ init playerId gameStateSignal = do
               else
                 display cmd.build state playerId cmd.game
               pure $ state { open = not state.open }
+            SelectMenuItem item -> do
+              pure state
             None -> pure state
         )
         initialState
@@ -137,6 +173,7 @@ display location { buildMenu, template } playerId game = do
                 _ <- Element.setClassName ("build-option " <> name <> if a.available then " available" else " unavailable") e
                 _ <- Node.setTextContent name node
                 _ <- Element.setAttribute "title" a.description e
+                _ <- Element.setAttribute "data-template" name
                 _ <- Node.appendChild node buildMenuNode
                 pure unit
               Nothing -> pure unit
