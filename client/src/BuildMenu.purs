@@ -1,7 +1,6 @@
 module Blatus.Client.BuildMenu where
 
 import Prelude
-
 import Blatus.BuildMenu (BuildActionInfo)
 import Blatus.Client.Camera (Camera)
 import Blatus.Client.Camera as Camera
@@ -72,6 +71,7 @@ data BuildMenuMessage
     { game :: Main.State
     , item :: BuildTemplate
     }
+  | SendBuildCommand
   | UpdateMouse Point
   | None
 
@@ -151,6 +151,14 @@ mkSelectListener selectChannel =
         Channel.send selectChannel template
     )
 
+mkBuildListener :: Channel Boolean -> Effect EventListener
+mkBuildListener buildChannel =
+  ET.eventListener
+    ( \ev -> do
+        Event.preventDefault ev
+        Channel.send buildChannel true
+    )
+
 init :: EntityId -> Signal Input -> Effect Handle
 init playerId gameStateSignal = do
   window <- HTML.window
@@ -164,12 +172,15 @@ init playerId gameStateSignal = do
   commandChannel <- Channel.channel Nothing
   menuChannel <- Channel.channel Nothing
   selectChannel <- Channel.channel Nothing
+  buildChannel <- Channel.channel false
   trackChannel <- Channel.channel { x: 0.0, y: 0.0 }
   menuListener <- mkMenuListener menuChannel
   trackListener <- mkTrackListener { width: canvasWidth, height: canvasHeight } trackChannel
   selectListener <- mkSelectListener selectChannel
+  buildListener <- mkBuildListener buildChannel
   void $ ET.addEventListener (EventType "contextmenu") menuListener true $ Element.toEventTarget canvasElement
   void $ ET.addEventListener (EventType "mousemove") trackListener true $ Element.toEventTarget canvasElement
+  void $ ET.addEventListener (EventType "click") buildListener true $ Element.toEventTarget canvasElement
   void $ ET.addEventListener (EventType "click") selectListener true $ Element.toEventTarget buildMenu
   let
     menuSignal = Channel.subscribe menuChannel
@@ -221,6 +232,9 @@ init playerId gameStateSignal = do
                 else
                   pure state
           UpdateMouse p -> pure $ state { mouse = p }
+          SendBuildCommand -> case state.currentTemplate of
+            Nothing -> pure state
+            Just template -> pure state -- Channel.send commandChannel $ build { location: state.mouse
           None -> pure state
       )
       initialState
@@ -229,6 +243,7 @@ init playerId gameStateSignal = do
             <> menuSelectSignal
         )
       <> (UpdateMouse <$> Channel.subscribe trackChannel)
+      <> ((\a -> if a then SendBuildCommand else None) <$> Channel.subscribe buildChannel)
   let
     output =
       map2
