@@ -2,9 +2,12 @@ module Blatus.Client.BuildMenu where
 
 import Prelude
 import Blatus.BuildMenu (BuildActionInfo)
+import Blatus.Client.Camera (Camera)
 import Blatus.Main as Main
 import Blatus.Types (Build, BuildTemplate(..), EntityCommand)
-import Data.Maybe (Maybe(..), fromJust, isJust, maybe)
+import Control.Apply (lift2)
+import Data.Int (toNumber)
+import Data.Maybe (Maybe(..), fromJust, fromMaybe, isJust, maybe)
 import Data.Traversable (traverse)
 import Data.Variant (Variant, inj)
 import Debug (spy)
@@ -84,6 +87,33 @@ mkMenuListener menuChannel =
           _ -> Channel.send menuChannel Nothing
     )
 
+mkTrackListener :: Channel Point -> Effect EventListener
+mkTrackListener trackChannel =
+  ET.eventListener
+    ( \ev -> do
+        Event.preventDefault ev
+        let
+          me = MouseEvent.fromEvent ev
+
+          canvasElement = Element.fromEventTarget =<< (Event.target ev)
+        fromMaybe (pure unit)
+          $ lift2
+              ( \mouseEvent target -> do
+                  elementX <- Element.clientLeft target
+                  elementY <- Element.clientTop target
+                  let
+                    elementLocation = { x: elementX, y: elementY }
+
+                    mouseLocation = { x: toNumber $ MouseEvent.clientX mouseEvent, y: toNumber $ MouseEvent.clientY mouseEvent }
+                  Channel.send trackChannel $ mouseLocation - elementLocation
+              )
+              me
+              canvasElement
+    --        case me of
+    --          Just e -> Channel.send trackChannel $ Just { x: MouseEvent.clientX e, y: MouseEvent.clientY e }
+    --          _ -> pure unit
+    )
+
 mkSelectListener :: Channel (Maybe String) -> Effect EventListener
 mkSelectListener selectChannel =
   ET.eventListener
@@ -95,7 +125,12 @@ mkSelectListener selectChannel =
         Channel.send selectChannel template
     )
 
-init :: EntityId -> Signal (Main.State) -> Effect Handle
+type Input
+  = { game :: Main.State
+    , camera :: Camera
+    }
+
+init :: EntityId -> Signal Input -> Effect Handle
 init playerId gameStateSignal = do
   window <- HTML.window
   document <- HTMLDocument.toDocument <$> Window.document window
@@ -105,9 +140,12 @@ init playerId gameStateSignal = do
   commandChannel <- Channel.channel Nothing
   menuChannel <- Channel.channel Nothing
   selectChannel <- Channel.channel Nothing
+  trackChannel <- Channel.channel { x: 0, y: 0 }
   menuListener <- mkMenuListener menuChannel
+  trackListener <- mkTrackListener trackChannel
   selectListener <- mkSelectListener selectChannel
   void $ ET.addEventListener (EventType "contextmenu") menuListener true $ Element.toEventTarget canvasElement
+  void $ ET.addEventListener (EventType "mousemove") trackListener true $ Element.toEventTarget canvasElement
   void $ ET.addEventListener (EventType "click") selectListener true $ Element.toEventTarget buildMenu
   let
     menuSignal = Channel.subscribe menuChannel
@@ -127,6 +165,7 @@ init playerId gameStateSignal = do
       sampleOn menuSignal
         $ ( \game build -> ToggleMenu <$> { game, build: _ } <$> build
           )
+        <$> _.game
         <$> gameStateSignal
         <*> menuSignal
 
@@ -135,6 +174,7 @@ init playerId gameStateSignal = do
         $ ( \game item ->
               SelectMenuItem <$> { game, item: _ } <$> BuildTemplate <$> item
           )
+        <$> _.game
         <$> gameStateSignal
         <*> selectSignal
   state <-
@@ -147,7 +187,7 @@ init playerId gameStateSignal = do
               display cmd.build state playerId cmd.game
             pure $ state { open = not state.open }
           SelectMenuItem cmd -> do
-            case (spy "Action" (Main.buildAction cmd.item playerId cmd.game)) of
+            case (Main.buildAction cmd.item playerId cmd.game) of
               Nothing -> pure state
               Just action ->
                 if action.available then do
@@ -171,10 +211,7 @@ hook { state } game = do
   latest <- get state
   case latest.currentTemplate of
     Nothing -> pure game
-    Just template -> pure $ game { scene = Scene.addEntity (templateEntity template) scene }
-
-templateEntity :: forall cmd ev entity. BuildActionInfo -> Entity`cmd ev entity
-templateEntity info = 
+    Just template -> pure game --{ scene = Scene.addEntity (templateEntity template) scene }
 
 unusedCommand :: Variant EntityCommand
 unusedCommand = impact { force: 0.0, source: EntityId "" }

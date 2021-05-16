@@ -2,6 +2,7 @@ module Blatus.Client where
 
 import Prelude
 import Blatus.Client.BuildMenu as BuildMenu
+import Blatus.Client.Camera (Camera, setupCamera, trackEntity)
 import Blatus.Client.Input as Input
 import Blatus.Client.Rendering as Rendering
 import Blatus.Client.Ui as Ui
@@ -11,12 +12,14 @@ import Blatus.Types (EntityCommand)
 import Control.Monad.Except (runExcept)
 import Data.Either (either)
 import Data.Foldable (foldl, for_)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), fromJust)
 import Data.Tuple (fst)
 import Data.Variant (Variant, expand)
 import Debug (spy)
 import Effect (Effect)
 import Foreign (readString)
+import Graphics.Canvas as Canvas
+import Partial.Unsafe (unsafePartial)
 import Signal (Signal, foldp, runSignal, sampleOn)
 import Signal as Signal
 import Signal.Channel (Channel)
@@ -65,6 +68,7 @@ type RunningState
 
 type GameState
   = { game :: Main.State
+    , camera :: Camera
     , info :: GameInfo
     , serverTick :: Int
     , tickLatency :: Int
@@ -112,6 +116,9 @@ waitForFirstSync common info msg = case msg of
     inputSignal <- Input.signal
     serverMessageChannel <- Channel.channel msg
     errorMessageChannel <- Channel.channel Nothing
+    canvas <- (unsafePartial fromJust) <$> Canvas.getCanvasElementById "target"
+    canvasWidth <- Canvas.getCanvasWidth canvas
+    canvasHeight <- Canvas.getCanvasHeight canvas
     let
       initialGameState =
         { info
@@ -119,6 +126,7 @@ waitForFirstSync common info msg = case msg of
         , tickLatency: 0
         , game: (Main.fromSync now sync)
         , now
+        , camera: setupCamera { width: canvasWidth, height: canvasHeight }
         }
 
       gameStateSignal =
@@ -138,8 +146,8 @@ waitForFirstSync common info msg = case msg of
         )
       <$> (sampleOn healthCheckSignal $ Signal.constant 1)
     buildMenu <- BuildMenu.init info.playerId $ _.game <$> gameStateSignal
-    modifiedStateSignal <- Signal.unwrap $ (\game -> BuildMenu.hook buildMenu game) <$> _.game <$> gameStateSignal
-    Rendering.init info.playerId modifiedStateSignal
+    --modifiedStateSignal <- Signal.unwrap $ (\game -> BuildMenu.hook buildMenu game) <$> _.game <$> gameStateSignal
+    Rendering.init info.playerId $ (\s -> { game: s.game, camera: s.camera }) <$> gameStateSignal
     Ui.init
       { playerId: info.playerId
       , gameUrl: info.gameUrl
@@ -194,7 +202,13 @@ handleClientCommand :: Variant EntityCommand -> GameState -> GameState
 handleClientCommand msg state@{ info: { playerId }, game } = state { game = fst $ Main.sendCommand playerId (expand msg) game }
 
 handleTick :: Number -> GameState -> GameState
-handleTick now state@{ game } = state { game = fst $ Main.tick now game, now = now }
+handleTick now state@{ info: { playerId }, game, camera } =
+  let
+    newGame = fst $ Main.tick now game
+
+    newCamera = trackEntity playerId newGame.scene camera
+  in
+    state { game = newGame, camera = newCamera, now = now }
 
 handleServerError :: forall a. a -> Effect State
 handleServerError err =

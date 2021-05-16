@@ -35,16 +35,20 @@ type State
     , offscreenContext :: Canvas.Context2D
     , offscreenCanvas :: Canvas.CanvasElement
     , assets :: Assets.AssetPackage
-    , camera :: Camera
     , sf1 :: Background.State
     , sf2 :: Background.State
     , sf3 :: Background.State
     }
 
-type EntityState r
-  = ( aabb :: Rect, velocity :: Point | r )
+type Input
+  = { game :: Main.State
+    , camera :: Camera
+    }
 
-init :: EntityId -> Signal (Main.State) -> Effect Unit
+type EntityState r
+  = ( aabb :: Rect | r )
+
+init :: EntityId -> Signal Input -> Effect Unit
 init playerId gameSignal =
   runAff_
     ( \assets -> do
@@ -57,23 +61,18 @@ init playerId gameSignal =
   renderSetup canvasElement offscreenCanvas assets = do
     renderContext <- Canvas.getContext2D canvasElement
     offscreenContext <- Canvas.getContext2D offscreenCanvas
-    canvasWidth <- Canvas.getCanvasWidth canvasElement
-    canvasHeight <- Canvas.getCanvasHeight canvasElement
-    game <- Signal.get gameSignal
+    { game } <- Signal.get gameSignal
     sf1 <- Background.init 0.5 game.scene
     sf2 <- Background.init 0.3 game.scene
     sf3 <- Background.init 0.7 game.scene
     renderSignal <- animationFrame
     let
-      camera = setupCamera { width: canvasWidth, height: canvasHeight }
-
       state =
         { renderContext
         , canvasElement
         , offscreenContext
         , offscreenCanvas
         , assets
-        , camera
         , sf1
         , sf2
         , sf3
@@ -81,13 +80,9 @@ init playerId gameSignal =
         }
     void $ foldEffect render state $ (sampleOn renderSignal gameSignal)
 
-render :: Main.State -> State -> Effect State
-render game state@{ playerId, camera: camera@{ config }, offscreenContext, offscreenCanvas, renderContext, assets, sf1, sf2, sf3 } = do
-  let
-    updatedConfig = trackPlayer playerId game.scene config
-
-    viewport = viewportFromConfig updatedConfig
-  _ <- Canvas.clearRect offscreenContext { x: 0.0, y: 0.0, width: updatedConfig.target.width, height: updatedConfig.target.height }
+render :: Input -> State -> Effect State
+render { camera: camera@{ config, viewport }, game } state@{ offscreenContext, offscreenCanvas, renderContext, assets, sf1, sf2, sf3 } = do
+  _ <- Canvas.clearRect offscreenContext { x: 0.0, y: 0.0, width: config.target.width, height: config.target.height }
   _ <- Canvas.save offscreenContext
   _ <- applyViewport viewport offscreenContext
   _ <- Background.render camera sf1 offscreenContext
@@ -99,9 +94,9 @@ render game state@{ playerId, camera: camera@{ config }, offscreenContext, offsc
   _ <- Canvas.restore offscreenContext
   let
     image = Canvas.canvasElementToImageSource offscreenCanvas
-  _ <- Canvas.clearRect renderContext { x: 0.0, y: 0.0, width: updatedConfig.target.width, height: updatedConfig.target.height }
+  _ <- Canvas.clearRect renderContext { x: 0.0, y: 0.0, width: config.target.width, height: config.target.height }
   _ <- Canvas.drawImage renderContext image 0.0 0.0
-  pure $ state { camera = { config: updatedConfig, viewport } }
+  pure state
 
 renderExplosions :: Explosions.State -> Canvas.Context2D -> Effect Unit
 renderExplosions state ctx = do
@@ -179,17 +174,3 @@ renderScene viewport { entities } assets ctx = do
       else
         pure unit
   pure unit
-
-trackPlayer :: forall cmd ev entity. EntityId -> Game cmd ev (EntityState entity) -> CameraConfiguration -> CameraConfiguration
-trackPlayer playerId game config =
-  maybe' (\_ -> config { distance = config.distance + 2.0 })
-    ( \player ->
-        let
-          targetDistance = 750.0 + (abs player.velocity.x + abs player.velocity.y) * 20.0
-        in
-          config
-            { lookAt = player.location
-            , distance = config.distance + 0.02 * (targetDistance - config.distance)
-            }
-    )
-    $ entityById playerId game

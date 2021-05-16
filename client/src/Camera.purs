@@ -1,10 +1,14 @@
 module Blatus.Client.Camera where
 
 import Prelude
+import Data.Maybe (maybe')
+import Data.Ord (abs)
 import Effect (Effect)
 import Graphics.Canvas as Canvas
 import Math (tan) as Math
 import Sisy.Math (Point, point, Rect)
+import Sisy.Runtime.Entity (EntityId(..))
+import Sisy.Runtime.Scene (Game, entityById)
 
 type CameraViewport
   = { left :: Number
@@ -33,6 +37,9 @@ type Camera
   = { config :: CameraConfiguration
     , viewport :: CameraViewport
     }
+
+type EntityState r
+  = ( velocity :: Point | r )
 
 setupCamera :: CameraTarget -> Camera
 setupCamera target =
@@ -98,3 +105,21 @@ viewportFromConfig config =
   right = left + width
 
   bottom = top + height
+
+trackEntity :: forall cmd ev entity. EntityId -> Game cmd ev (EntityState entity) -> Camera -> Camera
+trackEntity playerId game camera@{ config } = camera { config = newConfig, viewport = newViewport }
+  where
+  newViewport = viewportFromConfig newConfig
+
+  newConfig =
+    maybe' (\_ -> config { distance = config.distance + 2.0 })
+      ( \player ->
+          let
+            targetDistance = 750.0 + (abs player.velocity.x + abs player.velocity.y) * 20.0
+          in
+            config
+              { lookAt = player.location
+              , distance = config.distance + 0.02 * (targetDistance - config.distance)
+              }
+      )
+      $ entityById playerId game
