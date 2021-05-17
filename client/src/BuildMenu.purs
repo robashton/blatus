@@ -5,7 +5,7 @@ import Blatus.BuildMenu (BuildActionInfo)
 import Blatus.Client.Camera (Camera)
 import Blatus.Client.Camera as Camera
 import Blatus.Main as Main
-import Blatus.Types (Build, BuildTemplate(..), EntityCommand)
+import Blatus.Types (Build, BuildTemplate(..), EntityCommand, build)
 import Control.Apply (lift2)
 import Data.Int (toNumber)
 import Data.Maybe (Maybe(..), fromJust, fromMaybe, isJust, maybe)
@@ -213,6 +213,17 @@ init playerId gameStateSignal = do
         <$> _.game
         <$> gameStateSignal
         <*> selectSignal
+
+    mouseLocationSignal =
+      map2
+        ( \state mouse ->
+            let
+              world = Camera.canvasToWorld state.camera mouse
+            in
+              UpdateMouse world
+        )
+        gameStateSignal
+        $ Channel.subscribe trackChannel
   state <-
     foldEffect
       ( \ev state -> case ev of
@@ -234,7 +245,9 @@ init playerId gameStateSignal = do
           UpdateMouse p -> pure $ state { mouse = p }
           SendBuildCommand -> case state.currentTemplate of
             Nothing -> pure state
-            Just template -> pure state -- Channel.send commandChannel $ build { location: state.mouse
+            Just action -> do
+              Channel.send commandChannel $ Just $ build { location: state.mouse, template: action.template }
+              pure state
           None -> pure state
       )
       initialState
@@ -242,7 +255,7 @@ init playerId gameStateSignal = do
             $ menuToggleSignal
             <> menuSelectSignal
         )
-      <> (UpdateMouse <$> Channel.subscribe trackChannel)
+      <> (mouseLocationSignal)
       <> ((\a -> if a then SendBuildCommand else None) <$> Channel.subscribe buildChannel)
   let
     output =
@@ -251,9 +264,7 @@ init playerId gameStateSignal = do
             Nothing -> { game, camera }
             Just t ->
               let
-                world = spy "world" $ Camera.canvasToWorld camera mouse
-
-                entity = t.build (EntityId "build-template") world
+                entity = t.build (EntityId "build-template") mouse
               in
                 { game:
                     game
