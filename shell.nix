@@ -19,7 +19,7 @@ let
   purerlSupport =
     builtins.fetchGit {
       name = "purerl-support-packages";
-      url = "git@github.com:id3as/nixpkgs-purerl-support.git";
+      url = "https://github.com/id3as/nixpkgs-purerl-support.git";
       rev = "1338c5b08480b4a3e67d60aaf33492d224a46bcf";
     };
 
