@@ -21,7 +21,7 @@ let extras = {
               [ "erl-process"
               , "effect"
               ]
-          , repo = "ssh://git@github.com/id3as/purescript-erl-simplebus.git"
+          , repo = "https://github.com/id3as/purescript-erl-simplebus.git"
           , version = "9e95648be2d75bc30268a3e214e1950c86680982"
           }
       , erl-logger =
