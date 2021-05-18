@@ -6,7 +6,7 @@ let
     builtins.fetchGit {
       name = "nixpkgs-pinned";
       url = "https://github.com/NixOS/nixpkgs.git";
-      rev = "e5f945b13b3f6a39ec9fbb66c9794b277dc32aa1";
+      rev = "5ce67d6fa06f459dde59b4e930e11b89e229a4b1";
     };
 
   purerlReleases =
@@ -41,11 +41,7 @@ let
       ];
     };
 
-  erlangChannel = nixpkgs.nixerl.erlang-23-2-1.overrideScope' (self: super: {
-    erlang = super.erlang.override {
-      wxSupport = false;
-    };
-  });
+  erlangChannel = nixpkgs.nixerl.erlang-23-2-1;
 
   pls = nixpkgs.nodePackages.purescript-language-server.override {
     version = "0.15.0";
