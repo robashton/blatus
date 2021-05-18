@@ -53,7 +53,6 @@ let
       url = "https://registry.npmjs.org/purescript-language-server/-/purescript-language-server-0.15.0.tgz";
     };
   };
-    
 
 in
 
@@ -76,5 +75,6 @@ mkShell {
     pls
 
     etwas
+    act
    ];
 }
